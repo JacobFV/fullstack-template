@@ -148,7 +148,7 @@ class UserThatRequestsVerificationBase(UserBase):
 
 
 class UserThatRequestsVerificationCreate(UserCreate):
-    stripe_account_id: str | None = None
+    stripe_user_access_token: str | None = None
 
 
 class UserThatRequestsVerificationUpdate(UserUpdate):
@@ -156,14 +156,14 @@ class UserThatRequestsVerificationUpdate(UserUpdate):
 
 
 class UserThatRequestsVerificationUpdateMe(UserUpdateMe):
-    stripe_account_id: str | None = None
+    stripe_user_access_token: str | None = None
 
 
 class UserThatRequestsVerification(User):
     verification_requests: list[VerificationRequest] = Relationship(
         back_populates="verification_requested_by"
     )
-    stripe_account_id: str | None = None
+    stripe_user_access_token: str | None = None
 
 
 class UserThatRequestsVerificationPublic(UserPublic):
