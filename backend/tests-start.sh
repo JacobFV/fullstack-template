@@ -1,7 +1,13 @@
 #! /usr/bin/env bash
-set -e
-set -x
 
-python /app/app/tests_pre_start.py
+# Let the DB start
+python /app/app db init
 
-bash ./scripts/test.sh "$@"
+# Run migrations
+python /app/app db alembic upgrade head
+
+# Test connection
+python /app/app db test-connect
+
+# Create initial data in DB
+python /app/app db seed --test

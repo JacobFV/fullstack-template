@@ -1,9 +1,13 @@
-from sqlmodel import SQLModel, Session, create_engine, select
+import logging
 
-from app import crud
+from sqlmodel import SQLModel, Session, create_engine, select
+from sqlalchemy import Engine
+from tenacity import after_log, before_log, retry, stop_after_attempt, wait_fixed
+
 from app.core.config import get_settings, settings
+from app import crud
 from app.schema import User, UserCreate
-from app.core.state import ApplicationState
+
 
 connect_args = {"check_same_thread": False}
 engine = create_engine(
@@ -45,14 +49,6 @@ async def seed_db(session: Session) -> None:
     )
 
 
-import logging
-
-from sqlalchemy import Engine
-from sqlmodel import Session, select
-from tenacity import after_log, before_log, retry, stop_after_attempt, wait_fixed
-
-from app.core.db import engine
-
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -66,7 +62,7 @@ wait_seconds = 1
     before=before_log(logger, logging.INFO),
     after=after_log(logger, logging.WARN),
 )
-def test_db(db_engine: Engine) -> None:
+def test_connect_db() -> None:
     try:
         with Session(db_engine) as session:
             # Try to create session to check if DB is awake
@@ -74,3 +70,8 @@ def test_db(db_engine: Engine) -> None:
     except Exception as e:
         logger.error(e)
         raise e
+
+
+async def drop_db(db_engine: Engine) -> None:
+    settings = await get_settings()
+    db_engine.execute(f"DROP DATABASE IF EXISTS {settings.POSTGRES_DB}")

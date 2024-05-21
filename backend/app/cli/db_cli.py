@@ -1,39 +1,44 @@
+from sqlmodel import Session
 import typer
 
 # DB group commands
 from app.core import config
-from app.core.db import seed_db, test_db
+from app.core.db import drop_db, init_db, seed_db, test_connect_db, engine
 
+# Assuming engine is created from a configuration setting
 
 db_cli = typer.Typer()
 
 
 @db_cli.command()
-def drop(
+async def drop(
     confirm: bool = typer.Option(
         False, "--confirm", prompt="Are you sure you want to drop the database?"
     )
 ):
     if confirm:
         typer.echo("Dropping database...")
-        with get_db() as db:
-            db.execute(f"DROP DATABASE IF EXISTS {settings.POSTGRES_DB}")
+        with Session(engine) as session:
+            await drop_db(session)
         typer.echo("Database dropped.")
     else:
         typer.echo("Database drop cancelled.")
 
 
 @db_cli.command()
-def init(session=typer.Depends(get_db)):
+def init():
     typer.echo("Initializing database...")
-    init_db(session)
+    with Session(engine) as session:
+        init_db(session)
     typer.echo("Database initialized.")
 
 
 @db_cli.command()
-def seed(session=typer.Depends(get_db)):
+def seed():
     typer.echo("Seeding database...")
-    seed_db(session)
+    with Session(engine) as session:
+        seed_db(session)
+    typer.echo("Database seeded.")
 
 
 @db_cli.command()
@@ -49,5 +54,8 @@ def alembic(*args):
 
 
 @db_cli.command()
-def test():
-    test_db()
+def test_connect():
+    typer.echo("Testing database connection...")
+    with Session(engine) as session:
+        test_connect_db(session)
+    typer.echo("Database connection tested.")
