@@ -5,9 +5,9 @@ class FaceRecognitionHandler:
     def __init__(self):
         self.video_capture = None
         self.face_locations = []
+        self.frame_count = 0  # Initialize frame count
 
     def process_frame(self, frame):
-
         # Resize frame of video to 1/4 size for faster face recognition processing
         small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
 
@@ -15,21 +15,32 @@ class FaceRecognitionHandler:
         rgb_small_frame = small_frame[:, :, ::-1]
 
         # Only process every other frame of video to save time
-        if len(self.face_locations) > 0:
+        if self.frame_count % 2 == 0:  # Check if the frame count is even
             # Find all the faces and face locations in the current frame of video
-            self.face_locations = face_recognition.face_locations(rgb_small_frame)
-            self.face_locations = [y * 4 for y in self.face_locations]  # Scale up the coordinates back to the original frame size
+            new_face_locations = face_recognition.face_locations(rgb_small_frame)
+            self.face_locations.extend(new_face_locations)  # Append new detections to existing locations
 
         # Draw a box around the faces
         for (top, right, bottom, left) in self.face_locations:
             cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
 
+        self.frame_count += 1  # Increment the frame count
         return True
 
-    def start_processing(self):
+
+    def start_processing(self, video_source=0):
+        cap = cv2.VideoCapture(video_source)
+        if not cap.isOpened():
+            print("Cannot open video source")
+            exit()
         while True:
-            if not self.process_frame():
+            ret, frame = cap.read()
+            if not ret:
+                print("Can't receive frame (stream end?). Exiting...")
                 break
+            if not self.process_frame(frame):
+                break
+        cap.release()
 
 # Example usage
 handler = FaceRecognitionHandler()
