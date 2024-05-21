@@ -1,7 +1,7 @@
 from deepface import DeepFace
 
 
-models = ["VGG-Face", "Facenet", "OpenFace", "DeepID", "ArcFace", "Dlib", "SFace"]
+models = ["Facenet"]
 
 DeepFace.stream("database", model_name="models")
 
