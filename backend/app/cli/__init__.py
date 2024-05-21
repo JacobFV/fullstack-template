@@ -64,23 +64,29 @@ def dev(
         default=settings.DEV_PORT,
         help="Port to run the server on.",
     ),
+    new_db: bool = typer.Option(
+        default=False,
+        help="Create a new database.",
+    ),
 ):
     with Session(engine) as db_session:
         with typer.progressbar(
-            length=6, label="Processing database and server operations"
+            length=5, label="Processing database and server operations"
         ) as progress:
-            db_cli_endpoints.test_connect()
-            progress.update(1)
             dev_cli_endpoints.test()
             progress.update(1)
-            db_cli_endpoints.drop_db(db_session)
+            db_cli_endpoints.test_connect()
             progress.update(1)
-            db_cli_endpoints.init_db(db_session)
-            progress.update(1)
-            db_cli_endpoints.seed_db(db_session)
-            progress.update(1)
+            if new_db:
+                db_cli_endpoints.drop_db(db_session)
+                progress.update(1)
+                db_cli_endpoints.init_db(db_session)
+                progress.update(1)
+                db_cli_endpoints.seed_db(db_session)
+                progress.update(1)
+            else:
+                progress.update(3)
             dev_cli_endpoints.serve(host, port)
-            progress.update(1)
 
 
 if __name__ == "__main__":
