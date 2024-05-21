@@ -178,7 +178,7 @@ class UserThatRequestsVerificationUpdateMe(UserUpdateMe):
 
 
 class UserThatRequestsVerification(User):
-    verification_requests: list[VerificationRequest] = Relationship(
+    verification_requests: list[Verification] = Relationship(
         back_populates="verification_requested_by"
     )
     stripe_user_access_token: str | None = None
@@ -189,7 +189,7 @@ class UserThatRequestsVerificationPublic(UserPublic):
 
 
 class UserThatRequestsVerificationPublicMe(UserPublicMe):
-    verification_requests: list[VerificationRequest]
+    verification_requests: list[Verification]
 
 
 # Shared properties
@@ -248,26 +248,22 @@ class NewPassword(CRUDBase):
     new_password: str
 
 
-class VerificationRequestStatus(Enum):
+class VerificationStatus(Enum):
     REQUESTED = "requested"
     IN_PROGRESS = "in_progress"
     VERIFIED = "verified"
     FAILED = "failed"
 
 
-class VerificationRequestBase(CRUDBase):
+class VerificationBase(CRUDBase):
     pass
 
 
 # TODO: change on_completion_webhook_url and on_completion_redirect_url to URLStr when sqlmodel supports it
-class VerificationRequestCreate(VerificationRequestBase, CRUDCreate):
+class VerificationRequestBase(VerificationBase, CRUDCreate):
     who_to_verify_id: int
     on_completion_webhook_url: str
     on_completion_redirect_url: str | None = None
-
-
-class VerificationRequestUpdate(VerificationRequestBase, CRUDUpdate):
-    pass
 
 
 class HasReddisChannel(CRUDInDB):
@@ -299,34 +295,52 @@ class HasReddisChannel(CRUDInDB):
                 await message_handler(message["data"])
 
 
-class VerificationRequest(HasReddisChannel, VerificationRequestBase, CRUDInDB):
+class Verification(HasReddisChannel, VerificationBase, CRUDInDB):
     verification_requested_by_id: int
     verification_requested_by: UserThatRequestsVerification
     who_to_verify_id: int
     who_to_verify: User
-    verf_status: VerificationRequestStatus
+    verf_status: VerificationStatus
     on_completion_webhook_url: str
     on_completion_redirect_url: str | None = None
 
 
-class FaceVideoAnomalyVerification(VerificationRequest):
-    check_anomaly_in_face_video: bool = True
+class VerificationPublic(VerificationBase, CRUDRead):
+    verification_requested_by_id: int
+    verification_requested_by: UserThatRequestsVerification
+    who_to_verify_id: int
+    who_to_verify: User
+    verf_status: VerificationStatus
+    on_completion_webhook_url: str
+    on_completion_redirect_url: str | None = None
 
+
+class FaceVideoAnomalyVerificationBase(VerificationBase):
     model_name: str = "face_video_anomaly_verification-001"
 
 
-class HandSignVerification(VerificationRequest):
-    ask_to_make_hand_signs: bool = True
-    hand_letters: list[str] | None = None
+class FaceVideoAnomalyVerificationRequest(
+    FaceVideoAnomalyVerificationBase, VerificationRequestBase
+):
+    pass
 
-    model_name: str = "hand_sign_verification-001"
+
+class FaceVideoAnomalyVerification(Verification):
+    pass
 
 
-class FaceImageMatchVerification(VerificationRequest):
-    check_match_against_provided_face_images: bool = True
-    additional_provided_face_images: list[bytes] | None = None
+class FaceVideoAnomalyVerificationPublic(
+    FaceVideoAnomalyVerificationBase, VerificationPublic
+):
+    pass
 
+
+class FaceImageMatchVerificationBase(VerificationBase):
     algorithm_name: str = "face_image_match_verification-001"
+
+
+class FaceImageMatchVerification(FaceImageMatchVerificationBase, Verification):
+    additional_provided_face_images: list[bytes] | None = None
 
     @hybrid_property
     def all_provided_face_images(self):
@@ -339,15 +353,67 @@ class FaceImageMatchVerification(VerificationRequest):
         )
 
 
-class FingerprintVerification(VerificationRequest):
-    check_fingerprint: bool = True
+class FaceImageMatchVerificationPublic(
+    FaceImageMatchVerificationBase, VerificationPublic
+):
+    pass
 
 
-class VerificationRequestPublic(VerificationRequestBase, CRUDRead):
-    verification_requested_by_id: int
-    verification_requested_by: UserThatRequestsVerification
-    who_to_verify_id: int
-    who_to_verify: User
-    verf_status: VerificationRequestStatus
-    on_completion_webhook_url: str
-    on_completion_redirect_url: str | None = None
+class HandSignVerificationBase(VerificationBase):
+    model_name: str = "hand_sign_verification-001"
+
+
+class HandSignVerification(HandSignVerificationBase, Verification):
+    hand_letters: list[str]
+
+
+class HandSignVerificationPublic(HandSignVerificationBase, VerificationPublic):
+    pass
+
+
+class LivingPupilVerificationBase(VerificationBase):
+    model_name: str = "living_pupil_verification-001"
+
+
+class LivingPupilVerification(LivingPupilVerificationBase, Verification):
+    pass
+
+
+class LivingPupilVerificationPublic(LivingPupilVerificationBase, VerificationPublic):
+    pass
+
+
+class HumanSpeechVerificationBase(VerificationBase):
+    model_name: str = "human_speech_verification-001"
+
+
+class HumanSpeechVerification(HumanSpeechVerificationBase, Verification):
+    pass
+
+
+class HumanSpeechVerificationPublic(HumanSpeechVerificationBase, VerificationPublic):
+    pass
+
+
+class CreditBureauVerificationBase(VerificationBase):
+    pass
+
+
+class CreditBureauVerification(CreditBureauVerificationBase, Verification):
+    pass
+
+
+class CreditBureauVerificationPublic(CreditBureauVerificationBase, VerificationPublic):
+    pass
+
+
+class ProofOfIDVerificationBase(VerificationBase):
+    pass
+
+
+class ProofOfIDVerification(ProofOfIDVerificationBase, Verification):
+    pass
+
+
+class ProofOfIDVerificationPublic(ProofOfIDVerificationBase, VerificationPublic):
+    pass
