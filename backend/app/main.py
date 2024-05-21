@@ -24,7 +24,7 @@ def lifespan(app: FastAPI):
         pass
 
 
-app = FastAPI(
+fastapi_app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.api_v1_str}/openapi.json",
     generate_unique_id_function=custom_generate_unique_id,
@@ -33,7 +33,7 @@ app = FastAPI(
 
 # Set all CORS enabled origins
 if settings.BACKEND_CORS_ORIGINS:
-    app.add_middleware(
+    fastapi_app.add_middleware(
         CORSMiddleware,
         allow_origins=[
             str(origin).strip("/") for origin in settings.BACKEND_CORS_ORIGINS
@@ -43,4 +43,4 @@ if settings.BACKEND_CORS_ORIGINS:
         allow_headers=["*"],
     )
 
-app.include_router(api_router, prefix=settings.api_v1_str)
+fastapi_app.include_router(api_router, prefix=settings.api_v1_str)

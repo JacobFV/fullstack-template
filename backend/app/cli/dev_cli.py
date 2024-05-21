@@ -4,7 +4,7 @@ from typing import Annotated
 import typer
 
 from app.core.config import Settings, get_settings
-from app.main import app
+from app.main import fastapi_app
 
 dev_cli = typer.Typer()
 
@@ -14,7 +14,7 @@ SettingsTyperDep = Annotated[Settings, typer.Depends(get_settings)]
 # Main command: serve
 @dev_cli.command()
 async def serve(host: str = settings.HOST, port: int = settings.PORT):
-    uvicorn.run(app, host=host, port=port)
+    uvicorn.run(fastapi_app, host=host, port=port)
 
 
 from app.core.config import get_settings
