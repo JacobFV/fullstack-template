@@ -1,4 +1,5 @@
 from __future__ import annotations
+from enum import Enum
 
 from sqlmodel import Field, Relationship, Session
 
@@ -147,7 +148,7 @@ class UserThatRequestsVerificationBase(UserBase):
 
 
 class UserThatRequestsVerificationCreate(UserCreate):
-    pass
+    stripe_user_access_token: str | None = None
 
 
 class UserThatRequestsVerificationUpdate(UserUpdate):
@@ -155,13 +156,14 @@ class UserThatRequestsVerificationUpdate(UserUpdate):
 
 
 class UserThatRequestsVerificationUpdateMe(UserUpdateMe):
-    pass
+    stripe_user_access_token: str | None = None
 
 
 class UserThatRequestsVerification(User):
     verification_requests: list[VerificationRequest] = Relationship(
         back_populates="verification_requested_by"
     )
+    stripe_user_access_token: str | None = None
 
 
 class UserThatRequestsVerificationPublic(UserPublic):
@@ -169,7 +171,7 @@ class UserThatRequestsVerificationPublic(UserPublic):
 
 
 class UserThatRequestsVerificationPublicMe(UserPublicMe):
-    pass
+    verification_requests: list[VerificationRequest]
 
 
 # Shared properties
@@ -228,15 +230,22 @@ class NewPassword(SQLModelBase):
     new_password: str
 
 
+class VerificationStatus(Enum):
+    REQUESTED = "requested"
+    IN_PROGRESS = "in_progress"
+    VERIFIED = "verified"
+    FAILED = "failed"
+
+
 class VerificationRequestBase(SQLModelBase):
-    verification_requested_by_id: int
-    verification_requested_by: UserThatRequestsVerification
-    who_to_verify_id: int
-    who_to_verify: User
-
-
-class VerificationRequestCreate(VerificationRequestBase, SQLModelCreate):
     pass
+
+
+# TODO: change on_completion_webhook_url and on_completion_redirect_url to URLStr when sqlmodel supports it
+class VerificationRequestCreate(VerificationRequestBase, SQLModelCreate):
+    who_to_verify_id: int
+    on_completion_webhook_url: str
+    on_completion_redirect_url: str | None = None
 
 
 class VerificationRequestUpdate(VerificationRequestBase, SQLModelUpdate):
@@ -244,8 +253,20 @@ class VerificationRequestUpdate(VerificationRequestBase, SQLModelUpdate):
 
 
 class VerificationRequest(VerificationRequestBase, SQLModelInDB):
-    pass
+    verification_requested_by_id: int
+    verification_requested_by: UserThatRequestsVerification
+    who_to_verify_id: int
+    who_to_verify: User
+    verf_status: VerificationStatus
+    on_completion_webhook_url: str
+    on_completion_redirect_url: str | None = None
 
 
 class VerificationRequestPublic(VerificationRequestBase, SQLModelPublic):
-    pass
+    verification_requested_by_id: int
+    verification_requested_by: UserThatRequestsVerification
+    who_to_verify_id: int
+    who_to_verify: User
+    verf_status: VerificationStatus
+    on_completion_webhook_url: str
+    on_completion_redirect_url: str | None = None
