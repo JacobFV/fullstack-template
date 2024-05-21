@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlmodel import Field, Relationship, SQLModel
+from sqlmodel import Field, Relationship, SQLModel, Session
 
 
 class SQLModelBase(SQLModel):
@@ -16,7 +16,9 @@ class SQLModelUpdate(SQLModelBase):
 
 
 class SQLModelInDB(SQLModelBase, table=True):
-    pass
+    @classmethod
+    def init_ddl(cls, session: Session):
+        pass
 
 
 class SQLModelPublic(SQLModelBase):
