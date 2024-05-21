@@ -15,7 +15,7 @@ from app.schema import (
     VerificationRequest,
     VerificationRequestStatus,
 )
-from fastapi import APIRouter, Depends, HTTPException, WebSocket
+from fastapi import APIRouter, Depends, HTTPException, WebSocket, Request
 from sqlalchemy.orm import Session
 from sqlmodel import select
 
@@ -102,15 +102,15 @@ async def verify_me_websocket_endpoint(
 
         # Main WebSocket communication loop
         while True:
-            data_type = await websocket.receive()
-            if data_type["type"] == "websocket.receive_text":
-                text_data = data_type["text"]
-            elif data_type["type"] == "websocket.receive_bytes":
-                video_frame = data_type["bytes"]
-
-            result = jordans_function(text_data or None, video_frame or None)
-
-            await websocket.send_text(f"Message received:")
+            text_data = await websocket.receive()
+            await websocket.send_text(f"Message received: {text_data}")
     except Exception as e:
         await websocket.close()
         print(f"WebSocket connection closed with exception: {e}")
+
+
+@router.post("/video/{verification_request_id}")
+async def stream_video(request: Request, verification_request_id: int):
+    async for chunk in request.stream():
+        # Process each chunk of video data
+        process_video_chunk(chunk)
