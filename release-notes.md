@@ -275,7 +275,7 @@ Test cov > 90% ✅
 * 👷 Fix latest-changes GitHub Action token config. PR [#545](https://github.com/tiangolo/full-stack-fastapi-template/pull/545) by [@tiangolo](https://github.com/tiangolo).
 * 👷 Add latest-changes GitHub Action. PR [#544](https://github.com/tiangolo/full-stack-fastapi-template/pull/544) by [@tiangolo](https://github.com/tiangolo).
 * Update issue-manager. PR [#211](https://github.com/tiangolo/full-stack-fastapi-template/pull/211).
-* Add [GitHub Sponsors](https://github.com/sponsors/tiangolo) button. PR [#201](https://github.com/tiangolo/full-stack-fastapi-template/pull/201).
+<!-- * Add [GitHub Sponsors](https://github.com/sponsors/tiangolo) button. PR [#201](https://github.com/tiangolo/full-stack-fastapi-template/pull/201). -->
 * Simplify scripts and development, update docs and configs. PR [#155](https://github.com/tiangolo/full-stack-fastapi-template/pull/155).
 
 ## 0.5.0
