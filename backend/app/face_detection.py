@@ -1,7 +1,6 @@
 import face_recognition
 import cv2
 import aio_pika
-import numpy as np
 
 from app.schema import VerificationRequest
 
