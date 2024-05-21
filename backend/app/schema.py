@@ -1,7 +1,9 @@
 from __future__ import annotations
+from abc import abstractmethod
 from datetime import datetime
 from enum import Enum
 from functools import cached_property
+from typing import Optional
 import aio_pika
 from app.core.aoimq import get_aoimq_channel
 
@@ -21,9 +23,17 @@ class SQLModelUpdate(SQLModelBase):
 
 
 class SQLModelInDB(SQLModelBase, table=True):
+
     @classmethod
+    @abstractmethod
     def init_ddl(cls, session: Session):
-        pass
+        pass  # TODO: add constraints and security if applicable to all classes
+
+    @staticmethod
+    def init_all_ddl(session: Session):
+        for subclass in SQLModelInDB.__subclasses__():
+            if hasattr(subclass, "init_ddl"):
+                subclass.init_ddl(session)
 
 
 class SQLModelPublic(SQLModelBase):
@@ -35,7 +45,7 @@ class VerifiableIdentityBase(SQLModelBase):
 
 
 class VerifiableIdentityCreate(VerifiableIdentityBase, SQLModelCreate):
-    pass
+    image: Optional[bytes]
 
 
 class VerifiableIdentityUpdate(VerifiableIdentityBase, SQLModelUpdate):
@@ -47,11 +57,13 @@ class VerifiableIdentityUpdateMe(VerifiableIdentityBase, SQLModelUpdate):
 
 
 class VerifiableIdentity(VerifiableIdentityBase, SQLModelInDB):
-    id: int | None = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True, autoincrement=True)
+    image: Optional[bytes]
 
 
 class VerifiableIdentityPublic(VerifiableIdentityBase, SQLModelPublic):
     id: int
+    image: Optional[bytes]
 
 
 class VerifiableIdentityPublicMe(VerifiableIdentityBase, SQLModelPublic):
