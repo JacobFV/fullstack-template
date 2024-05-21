@@ -2,10 +2,12 @@ from app.api.deps import (
     get_current_active_superuser,
     get_current_user,
     get_current_user_or_none,
+    get_current_verifiable_identity,
     get_db,
 )
 from app.schema import (
     User,
+    VerifiableIdentity,
     VerificationRequestBase,
     VerificationRequestCreate,
     VerificationRequestUpdate,
@@ -83,7 +85,7 @@ async def websocket_endpoint(
     websocket: WebSocket,
     verification_request_id: int,
     db: Session = Depends(get_db),
-    current_identity: Identity = Depends(get_current_user_or_none),
+    current_identity: VerifiableIdentity = Depends(get_current_verifiable_identity),
 ):
     await websocket.accept()
     try:
@@ -92,7 +94,7 @@ async def websocket_endpoint(
             db.query(VerificationRequest)
             .filter(
                 VerificationRequest.id == verification_request_id,
-                VerificationRequest.user_id == current_identity.id,
+                VerificationRequest. == current_identity.id,
             )
             .first()
         )
