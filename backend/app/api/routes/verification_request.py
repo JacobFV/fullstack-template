@@ -18,6 +18,8 @@ from app.schema import (
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, Request
 from sqlalchemy.orm import Session
 from sqlmodel import select
+import aio_pika
+import os
 
 router = APIRouter()
 
@@ -91,24 +93,37 @@ async def verify_me_websocket_endpoint(
     current_identity: VerifiableIdentity = Depends(get_current_verifiable_identity),
 ):
     await websocket.accept()
-    try:
-        # Check if the verification request exists and belongs to the user
-        verification_request = db.exec(
-            select(VerificationRequestSession)
-            .where(VerificationRequestSession.id == verification_request_id)
-            .where(VerificationRequestSession.who_to_verify_id == current_identity.id)
-        ).first()
-        if not verification_request:
-            await websocket.close(code=4040)  # Close with error code if not found
-            return
 
-        # Main WebSocket communication loop
+    verification_request = (
+        db.query(VerificationRequestSession)
+        .filter(VerificationRequestSession.id == verification_request_id)
+        .first()
+    )
+    if not verification_request:
+        raise HTTPException(status_code=404, detail="Verification request not found")
+
+    async def consumer(message: aio_pika.IncomingMessage):
+        async with message.process():
+            # Echo message back to WebSocket
+            await websocket.send_text(f"Message received: {message.body.decode()}")
+
+    # Start consuming messages
+    await verification_request.amqp_queue().consume(consumer)
+
+    try:
         while True:
-            text_data = await websocket.receive()
-            await websocket.send_text(f"Message received: {text_data}")
+            text_data = await websocket.receive_text()
+            # Publish messages to the queue
+            await verification_request.amqp_queue().default_exchange.publish(
+                aio_pika.Message(body=text_data.encode()),
+                routing_key=verification_request.queue_name,
+            )
+
     except Exception as e:
         await websocket.close()
         print(f"WebSocket connection closed with exception: {e}")
+    finally:
+        pass
 
 #incomplete route
 # @router.post("/video/{verification_request_id}")
