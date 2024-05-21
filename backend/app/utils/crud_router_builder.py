@@ -15,6 +15,11 @@ def register_crud_endpoints(
     update=True,
     delete=True,
 ):
+    model_base.ModelCreate = model_create
+    model_base.ModelUpdate = model_update
+    model_base.ModelRead = model_read
+    model_base.ModelInDB = model_in_db
+
     if create:
 
         @router.post("/")

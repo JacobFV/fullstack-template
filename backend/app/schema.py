@@ -3,7 +3,7 @@ from abc import abstractmethod
 from datetime import datetime
 from enum import Enum
 from functools import cached_property
-from typing import Optional
+from typing import ClassVar, Optional
 from typing_extensions import Unpack
 from app.core.redis import get_redis_connection
 from pydantic.config import ConfigDict
@@ -14,7 +14,11 @@ from sqlmodel import Field, Relationship, Session, SQLModel, select, delete
 
 
 class CRUDBase(SQLModel):
-    pass
+
+    ModelCreate: ClassVar[type[CRUDCreate]]
+    ModelUpdate: ClassVar[type[CRUDUpdate]]
+    ModelRead: ClassVar[type[CRUDRead]]
+    ModelInDB: ClassVar[type[CRUDInDB]]
 
 
 class CRUDCreate(CRUDBase):
@@ -66,7 +70,7 @@ class CRUDInDB(CRUDBase, table=True):
     @classmethod
     def to_read(cls, id: int, session: Session):
         db_entity = cls.find_by_id(id, session)
-        return cls.ReadModel.model_validate(db_entity)
+        return cls.ModelRead.model_validate(db_entity)
 
     # active record methods
     def save(self, session: Session):
