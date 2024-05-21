@@ -21,7 +21,11 @@ from sqlmodel import select
 
 router = APIRouter()
 
+<<<<<<< HEAD
 
+=======
+ 
+>>>>>>> b27292c1088d35cac0515e9614339bd34d6a889c
 @router.get("/", response_model=list[VerificationRequestPublic])
 def get_my_verification_requests(
     db: Session = Depends(get_db),
