@@ -45,4 +45,4 @@ class FaceRecognitionHandler:
 
 # Example usage
 handler = FaceRecognitionHandler()
-handler.start_processing()
+# handler.start_processing()
