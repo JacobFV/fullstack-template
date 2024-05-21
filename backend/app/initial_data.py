@@ -13,10 +13,15 @@ def init() -> None:
         init_db(session)
 
 
-def main() -> None:
+def seed():
     logger.info("Creating initial data")
     init()
     logger.info("Initial data created")
+
+
+# keeping name `main` for compat
+def main() -> None:
+    seed()
 
 
 if __name__ == "__main__":

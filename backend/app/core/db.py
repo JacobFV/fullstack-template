@@ -1,10 +1,19 @@
-from sqlmodel import Session, create_engine, select
+from sqlmodel import SQLModel, Session, create_engine, select
 
 from app import crud
 from app.core.config import settings
 from backend.app.schema import User, UserCreate
 
-engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
+connect_args = {"check_same_thread": False}
+engine = create_engine(
+    str(settings.SQLALCHEMY_DATABASE_URI),
+    echo=True,
+    connect_args=connect_args,
+)
+
+
+def create_db_and_tables():
+    SQLModel.metadata.create_all(engine)
 
 
 # make sure all SQLModel models are imported (app.models) before initializing DB

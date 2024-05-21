@@ -29,6 +29,9 @@ def init(db_engine: Engine) -> None:
         raise e
 
 
+# TODO: use this instead of the lifecycle i made earlier
+
+
 def main() -> None:
     logger.info("Initializing service")
     init(engine)

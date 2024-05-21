@@ -50,6 +50,12 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("SERVICE_REDIS_DSN", "REDIS_URL"),
     )
 
+    LOG_FILE = "./logs/debug.log"
+    LOG_FORMAT = "{time} {level} {message}"
+    LOG_LEVEL = "DEBUG"
+    LOG_ROTATION = "10 MB"
+    LOG_COMPRESSION = "zip"
+
     @computed_field  # type: ignore[misc]
     @property
     def server_host(self) -> str:
@@ -62,13 +68,13 @@ class Settings(BaseSettings):
         []
     )
 
-    PROJECT_NAME: str
+    PROJECT_NAME: str = "targets"
     SENTRY_DSN: HttpUrl | None = None
-    POSTGRES_SERVER: str
+    POSTGRES_SERVER: str = "localhost"
     POSTGRES_PORT: int = 5432
-    POSTGRES_USER: str
-    POSTGRES_PASSWORD: str
-    POSTGRES_DB: str = ""
+    POSTGRES_USER: str = "postgres"
+    POSTGRES_PASSWORD: str = "postgres"
+    POSTGRES_DB: str = "postgres"
 
     @computed_field  # type: ignore[misc]
     @property
