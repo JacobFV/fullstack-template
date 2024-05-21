@@ -77,11 +77,6 @@ class Settings(BaseSettings):
     DOMAIN: str = "localhost"
     ENVIRONMENT: Literal["local", "staging", "production"] = "local"
 
-    RABBITMQ_USER = Field(..., validation_alias=AliasChoices("RABBITMQ_USER"))
-    RABBITMQ_PASSWORD = Field(..., validation_alias=AliasChoices("RABBITMQ_PASSWORD"))
-    RABBITMQ_HOST = Field(..., validation_alias=AliasChoices("RABBITMQ_HOST"))
-    RABBITMQ_URL = f"amqp://{RABBITMQ_USER}:{RABBITMQ_PASSWORD}@{RABBITMQ_HOST}/"
-
     REDIS_DSN: RedisDsn = Field(
         "redis://user:pass@localhost:6379/1",
         validation_alias=AliasChoices("SERVICE_REDIS_DSN", "REDIS_URL"),
