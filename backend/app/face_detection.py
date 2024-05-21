@@ -15,7 +15,7 @@ class FaceRecognitionHandler:
         # hook up the handler for new amqp messages
         self.verification_request.amqp_queue().consume(self.handle_message)
 
-    async def consumer(message: aio_pika.IncomingMessage):
+    async def consumer(self, message: aio_pika.IncomingMessage):
         # This is where you process JSON that the client sends to you
         # IDK what you will do here
         text = message.body()
