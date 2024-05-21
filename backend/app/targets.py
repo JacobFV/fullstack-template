@@ -8,7 +8,7 @@ import uvicorn
 
 from app.core import logger
 from app.core.config import settings
-from app.core.db import create_db_and_tables, get_db
+from app.core.db import create_db_and_tables, get_db, init_db, seed_db
 from app.main import app
 
 cli = typer.Typer(
@@ -106,18 +106,16 @@ def drop(
 
 
 @db_cli.command()
-def init():
+def init(session=typer.Depends(get_db)):
     typer.echo("Initializing database...")
-    create_db_and_tables()
+    init_db(session)
     typer.echo("Database initialized.")
 
 
 @db_cli.command()
-def seed():
+def seed(session=typer.Depends(get_db)):
     typer.echo("Seeding database...")
-    from app.initial_data import main
-
-    main()
+    seed_db(session)
 
 
 @db_cli.command()
@@ -196,6 +194,12 @@ def migrate():
 @dev_cli.command()
 def test():
     typer.echo("Running tests...")
+    raise NotImplementedError("Not implemented yet")
+
+
+@dev_cli.command()
+def generate_docs():
+    typer.echo("Generating docs...")
     raise NotImplementedError("Not implemented yet")
 
 

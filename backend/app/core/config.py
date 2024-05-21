@@ -1,3 +1,5 @@
+from datetime import datetime
+import functools
 import secrets
 import warnings
 from typing import Annotated, Any, Literal
@@ -33,6 +35,38 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env", env_ignore_empty=True, extra="ignore"
     )
+
+    version_major: int
+    version_minor: int
+    version_patch: int
+
+    @property
+    def version(self) -> str:
+        return f"{self.version_major}.{self.version_minor}.{self.version_patch}"
+
+    @version.setter
+    def version(self, value: str) -> None:
+        try:
+            self.version_major, self.version_minor, self.version_patch = map(
+                int, value.split(".")
+            )
+        except ValueError:
+            raise ValueError(
+                f"Invalid version format: {value}. Must be in the format '<major>.<minor>.<patch>'"
+            )
+
+    seeded_on: datetime | None = Field(env=False)
+    start_time: datetime = Field(default_factory=datetime.utcnow, env=False)
+    maintenance_mode: bool = Field(default=False)
+
+    @property
+    def duration_since_seed(self):
+        return datetime.utcnow() - self.seeded_on
+
+    @property
+    def uptime(self):
+        return datetime.utcnow() - self.start_time
+
     API_V1_STR: str = "/api/v1"
     SECRET_KEY: str = secrets.token_urlsafe(32)
     # 60 minutes * 24 hours * 8 days = 8 days
@@ -139,5 +173,52 @@ class Settings(BaseSettings):
 
         return self
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
-settings = Settings()  # type: ignore
+        @functools.wraps(super().__setattr__)
+        def new_setattr_fn(self, name: str, value: Any) -> None:
+            super().__setattr__(name, value)
+            store_settings(self)
+
+        self.__setattr__ = new_setattr_fn
+
+
+from app.core.redis import get_redis_connection
+
+settings: Settings | None = None  # Global settings variable
+
+
+async def store_settings(settings: Settings):
+    redis = await get_redis_connection()
+    await redis.set("app_settings", settings.to_json())
+    await redis.publish("settings_channel", "updated")
+
+
+async def get_settings() -> Settings:
+    redis = await get_redis_connection()
+    settings_json = await redis.get("app_settings")
+    if settings_json:
+        return Settings.from_json(settings_json)
+    return Settings()  # Return default settings if not found in Redis
+
+
+async def listen_for_settings_changes():
+    redis = await get_redis_connection()
+    pubsub = redis.pubsub()
+    await pubsub.subscribe("settings_channel")
+    while True:
+        message = await pubsub.get_message(ignore_subscribe_messages=True)
+        if message and message["data"] == "updated":
+            global settings  # Reference to the global settings object
+            settings = await get_settings()
+
+
+import asyncio
+
+
+# Called start of application
+async def init_settings():
+    global settings
+    settings = await get_settings()
+    asyncio.create_task(listen_for_settings_changes())

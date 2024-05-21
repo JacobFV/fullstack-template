@@ -26,7 +26,7 @@ def lifespan(app: FastAPI):
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    openapi_url=f"{settings.api_v1_str}/openapi.json",
     generate_unique_id_function=custom_generate_unique_id,
     lifespan=lifespan,
 )
@@ -43,4 +43,4 @@ if settings.BACKEND_CORS_ORIGINS:
         allow_headers=["*"],
     )
 
-app.include_router(api_router, prefix=settings.API_V1_STR)
+app.include_router(api_router, prefix=settings.api_v1_str)

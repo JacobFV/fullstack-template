@@ -10,19 +10,19 @@ from app.core.aoimq import get_aoimq_channel
 from sqlmodel import Field, Relationship, Session, SQLModel
 
 
-class SQLModelBase(SQLModel):
+class CRUDBase(SQLModel):
     pass
 
 
-class SQLModelCreate(SQLModelBase):
+class CRUDCreate(CRUDBase):
     pass
 
 
-class SQLModelUpdate(SQLModelBase):
+class CRUDUpdate(CRUDBase):
     pass
 
 
-class SQLModelInDB(SQLModelBase, table=True):
+class CRUDInDB(CRUDBase, table=True):
 
     @classmethod
     @abstractmethod
@@ -31,42 +31,42 @@ class SQLModelInDB(SQLModelBase, table=True):
 
     @staticmethod
     def init_all_ddl(session: Session):
-        for subclass in SQLModelInDB.__subclasses__():
+        for subclass in CRUDInDB.__subclasses__():
             if hasattr(subclass, "init_ddl"):
                 subclass.init_ddl(session)
 
 
-class SQLModelPublic(SQLModelBase):
+class CRUDRead(CRUDBase):
     pass
 
 
-class VerifiableIdentityBase(SQLModelBase):
+class VerifiableIdentityBase(CRUDBase):
     pass
 
 
-class VerifiableIdentityCreate(VerifiableIdentityBase, SQLModelCreate):
+class VerifiableIdentityCreate(VerifiableIdentityBase, CRUDCreate):
     image: Optional[bytes]
 
 
-class VerifiableIdentityUpdate(VerifiableIdentityBase, SQLModelUpdate):
+class VerifiableIdentityUpdate(VerifiableIdentityBase, CRUDUpdate):
     pass
 
 
-class VerifiableIdentityUpdateMe(VerifiableIdentityBase, SQLModelUpdate):
+class VerifiableIdentityUpdateMe(VerifiableIdentityBase, CRUDUpdate):
     pass
 
 
-class VerifiableIdentity(VerifiableIdentityBase, SQLModelInDB):
+class VerifiableIdentity(VerifiableIdentityBase, CRUDInDB):
     id: int | None = Field(default=None, primary_key=True, autoincrement=True)
     image: Optional[bytes]
 
 
-class VerifiableIdentityPublic(VerifiableIdentityBase, SQLModelPublic):
+class VerifiableIdentityPublic(VerifiableIdentityBase, CRUDRead):
     id: int
     image: Optional[bytes]
 
 
-class VerifiableIdentityPublicMe(VerifiableIdentityBase, SQLModelPublic):
+class VerifiableIdentityPublicMe(VerifiableIdentityBase, CRUDRead):
     id: int
 
 
@@ -113,7 +113,7 @@ class UserCreate(VerifiableIdentityCreate, UserBase):
 
 
 # TODO replace email str with EmailStr when sqlmodel supports it
-class UserRegister(SQLModelBase):
+class UserRegister(CRUDBase):
     email: str
     password: str
     full_name: str | None = None
@@ -132,7 +132,7 @@ class UserUpdateMe(VerifiableIdentityUpdateMe, UserBase):
     email: str | None = None
 
 
-class UpdatePassword(SQLModelBase):
+class UpdatePassword(CRUDBase):
     current_password: str
     new_password: str
 
@@ -153,7 +153,7 @@ class UserPublicMe(VerifiableIdentityPublicMe, UserBase):
     id: int
 
 
-class UsersPublic(SQLModelBase):
+class UsersPublic(CRUDBase):
     data: list[UserPublic]
     count: int
 
@@ -191,23 +191,23 @@ class UserThatRequestsVerificationPublicMe(UserPublicMe):
 
 
 # Shared properties
-class ItemBase(SQLModelBase):
+class ItemBase(CRUDBase):
     title: str
     description: str | None = None
 
 
 # Properties to receive on item creation
-class ItemCreate(ItemBase, SQLModelCreate):
+class ItemCreate(ItemBase, CRUDCreate):
     title: str
 
 
 # Properties to receive on item update
-class ItemUpdate(ItemBase, SQLModelUpdate):
+class ItemUpdate(ItemBase, CRUDUpdate):
     title: str | None = None  # type: ignore
 
 
 # Database model, database table inferred from class name
-class Item(ItemBase, SQLModelInDB):
+class Item(ItemBase, CRUDInDB):
     id: int | None = Field(default=None, primary_key=True)
     title: str
     owner_id: int | None = Field(default=None, foreign_key="user.id", nullable=False)
@@ -215,33 +215,33 @@ class Item(ItemBase, SQLModelInDB):
 
 
 # Properties to return via API, id is always required
-class ItemPublic(ItemBase, SQLModelPublic):
+class ItemPublic(ItemBase, CRUDRead):
     id: int
     owner_id: int
 
 
-class ItemsPublic(SQLModelBase):
+class ItemsPublic(CRUDBase):
     data: list[ItemPublic]
     count: int
 
 
 # Generic message
-class Message(SQLModelBase):
+class Message(CRUDBase):
     message: str
 
 
 # JSON payload containing access token
-class Token(SQLModelBase):
+class Token(CRUDBase):
     access_token: str
     token_type: str = "bearer"
 
 
 # Contents of JWT token
-class TokenPayload(SQLModelBase):
+class TokenPayload(CRUDBase):
     sub: int | None = None
 
 
-class NewPassword(SQLModelBase):
+class NewPassword(CRUDBase):
     token: str
     new_password: str
 
@@ -253,22 +253,22 @@ class VerificationRequestStatus(Enum):
     FAILED = "failed"
 
 
-class VerificationRequestBase(SQLModelBase):
+class VerificationRequestBase(CRUDBase):
     pass
 
 
 # TODO: change on_completion_webhook_url and on_completion_redirect_url to URLStr when sqlmodel supports it
-class VerificationRequestCreate(VerificationRequestBase, SQLModelCreate):
+class VerificationRequestCreate(VerificationRequestBase, CRUDCreate):
     who_to_verify_id: int
     on_completion_webhook_url: str
     on_completion_redirect_url: str | None = None
 
 
-class VerificationRequestUpdate(VerificationRequestBase, SQLModelUpdate):
+class VerificationRequestUpdate(VerificationRequestBase, CRUDUpdate):
     pass
 
 
-class VerificationRequest(VerificationRequestBase, SQLModelInDB):
+class VerificationRequest(VerificationRequestBase, CRUDInDB):
     verification_requested_by_id: int
     verification_requested_by: UserThatRequestsVerification
     who_to_verify_id: int
@@ -291,7 +291,7 @@ class VerificationRequest(VerificationRequestBase, SQLModelInDB):
         return await channel.declare_queue(self.queue_name, durable=True)
 
 
-class VerificationRequestPublic(VerificationRequestBase, SQLModelPublic):
+class VerificationRequestPublic(VerificationRequestBase, CRUDRead):
     verification_requested_by_id: int
     verification_requested_by: UserThatRequestsVerification
     who_to_verify_id: int
