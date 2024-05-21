@@ -36,7 +36,7 @@ class FaceRecognitionHandler:
             cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
 
         # Display the resulting image
-        cv2.imshow('Video', frame)
+        cv2.imshow('verify', frame)
 
         # Hit 'q' on the keyboard to quit!
         if cv2.waitKey(1) & 0xFF == ord('q'):
