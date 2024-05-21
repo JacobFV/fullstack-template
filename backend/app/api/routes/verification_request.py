@@ -17,6 +17,7 @@ from app.schema import (
 )
 from fastapi import APIRouter, Depends, HTTPException, WebSocket
 from sqlalchemy.orm import Session
+from sqlmodel import select
 
 router = APIRouter()
 
@@ -81,7 +82,7 @@ def check_verification_request_status(
 
 
 @router.websocket("/ws/{verification_request_id}")
-async def websocket_endpoint(
+async def verify_me_websocket_endpoint(
     websocket: WebSocket,
     verification_request_id: int,
     db: Session = Depends(get_db),
@@ -90,13 +91,10 @@ async def websocket_endpoint(
     await websocket.accept()
     try:
         # Check if the verification request exists and belongs to the user
-        verification_request = (
-            db.query(VerificationRequest)
-            .filter(
-                VerificationRequest.id == verification_request_id,
-                VerificationRequest. == current_identity.id,
-            )
-            .first()
+        verification_request = db.exec(
+            select(VerificationRequest)
+            .where(VerificationRequest.id == verification_request_id)
+            .where(VerificationRequest.who_to_verify_id == current_identity.id)
         )
         if not verification_request:
             await websocket.close(code=4040)  # Close with error code if not found
