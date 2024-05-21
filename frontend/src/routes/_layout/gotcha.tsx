@@ -1,7 +1,12 @@
 import React from 'react';
-import VideoStreamer from '../components/VideoStreamer'; // Adjust the import path as necessary
+import VideoStreamer from '../../components/Gotcha/VerifyCameraStream';
+import { createFileRoute } from '@tanstack/react-router';
 
-const GotchaPage: React.FC = () => {
+export const Route = createFileRoute("/_layout/gotcha")({
+    component: Gotcha,
+  })
+
+function Gotcha() {
     return (
         <div>
             <h1>Video Verification</h1>
@@ -9,5 +14,3 @@ const GotchaPage: React.FC = () => {
         </div>
     );
 };
-
-export default GotchaPage;
