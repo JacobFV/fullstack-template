@@ -6,6 +6,8 @@ from functools import cached_property
 from typing import Optional
 import aio_pika
 from app.core.aoimq import get_aoimq_channel
+from app.core.redis import get_redis_connection
+from sqlalchemy import func
 
 from sqlmodel import Field, Relationship, Session, SQLModel
 
@@ -268,6 +270,35 @@ class VerificationRequestUpdate(VerificationRequestBase, CRUDUpdate):
     pass
 
 
+class HasReddisChannel(CRUDInDB):
+
+    @hybrid_column
+    def redis_channel_name(self):
+        return f"redis_{self.__class__.__name__.lower()}_{self.id}"
+
+    @redis_channel_name.expression
+    def redis_channel_name(cls):
+        from sqlalchemy import func
+
+        return func.concat("redis_", func.lower(cls.__name__), "_", cls.id)
+
+    async def publish_message(self, message: str):
+        connection = await get_redis_connection()
+        await connection.publish(self.redis_channel_name, message)
+
+    @cached_property
+    async def redis_channel_listener(self):
+        connection = await get_redis_connection()
+        pubsub = connection.pubsub()
+        await pubsub.subscribe(self.redis_channel_name)
+        return pubsub
+
+    async def listen_for_messages(self, message_handler):
+        async for message in self.redis_channel_listener.listen():
+            if message["type"] == "message":
+                await message_handler(message["data"])
+
+
 class VerificationRequest(VerificationRequestBase, CRUDInDB):
     verification_requested_by_id: int
     verification_requested_by: UserThatRequestsVerification
@@ -277,18 +308,39 @@ class VerificationRequest(VerificationRequestBase, CRUDInDB):
     on_completion_webhook_url: str
     on_completion_redirect_url: str | None = None
 
+
+class FaceVideoAnomalyVerification(VerificationRequest):
+    check_anomaly_in_face_video: bool = True
+
+    model_name: str = "face_video_anomaly_verification-001"
+
+
+class HandSignVerification(VerificationRequest):
+    ask_to_make_hand_signs: bool = True
+    hand_letters: list[str] | None = None
+
+    model_name: str = "hand_sign_verification-001"
+
+
+class FaceImageMatchVerification(VerificationRequest):
+    check_match_against_provided_face_images: bool = True
+    additional_provided_face_images: list[bytes] | None = None
+
+    algorithm_name: str = "face_image_match_verification-001"
+
     @hybrid_property
-    def queue_name(self):
-        return f"verification_requests_{self.id}"
+    def all_provided_face_images(self):
+        return self.additional_provided_face_images + [self.who_to_verify.image]
 
-    @queue_name.expression
-    def queue_name(cls):
-        return f"verification_requests_{cls.id}"
+    @all_provided_face_images.expression
+    def all_provided_face_images(cls):
+        return func.array_cat(
+            cls.additional_provided_face_images, func.array([cls.who_to_verify.image])
+        )
 
-    @cached_property
-    async def amqp_queue(self) -> aio_pika.Queue:
-        channel = await get_aoimq_channel()
-        return await channel.declare_queue(self.queue_name, durable=True)
+
+class FingerprintVerification(VerificationRequest):
+    check_fingerprint: bool = True
 
 
 class VerificationRequestPublic(VerificationRequestBase, CRUDRead):
