@@ -4,10 +4,12 @@ from datetime import datetime
 from enum import Enum
 from functools import cached_property
 from typing import Optional
-import aio_pika
+from typing_extensions import Unpack
 from app.core.aoimq import get_aoimq_channel
 from app.core.redis import get_redis_connection
+from pydantic.config import ConfigDict
 from sqlalchemy import func
+from sqlalchemy import Column, String
 
 from sqlmodel import Field, Relationship, Session, SQLModel
 
@@ -25,17 +27,30 @@ class CRUDUpdate(CRUDBase):
 
 
 class CRUDInDB(CRUDBase, table=True):
+    __tablename__ = "crud_object"
+    __mapper_args__ = {
+        "polymorphic_identity": "crud_object",  # base class identity
+        "polymorphic_on": type,  # specifying which field is the discriminator
+    }
+    type: str = Field(sa_column=Column(String), index=True, nullable=False)
+
+    def __init_subclass__(cls, **kwargs):
+        tablename = cls.__tablename__ or cls.__name__.lower()
+        mapper_args = getattr(cls, "__mapper_args__", {})
+        mapper_args.update({"polymorphic_identity": tablename})
+        setattr(cls, "__mapper_args__", mapper_args)
+        return super().__init_subclass__(**kwargs)
 
     @classmethod
     @abstractmethod
-    def init_ddl(cls, session: Session):
-        pass  # TODO: add constraints and security if applicable to all classes
+    def get_ddl(cls) -> str:
+        # TODO: add constraints and security if applicable to all classes
+        pass
 
     @staticmethod
-    def init_all_ddl(session: Session):
+    def manually_run_all_ddl(session: Session):
         for subclass in CRUDInDB.__subclasses__():
-            if hasattr(subclass, "init_ddl"):
-                subclass.init_ddl(session)
+            session.execute(subclass.get_ddl())
 
 
 class CRUDRead(CRUDBase):
