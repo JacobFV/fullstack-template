@@ -8,11 +8,11 @@ from app.api.deps import (
 from app.schema import (
     User,
     VerifiableIdentity,
-    VerificationRequestBase,
-    VerificationRequestCreate,
-    VerificationRequestUpdate,
-    VerificationRequestPublic,
-    VerificationRequest,
+    VerificationRequestSessionBase,
+    VerificationRequestSessionCreate,
+    VerificationRequestSessionUpdate,
+    VerificationRequestSessionPublic,
+    VerificationRequestSession,
     VerificationRequestStatus,
 )
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, Request
@@ -22,40 +22,42 @@ from sqlmodel import select
 router = APIRouter()
 
 
-@router.get("/", response_model=list[VerificationRequestPublic])
+@router.get("/", response_model=list[VerificationRequestSessionPublic])
 def get_my_verification_requests(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     return (
-        db.query(VerificationRequest)
-        .filter(VerificationRequest.user_id == current_user.id)
+        db.query(VerificationRequestSession)
+        .filter(VerificationRequestSession.user_id == current_user.id)
         .all()
     )
 
 
-@router.post("/", response_model=VerificationRequestPublic)
+@router.post("/", response_model=VerificationRequestSessionPublic)
 def create_verification_request(
-    verification_request_in: VerificationRequestCreate,
+    verification_request_in: VerificationRequestSessionCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    verification_request = VerificationRequest(**verification_request_in.dict())
+    verification_request = VerificationRequestSession(**verification_request_in.dict())
     db.add(verification_request)
     db.commit()
     return verification_request
 
 
-@router.put("/{verification_request_id}", response_model=VerificationRequestPublic)
+@router.put(
+    "/{verification_request_id}", response_model=VerificationRequestSessionPublic
+)
 def update_verification_request(
     verification_request_id: int,
-    verification_request_in: VerificationRequestUpdate,
+    verification_request_in: VerificationRequestSessionUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     verification_request = (
-        db.query(VerificationRequest)
-        .filter(VerificationRequest.id == verification_request_id)
+        db.query(VerificationRequestSession)
+        .filter(VerificationRequestSession.id == verification_request_id)
         .first()
     )
     if not verification_request:
@@ -72,8 +74,8 @@ def check_verification_request_status(
     current_user: User = Depends(get_current_user),
 ):
     verification_request = (
-        db.query(VerificationRequest)
-        .filter(VerificationRequest.id == verification_request_id)
+        db.query(VerificationRequestSession)
+        .filter(VerificationRequestSession.id == verification_request_id)
         .first()
     )
     if not verification_request:
@@ -92,9 +94,9 @@ async def verify_me_websocket_endpoint(
     try:
         # Check if the verification request exists and belongs to the user
         verification_request = db.exec(
-            select(VerificationRequest)
-            .where(VerificationRequest.id == verification_request_id)
-            .where(VerificationRequest.who_to_verify_id == current_identity.id)
+            select(VerificationRequestSession)
+            .where(VerificationRequestSession.id == verification_request_id)
+            .where(VerificationRequestSession.who_to_verify_id == current_identity.id)
         ).first()
         if not verification_request:
             await websocket.close(code=4040)  # Close with error code if not found
