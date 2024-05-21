@@ -1,9 +1,57 @@
 from sqlmodel import Field, Relationship, SQLModel
 
 
+class VerifiableIdentityBase(SQLModel):
+    pass
+
+
+class VerifiableIdentityCreate(VerifiableIdentityBase):
+    pass
+
+
+class VerifiableIdentityUpdate(VerifiableIdentityBase):
+    pass
+
+
+class VerifiableIdentityUpdateMe(VerifiableIdentityBase):
+    pass
+
+
+class VerifiableIdentity(VerifiableIdentityBase, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+
+
+class VerifiableIdentityPublic(VerifiableIdentityBase):
+    id: int
+
+
+class OneTimeVerifiableIdentityBase(VerifiableIdentityBase):
+    pass
+
+
+class OneTimeVerifiableIdentityCreate(VerifiableIdentityCreate):
+    pass
+
+
+class OneTimeVerifiableIdentityUpdate(VerifiableIdentityUpdate):
+    pass
+
+
+class OneTimeVerifiableIdentityUpdateMe(VerifiableIdentityUpdateMe):
+    pass
+
+
+class OneTimeVerifiableIdentity(VerifiableIdentity, table=True):
+    pass
+
+
+class OneTimeVerifiableIdentityPublic(VerifiableIdentityPublic):
+    pass
+
+
 # Shared properties
 # TODO replace email str with EmailStr when sqlmodel supports it
-class UserBase(SQLModel):
+class UserBase(VerifiableIdentityBase, SQLModel):
     email: str = Field(unique=True, index=True)
     is_active: bool = True
     is_superuser: bool = False
@@ -11,7 +59,7 @@ class UserBase(SQLModel):
 
 
 # Properties to receive via API on creation
-class UserCreate(UserBase):
+class UserCreate(VerifiableIdentityCreate, UserBase):
     password: str
 
 
@@ -24,13 +72,13 @@ class UserRegister(SQLModel):
 
 # Properties to receive via API on update, all are optional
 # TODO replace email str with EmailStr when sqlmodel supports it
-class UserUpdate(UserBase):
+class UserUpdate(VerifiableIdentityUpdate, UserBase):
     email: str | None = None  # type: ignore
     password: str | None = None
 
 
 # TODO replace email str with EmailStr when sqlmodel supports it
-class UserUpdateMe(SQLModel):
+class UserUpdateMe(VerifiableIdentityUpdateMe, UserBase):
     full_name: str | None = None
     email: str | None = None
 
@@ -41,20 +89,47 @@ class UpdatePassword(SQLModel):
 
 
 # Database model, database table inferred from class name
-class User(UserBase, table=True):
+class User(VerifiableIdentity, UserBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
     hashed_password: str
     items: list["Item"] = Relationship(back_populates="owner")
 
 
 # Properties to return via API, id is always required
-class UserPublic(UserBase):
+class UserPublic(VerifiableIdentityPublic, UserBase):
     id: int
 
 
 class UsersPublic(SQLModel):
     data: list[UserPublic]
     count: int
+
+
+# Verifier
+class UserThatRequestsVerificationBase(UserBase):
+    pass
+
+
+class UserThatRequestsVerificationCreate(UserCreate):
+    pass
+
+
+class UserThatRequestsVerificationUpdate(UserUpdate):
+    pass
+
+
+class UserThatRequestsVerificationUpdateMe(UserUpdateMe):
+    pass
+
+
+class UserThatRequestsVerification(User, table=True):
+    verification_requests: list[VerificationRequest] = Relationship(
+        back_populates="verification_requested_by"
+    )
+
+
+class UserThatRequestsVerificationPublic(UserPublic):
+    pass
 
 
 # Shared properties
@@ -111,3 +186,26 @@ class TokenPayload(SQLModel):
 class NewPassword(SQLModel):
     token: str
     new_password: str
+
+
+class VerificationRequestBase(SQLModel):
+    verification_requested_by_id: int
+    verification_requested_by: UserThatRequestsVerification
+    who_to_verify_id: int
+    who_to_verify: User
+
+
+class VerificationRequestCreate(VerificationRequestBase):
+    pass
+
+
+class VerificationRequestUpdate(VerificationRequestBase):
+    pass
+
+
+class VerificationRequest(VerificationRequestBase):
+    pass
+
+
+class VerificationRequestPublic(VerificationRequestBase):
+    pass
