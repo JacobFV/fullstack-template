@@ -1,6 +1,9 @@
 from __future__ import annotations
 from datetime import datetime
 from enum import Enum
+from functools import cached_property
+import aio_pika
+from app.core.aoimq import get_aoimq_channel
 
 from sqlmodel import Field, Relationship, Session
 
@@ -261,6 +264,19 @@ class VerificationRequest(VerificationRequestBase, SQLModelInDB):
     verf_status: VerificationRequestStatus
     on_completion_webhook_url: str
     on_completion_redirect_url: str | None = None
+
+    @hybrid_property
+    def queue_name(self):
+        return f"verification_requests_{self.id}"
+
+    @queue_name.expression
+    def queue_name(cls):
+        return f"verification_requests_{cls.id}"
+
+    @cached_property
+    async def amqp_queue(self) -> aio_pika.Queue:
+        channel = await get_aoimq_channel()
+        return await channel.declare_queue(self.queue_name, durable=True)
 
 
 class VerificationRequestPublic(VerificationRequestBase, SQLModelPublic):
