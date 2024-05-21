@@ -5,6 +5,7 @@ import secrets
 import warnings
 from typing import Annotated, Any, Literal
 
+import semver
 from pydantic import (
     AnyUrl,
     BeforeValidator,
@@ -48,9 +49,10 @@ class Settings(BaseSettings):
     @version.setter
     def version(self, value: str) -> None:
         try:
-            self.version_major, self.version_minor, self.version_patch = map(
-                int, value.split(".")
-            )
+            version_info = semver.VersionInfo.parse(value)
+            self.version_major = version_info.major
+            self.version_minor = version_info.minor
+            self.version_patch = version_info.patch
         except ValueError:
             raise ValueError(
                 f"Invalid version format: {value}. Must be in the format '<major>.<minor>.<patch>'"
