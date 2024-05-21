@@ -23,7 +23,8 @@ from sqlalchemy.orm import Session
 from sqlmodel import select
 import aio_pika
 import os
-from face_detection import handle_frame
+# I think we need this import and need to add the frames function in the video route
+from face_detection import process_frame
 
 router = APIRouter()
 
@@ -164,4 +165,4 @@ async def stream_video(
     )
     async for chunk in request.stream():
         # Process each chunk of video data
-        face_recognition_handler.handle_frame(chunk)
+        face_recognition_handler.process_frame(chunk)
