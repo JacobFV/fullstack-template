@@ -40,6 +40,13 @@ class FaceRecognitionHandler:
         for top, right, bottom, left in self.face_locations:
             cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
 
+        # Let's suppose you detected a face
+        if True:  # say, you detected a face
+            # send a message to the queue
+            self.verification_request.amqp_queue().publish(
+                aio_pika.Message(body="face detected".encode())
+            )
+
         self.frame_count += 1  # Increment the frame count
         return True
 
