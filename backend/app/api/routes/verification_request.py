@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 from sqlmodel import select
 import aio_pika
 import os
+from face_detection import handle_frame
 
 router = APIRouter()
 
