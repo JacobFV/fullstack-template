@@ -299,7 +299,7 @@ class HasReddisChannel(CRUDInDB):
                 await message_handler(message["data"])
 
 
-class VerificationRequest(VerificationRequestBase, CRUDInDB):
+class VerificationRequest(HasReddisChannel, VerificationRequestBase, CRUDInDB):
     verification_requested_by_id: int
     verification_requested_by: UserThatRequestsVerification
     who_to_verify_id: int
