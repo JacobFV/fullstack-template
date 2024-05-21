@@ -1,3 +1,4 @@
+from typing import Annotated
 from app.api.deps import (
     get_current_active_superuser,
     get_current_user,
@@ -7,12 +8,13 @@ from app.api.deps import (
 )
 from app.schema import (
     User,
+    UserThatRequestsVerification,
     VerifiableIdentity,
-    VerificationRequestSessionBase,
-    VerificationRequestSessionCreate,
-    VerificationRequestSessionUpdate,
-    VerificationRequestSessionPublic,
-    VerificationRequestSession,
+    VerificationRequestBase,
+    VerificationRequestCreate,
+    VerificationRequestUpdate,
+    VerificationRequestPublic,
+    VerificationRequest,
     VerificationRequestStatus,
 )
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, Request
@@ -24,49 +26,74 @@ import os
 router = APIRouter()
 
 
-@router.get("/", response_model=list[VerificationRequestSessionPublic])
+@router.get("/", response_model=list[VerificationRequestPublic])
 def get_my_verification_requests(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     return (
-        db.query(VerificationRequestSession)
-        .filter(VerificationRequestSession.user_id == current_user.id)
+        db.query(VerificationRequest)
+        .filter(VerificationRequest.user_id == current_user.id)
         .all()
     )
 
 
-@router.post("/", response_model=VerificationRequestSessionPublic)
+def get_verification_request_assigned_to_meby_id(
+    verification_request_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> VerificationRequest | None:
+    try:
+        verf_request = db.exec(
+            select(VerificationRequest)
+            .filter(
+                VerificationRequest.id == verification_request_id,
+                VerificationRequest.who_to_verify_id == current_user.id,
+            )
+            .first()
+        )
+        return verf_request
+    except Exception as e:
+        raise HTTPException(status_code=404, detail="Verification request not found")
+
+
+GetVerificationRequestDep = Annotated[
+    VerificationRequest, Depends(get_verification_request_assigned_to_meby_id)
+]
+
+
+@router.post("/", response_model=VerificationRequestPublic)
 def create_verification_request(
-    verification_request_in: VerificationRequestSessionCreate,
+    verification_request_in: VerificationRequestCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    verification_request = VerificationRequestSession(**verification_request_in.dict())
+    if not isinstance(current_user, UserThatRequestsVerification):
+        raise HTTPException(
+            status_code=403,
+            detail="User must face for an other user that requests verification",
+        )
+    verification_request = VerificationRequest(**verification_request_in.dict())
     db.add(verification_request)
     db.commit()
     return verification_request
 
 
-@router.put(
-    "/{verification_request_id}", response_model=VerificationRequestSessionPublic
-)
+@router.put("/{verification_request_id}", response_model=VerificationRequestPublic)
 def update_verification_request(
-    verification_request_id: int,
-    verification_request_in: VerificationRequestSessionUpdate,
+    verification_request_in: VerificationRequestUpdate,
+    current_verification_request: GetVerificationRequestDep = Depends(
+        GetVerificationRequestDep
+    ),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
-    verification_request = (
-        db.query(VerificationRequestSession)
-        .filter(VerificationRequestSession.id == verification_request_id)
-        .first()
-    )
-    if not verification_request:
+    if not current_verification_request:
         raise HTTPException(status_code=404, detail="Verification request not found")
-    verification_request.update(verification_request_in.dict(exclude_unset=True))
+    current_verification_request.update(
+        verification_request_in.dict(exclude_unset=True)
+    )
     db.commit()
-    return verification_request
+    return current_verification_request
 
 
 @router.get("/{verification_request_id}", response_model=VerificationRequestStatus)
@@ -76,8 +103,8 @@ def check_verification_request_status(
     current_user: User = Depends(get_current_user),
 ):
     verification_request = (
-        db.query(VerificationRequestSession)
-        .filter(VerificationRequestSession.id == verification_request_id)
+        db.query(VerificationRequest)
+        .filter(VerificationRequest.id == verification_request_id)
         .first()
     )
     if not verification_request:
@@ -95,8 +122,8 @@ async def verify_me_websocket_endpoint(
     await websocket.accept()
 
     verification_request = (
-        db.query(VerificationRequestSession)
-        .filter(VerificationRequestSession.id == verification_request_id)
+        db.query(VerificationRequest)
+        .filter(VerificationRequest.id == verification_request_id)
         .first()
     )
     if not verification_request:
@@ -125,9 +152,9 @@ async def verify_me_websocket_endpoint(
     finally:
         pass
 
-#incomplete route
-# @router.post("/video/{verification_request_id}")
-# async def stream_video(request: Request, verification_request_id: int):
-#     async for chunk in request.stream():
-#         # Process each chunk of video data
-#         process_video_chunk(chunk)
+
+@router.post("/video/{verification_request_id}")
+async def stream_video(request: Request, verification_request_id: int):
+    async for chunk in request.stream():
+        # Process each chunk of video data
+        process_video_chunk(chunk)
