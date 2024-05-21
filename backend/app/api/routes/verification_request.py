@@ -154,7 +154,12 @@ async def verify_me_websocket_endpoint(
 
 
 @router.post("/video/{verification_request_id}")
-async def stream_video(request: Request, verification_request_id: int):
+async def stream_video(
+    request: Request, verification_request: GetVerificationRequestDep
+):
+    face_recognition_handler = FaceRecognitionHandler(
+        verification_request=verification_request
+    )
     async for chunk in request.stream():
         # Process each chunk of video data
-        process_video_chunk(chunk)
+        face_recognition_handler.handle_frame(chunk)
