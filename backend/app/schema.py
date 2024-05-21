@@ -5,13 +5,12 @@ from enum import Enum
 from functools import cached_property
 from typing import Optional
 from typing_extensions import Unpack
-from app.core.aoimq import get_aoimq_channel
 from app.core.redis import get_redis_connection
 from pydantic.config import ConfigDict
 from sqlalchemy import func
 from sqlalchemy import Column, String
 
-from sqlmodel import Field, Relationship, Session, SQLModel
+from sqlmodel import Field, Relationship, Session, SQLModel, select, delete
 
 
 class CRUDBase(SQLModel):
@@ -51,6 +50,131 @@ class CRUDInDB(CRUDBase, table=True):
     def manually_run_all_ddl(session: Session):
         for subclass in CRUDInDB.__subclasses__():
             session.execute(subclass.get_ddl())
+
+    @classmethod
+    def from_create(cls, create_model: CRUDCreate, session: Session, **extra_keys):
+        db_entity = cls(**create_model.model_dump(), **(extra_keys or {}))
+        # subclasses wrap this and pass in extra keys needed for the indb model that are absent in the create model
+        session.add(db_entity)
+        session.commit()
+        return db_entity
+
+    @classmethod
+    def update_from(cls, id: int, update_model: CRUDUpdate, session: Session):
+        cls.update_by_id(id, update_model, session)
+
+    @classmethod
+    def to_read(cls, id: int, session: Session):
+        db_entity = cls.find_by_id(id, session)
+        return cls.ReadModel.model_validate(db_entity)
+
+    # active record methods
+    def save(self, session: Session):
+        session.add(self)
+        session.commit()
+
+    def delete(self, session: Session):
+        session.delete(self)
+        session.commit()
+
+    @classmethod
+    def find_by_id(cls, id: int, session: Session):
+        sql = select(cls).where(cls.id == id)
+        return session.exec(sql).first()
+
+    @classmethod
+    def find_all(cls, session: Session):
+        sql = select(cls)
+        return session.exec(sql).all()
+
+    @classmethod
+    def find_by_ids(cls, ids: list[int], session: Session):
+        sql = select(cls).where(cls.id.in_(ids))
+        return session.exec(sql).all()
+
+    @classmethod
+    def find_by_id_or_raise(cls, id: int, session: Session):
+        entity = cls.find_by_id(id, session)
+        if not entity:
+            raise ValueError(f"Entity {id} not found")
+        return entity
+
+    @classmethod
+    def update_by_id(
+        cls,
+        id: int,
+        update_model: CRUDUpdate,
+        session: Session,
+        commit=True,
+    ):
+        entity = cls.find_by_id_or_raise(id, session)
+        entity.sqlmodel_update(update_model.model_dump(exclude_unset=True))
+        if commit:
+            session.commit()
+        return entity
+
+    @classmethod
+    def update_by_ids(
+        cls,
+        ids: list[int],
+        update_model: CRUDUpdate,
+        session: Session,
+        commit=True,
+    ):
+        entities = cls.find_by_ids(ids, session)
+        for entity in entities:
+            updated_entity = entity.update(
+                update_model.model_dump(exclude_unset=True), commit=False
+            )
+            session.add(updated_entity)
+        if commit:
+            session.commit()
+
+    @classmethod
+    def delete_by_id(cls, id: int, session: Session, commit=True):
+        entity = cls.find_by_id_or_raise(id, session)
+        entity.delete(session)
+        if commit:
+            session.commit()
+
+    @classmethod
+    def delete_by_ids(cls, ids: list[int], session: Session, commit=True):
+        for id in ids:
+            cls.delete_by_id(id, session, commit=False)
+        if commit:
+            session.commit()
+
+    @classmethod
+    def delete_all(cls, session: Session, commit=True):
+        sql = delete(cls)
+        session.exec(sql)
+        if commit:
+            session.commit()
+
+    @classmethod
+    def count(cls, session: Session):
+        sql = select(func.count()).select_from(cls)
+        return session.exec(sql).scalar()
+
+    @classmethod
+    def exists(cls, id: int, session: Session):
+        return cls.find_by_id(id, session) is not None
+
+    @classmethod
+    def exists_by_ids(cls, ids: list[int], session: Session):
+        return len(cls.find_by_ids(ids, session)) == len(ids)
+
+    @classmethod
+    def exists_all(cls, ids: list[int], session: Session):
+        return cls.exists_by_ids(ids, session)
+
+    @classmethod
+    def exists_any(cls, ids: list[int], session: Session):
+        return cls.exists_by_ids(ids, session)
+
+    @classmethod
+    def exists_none(cls, ids: list[int], session: Session):
+        return not cls.exists_by_ids(ids, session)
 
 
 class CRUDRead(CRUDBase):
