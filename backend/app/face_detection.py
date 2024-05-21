@@ -2,7 +2,7 @@ import cv2
 from deepface import DeepFace
 
 # Initialize models
-models = ["Facenet"]
+models = ["VGG-Face"]
 DeepFace.stream(db_path="path/to/database", model_name=models[0])
 
 def process_latest_frame(
