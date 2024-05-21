@@ -1,5 +1,6 @@
 from datetime import datetime
 import functools
+from pathlib import Path
 import secrets
 import warnings
 from typing import Annotated, Any, Literal
@@ -83,6 +84,19 @@ class Settings(BaseSettings):
         "redis://user:pass@localhost:6379/1",
         validation_alias=AliasChoices("SERVICE_REDIS_DSN", "REDIS_URL"),
     )
+
+    code_dir_override: str | None = Field(
+        default=None, validation_alias=AliasChoices("CODE_DIR_OVERRIDE")
+    )
+
+    @computed_field  # type: ignore[misc]
+    @property
+    def code_dir(self) -> Path:
+        import typer
+
+        return typer.get_app_dir(app_name=self.app_name)
+
+    app_name: str = Field("Gotcha", validation_alias=AliasChoices("APP_NAME"))
 
     LOG_FILE = "./logs/debug.log"
     LOG_FORMAT = "{time} {level} {message}"

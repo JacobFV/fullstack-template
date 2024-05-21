@@ -22,10 +22,10 @@ async def init_db(session: Session, seed_if_new=False) -> None:
     # Tables should be created with Alembic migrations
     # But if you don't want to use migrations, create
     # the tables un-commenting the next lines
-    from sqlmodel import SQLModel
-
-    # This works because the models are already imported and registered from app.models
-    SQLModel.metadata.create_all(engine)
+    # from sqlmodel import SQLModel
+    # We are using Alembic to create the tables
+    # # This works because the models are already imported and registered from app.models
+    # SQLModel.metadata.create_all(engine)
 
     if seed_if_new:
         settings = await get_settings()
@@ -43,3 +43,34 @@ async def seed_db(session: Session) -> None:
             is_superuser=True,
         ),
     )
+
+
+import logging
+
+from sqlalchemy import Engine
+from sqlmodel import Session, select
+from tenacity import after_log, before_log, retry, stop_after_attempt, wait_fixed
+
+from app.core.db import engine
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+max_tries = 60 * 5  # 5 minutes
+wait_seconds = 1
+
+
+@retry(
+    stop=stop_after_attempt(max_tries),
+    wait=wait_fixed(wait_seconds),
+    before=before_log(logger, logging.INFO),
+    after=after_log(logger, logging.WARN),
+)
+def test_db(db_engine: Engine) -> None:
+    try:
+        with Session(db_engine) as session:
+            # Try to create session to check if DB is awake
+            session.exec(select(1))
+    except Exception as e:
+        logger.error(e)
+        raise e
