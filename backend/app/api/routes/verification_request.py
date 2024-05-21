@@ -125,9 +125,9 @@ async def verify_me_websocket_endpoint(
     finally:
         pass
 
-
-@router.post("/video/{verification_request_id}")
-async def stream_video(request: Request, verification_request_id: int):
-    async for chunk in request.stream():
-        # Process each chunk of video data
-        process_video_chunk(chunk)
+#incomplete route
+# @router.post("/video/{verification_request_id}")
+# async def stream_video(request: Request, verification_request_id: int):
+#     async for chunk in request.stream():
+#         # Process each chunk of video data
+#         process_video_chunk(chunk)
