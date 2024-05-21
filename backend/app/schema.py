@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlmodel import Field, Relationship, SQLModel
+from sqlmodel import Field, Relationship, Session
 
 
 class SQLModelBase(SQLModel):
@@ -16,38 +16,40 @@ class SQLModelUpdate(SQLModelBase):
 
 
 class SQLModelInDB(SQLModelBase, table=True):
-    pass
+    @classmethod
+    def init_ddl(cls, session: Session):
+        pass
 
 
 class SQLModelPublic(SQLModelBase):
     pass
 
 
-class VerifiableIdentityBase(SQLModel):
+class VerifiableIdentityBase(SQLModelBase):
     pass
 
 
-class VerifiableIdentityCreate(VerifiableIdentityBase):
+class VerifiableIdentityCreate(VerifiableIdentityBase, SQLModelCreate):
     pass
 
 
-class VerifiableIdentityUpdate(VerifiableIdentityBase):
+class VerifiableIdentityUpdate(VerifiableIdentityBase, SQLModelUpdate):
     pass
 
 
-class VerifiableIdentityUpdateMe(VerifiableIdentityBase):
+class VerifiableIdentityUpdateMe(VerifiableIdentityBase, SQLModelUpdate):
     pass
 
 
-class VerifiableIdentity(VerifiableIdentityBase, table=True):
+class VerifiableIdentity(VerifiableIdentityBase, SQLModelInDB):
     id: int | None = Field(default=None, primary_key=True)
 
 
-class VerifiableIdentityPublic(VerifiableIdentityBase):
+class VerifiableIdentityPublic(VerifiableIdentityBase, SQLModelPublic):
     id: int
 
 
-class VerifiableIdentityPublicMe(VerifiableIdentityBase):
+class VerifiableIdentityPublicMe(VerifiableIdentityBase, SQLModelPublic):
     id: int
 
 
@@ -67,7 +69,7 @@ class OneTimeVerifiableIdentityUpdateMe(VerifiableIdentityUpdateMe):
     pass
 
 
-class OneTimeVerifiableIdentity(VerifiableIdentity, table=True):
+class OneTimeVerifiableIdentity(VerifiableIdentity):
     pass
 
 
@@ -81,7 +83,7 @@ class OneTimeVerifiableIdentityPublicMe(VerifiableIdentityPublicMe):
 
 # Shared properties
 # TODO replace email str with EmailStr when sqlmodel supports it
-class UserBase(VerifiableIdentityBase, SQLModel):
+class UserBase(VerifiableIdentityBase):
     email: str = Field(unique=True, index=True)
     is_active: bool = True
     is_superuser: bool = False
@@ -94,7 +96,7 @@ class UserCreate(VerifiableIdentityCreate, UserBase):
 
 
 # TODO replace email str with EmailStr when sqlmodel supports it
-class UserRegister(SQLModel):
+class UserRegister(SQLModelBase):
     email: str
     password: str
     full_name: str | None = None
@@ -113,13 +115,13 @@ class UserUpdateMe(VerifiableIdentityUpdateMe, UserBase):
     email: str | None = None
 
 
-class UpdatePassword(SQLModel):
+class UpdatePassword(SQLModelBase):
     current_password: str
     new_password: str
 
 
 # Database model, database table inferred from class name
-class User(VerifiableIdentity, UserBase, table=True):
+class User(VerifiableIdentity, UserBase):
     id: int | None = Field(default=None, primary_key=True)
     hashed_password: str
     items: list["Item"] = Relationship(back_populates="owner")
@@ -134,7 +136,7 @@ class UserPublicMe(VerifiableIdentityPublicMe, UserBase):
     id: int
 
 
-class UsersPublic(SQLModel):
+class UsersPublic(SQLModelBase):
     data: list[UserPublic]
     count: int
 
@@ -156,7 +158,7 @@ class UserThatRequestsVerificationUpdateMe(UserUpdateMe):
     pass
 
 
-class UserThatRequestsVerification(User, table=True):
+class UserThatRequestsVerification(User):
     verification_requests: list[VerificationRequest] = Relationship(
         back_populates="verification_requested_by"
     )
@@ -171,23 +173,23 @@ class UserThatRequestsVerificationPublicMe(UserPublicMe):
 
 
 # Shared properties
-class ItemBase(SQLModel):
+class ItemBase(SQLModelBase):
     title: str
     description: str | None = None
 
 
 # Properties to receive on item creation
-class ItemCreate(ItemBase):
+class ItemCreate(ItemBase, SQLModelCreate):
     title: str
 
 
 # Properties to receive on item update
-class ItemUpdate(ItemBase):
+class ItemUpdate(ItemBase, SQLModelUpdate):
     title: str | None = None  # type: ignore
 
 
 # Database model, database table inferred from class name
-class Item(ItemBase, table=True):
+class Item(ItemBase, SQLModelInDB):
     id: int | None = Field(default=None, primary_key=True)
     title: str
     owner_id: int | None = Field(default=None, foreign_key="user.id", nullable=False)
@@ -195,55 +197,55 @@ class Item(ItemBase, table=True):
 
 
 # Properties to return via API, id is always required
-class ItemPublic(ItemBase):
+class ItemPublic(ItemBase, SQLModelPublic):
     id: int
     owner_id: int
 
 
-class ItemsPublic(SQLModel):
+class ItemsPublic(SQLModelBase):
     data: list[ItemPublic]
     count: int
 
 
 # Generic message
-class Message(SQLModel):
+class Message(SQLModelBase):
     message: str
 
 
 # JSON payload containing access token
-class Token(SQLModel):
+class Token(SQLModelBase):
     access_token: str
     token_type: str = "bearer"
 
 
 # Contents of JWT token
-class TokenPayload(SQLModel):
+class TokenPayload(SQLModelBase):
     sub: int | None = None
 
 
-class NewPassword(SQLModel):
+class NewPassword(SQLModelBase):
     token: str
     new_password: str
 
 
-class VerificationRequestBase(SQLModel):
+class VerificationRequestBase(SQLModelBase):
     verification_requested_by_id: int
     verification_requested_by: UserThatRequestsVerification
     who_to_verify_id: int
     who_to_verify: User
 
 
-class VerificationRequestCreate(VerificationRequestBase):
+class VerificationRequestCreate(VerificationRequestBase, SQLModelCreate):
     pass
 
 
-class VerificationRequestUpdate(VerificationRequestBase):
+class VerificationRequestUpdate(VerificationRequestBase, SQLModelUpdate):
     pass
 
 
-class VerificationRequest(VerificationRequestBase):
+class VerificationRequest(VerificationRequestBase, SQLModelInDB):
     pass
 
 
-class VerificationRequestPublic(VerificationRequestBase):
+class VerificationRequestPublic(VerificationRequestBase, SQLModelPublic):
     pass
