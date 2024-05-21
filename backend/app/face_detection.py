@@ -13,7 +13,7 @@ class FaceRecognitionHandler:
         self.frame_count = 0  # Initialize frame count
         self.verification_request = verification_request
         # hook up the handler for new amqp messages
-        self.verification_request.amqp_queue().consume(self.handle_message)
+        self.verification_request.amqp_queue().consume(self.consumer)
 
     async def consumer(self, message: aio_pika.IncomingMessage):
         # This is where you process JSON that the client sends to you
