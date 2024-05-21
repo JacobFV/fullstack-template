@@ -230,7 +230,7 @@ class NewPassword(SQLModelBase):
     new_password: str
 
 
-class VerificationStatus(Enum):
+class VerificationRequestStatus(Enum):
     REQUESTED = "requested"
     IN_PROGRESS = "in_progress"
     VERIFIED = "verified"
@@ -257,7 +257,7 @@ class VerificationRequest(VerificationRequestBase, SQLModelInDB):
     verification_requested_by: UserThatRequestsVerification
     who_to_verify_id: int
     who_to_verify: User
-    verf_status: VerificationStatus
+    verf_status: VerificationRequestStatus
     on_completion_webhook_url: str
     on_completion_redirect_url: str | None = None
 
@@ -267,6 +267,6 @@ class VerificationRequestPublic(VerificationRequestBase, SQLModelPublic):
     verification_requested_by: UserThatRequestsVerification
     who_to_verify_id: int
     who_to_verify: User
-    verf_status: VerificationStatus
+    verf_status: VerificationRequestStatus
     on_completion_webhook_url: str
     on_completion_redirect_url: str | None = None
