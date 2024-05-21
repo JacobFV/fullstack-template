@@ -51,7 +51,7 @@ class FaceRecognitionHandler:
         return True
 
 
-def test_loacl_face_detection():
+def test_local_face_detection():
     handler = FaceRecognitionHandler(
         verification_request=VerificationRequest(
             id=1,
