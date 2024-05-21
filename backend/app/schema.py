@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from sqlmodel import Field, Relationship, SQLModel
 
 
@@ -45,6 +47,10 @@ class VerifiableIdentityPublic(VerifiableIdentityBase):
     id: int
 
 
+class VerifiableIdentityPublicMe(VerifiableIdentityBase):
+    id: int
+
+
 class OneTimeVerifiableIdentityBase(VerifiableIdentityBase):
     pass
 
@@ -66,6 +72,10 @@ class OneTimeVerifiableIdentity(VerifiableIdentity, table=True):
 
 
 class OneTimeVerifiableIdentityPublic(VerifiableIdentityPublic):
+    pass
+
+
+class OneTimeVerifiableIdentityPublicMe(VerifiableIdentityPublicMe):
     pass
 
 
@@ -120,6 +130,10 @@ class UserPublic(VerifiableIdentityPublic, UserBase):
     id: int
 
 
+class UserPublicMe(VerifiableIdentityPublicMe, UserBase):
+    id: int
+
+
 class UsersPublic(SQLModel):
     data: list[UserPublic]
     count: int
@@ -149,6 +163,10 @@ class UserThatRequestsVerification(User, table=True):
 
 
 class UserThatRequestsVerificationPublic(UserPublic):
+    pass
+
+
+class UserThatRequestsVerificationPublicMe(UserPublicMe):
     pass
 
 
