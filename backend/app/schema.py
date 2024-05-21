@@ -1,6 +1,26 @@
 from sqlmodel import Field, Relationship, SQLModel
 
 
+class SQLModelBase(SQLModel):
+    pass
+
+
+class SQLModelCreate(SQLModelBase):
+    pass
+
+
+class SQLModelUpdate(SQLModelBase):
+    pass
+
+
+class SQLModelInDB(SQLModelBase, table=True):
+    pass
+
+
+class SQLModelPublic(SQLModelBase):
+    pass
+
+
 class VerifiableIdentityBase(SQLModel):
     pass
 
