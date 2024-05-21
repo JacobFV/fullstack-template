@@ -7,7 +7,7 @@ from typing import Optional
 import aio_pika
 from app.core.aoimq import get_aoimq_channel
 
-from sqlmodel import Field, Relationship, Session
+from sqlmodel import Field, Relationship, Session, SQLModel
 
 
 class SQLModelBase(SQLModel):
