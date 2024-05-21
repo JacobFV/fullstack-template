@@ -21,7 +21,7 @@ from sqlmodel import select
 
 router = APIRouter()
 
- 
+
 @router.get("/", response_model=list[VerificationRequestPublic])
 def get_my_verification_requests(
     db: Session = Depends(get_db),
@@ -95,15 +95,22 @@ async def verify_me_websocket_endpoint(
             select(VerificationRequest)
             .where(VerificationRequest.id == verification_request_id)
             .where(VerificationRequest.who_to_verify_id == current_identity.id)
-        )
+        ).first()
         if not verification_request:
             await websocket.close(code=4040)  # Close with error code if not found
             return
 
         # Main WebSocket communication loop
         while True:
-            data = await websocket.receive_text()
-            await websocket.send_text(f"Message received: {data}")
+            data_type = await websocket.receive()
+            if data_type["type"] == "websocket.receive_text":
+                text_data = data_type["text"]
+            elif data_type["type"] == "websocket.receive_bytes":
+                video_frame = data_type["bytes"]
+
+            result = jordans_function(text_data or None, video_frame or None)
+
+            await websocket.send_text(f"Message received:")
     except Exception as e:
         await websocket.close()
         print(f"WebSocket connection closed with exception: {e}")
