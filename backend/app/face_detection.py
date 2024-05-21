@@ -6,18 +6,7 @@ class FaceRecognitionHandler:
         self.video_capture = None
         self.face_locations = []
 
-    def initialize_video(self):
-        # Get a reference to webcam #0 (the default one)
-        self.video_capture = cv2.VideoCapture(0)
-
-    def release_video(self):
-        # Release handle to the webcam
-        self.video_capture.release()
-        cv2.destroyAllWindows()
-
-    def process_frame(self):
-        # Grab a single frame of video
-        ret, frame = self.video_capture.read()
+    def process_frame(self, frame):
 
         # Resize frame of video to 1/4 size for faster face recognition processing
         small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
@@ -35,13 +24,6 @@ class FaceRecognitionHandler:
         for (top, right, bottom, left) in self.face_locations:
             cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
 
-        # Display the resulting image
-        cv2.imshow('Video', frame)
-
-        # Hit 'q' on the keyboard to quit!
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            return False
-
         return True
 
     def start_processing(self):
@@ -51,5 +33,4 @@ class FaceRecognitionHandler:
 
 # Example usage
 handler = FaceRecognitionHandler()
-handler.initialize_video()
 handler.start_processing()
