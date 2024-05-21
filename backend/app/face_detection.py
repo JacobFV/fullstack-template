@@ -12,13 +12,10 @@ class FaceRecognitionHandler:
         self.frame_count = 0  # Initialize frame count
         self.verification_request = verification_request
         # hook up the handler for new amqp messages
-        self.verification_request.amqp_queue().consume(self.consumer)
+        self.verification_request.listen_for_messages(self.consumer)
 
-    async def consumer(self, message: aio_pika.IncomingMessage):
-        # This is where you process JSON that the client sends to you
-        # IDK what you will do here
-        text = message.body()
-        print(text)
+    async def consumer(self, data: str):
+        print(data)
 
     def process_frame(self, frame):
         # Resize frame of video to 1/4 size for faster face recognition processing
@@ -38,13 +35,12 @@ class FaceRecognitionHandler:
         # Draw a box around the faces
         for top, right, bottom, left in self.face_locations:
             cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
+        self.verification_request.publish_message("we're processing the frame")
 
         # Let's suppose you detected a face
         if True:  # say, you detected a face
             # send a message to the queue
-            self.verification_request.amqp_queue().publish(
-                aio_pika.Message(body="face detected".encode())
-            )
+            self.verification_request.publish_message("face detected")
 
         self.frame_count += 1  # Increment the frame count
         return True
