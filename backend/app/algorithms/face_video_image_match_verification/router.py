@@ -6,7 +6,7 @@ from app.api.deps import (
     get_current_verifiable_identity,
     get_db,
 )
-from app.face_detection import FaceRecognitionHandler
+from app.ml.face_detection import FaceRecognitionHandler
 from app.schema.proof_of_id_verification import (
     User,
     UserThatRequestsVerification,
@@ -25,7 +25,7 @@ import aio_pika
 import os
 
 # I think we need this import and need to add the frames function in the video route
-from face_detection import process_frame
+from app.ml.face_detection import process_frame
 
 router = APIRouter()
 
