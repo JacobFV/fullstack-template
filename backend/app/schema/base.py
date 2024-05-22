@@ -4,7 +4,7 @@ from abc import abstractmethod
 from datetime import datetime
 from enum import Enum
 from functools import cached_property
-from typing import ClassVar, Optional
+from typing import ClassVar, Literal, Optional
 
 from pydantic.config import ConfigDict
 from sqlalchemy import Column, String, func
@@ -13,6 +13,7 @@ from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
 from typing_extensions import Unpack
 
 from app.core.redis import get_redis_connection
+from app.utils.errors import UnauthorizedUpdateError
 
 
 class ModelBase(SQLModel):
@@ -33,7 +34,13 @@ class ModelUpdate(ModelBase):
         authenticated = "authenticated"
         public = "public"
 
-        def apply_privileges(self, model: ModelUpdate, model_owner_id, user_id):
+        def apply_privileges(
+            self,
+            model: ModelUpdate,
+            model_owner_id: int,
+            user_id: int,
+            unauthorized_update_response: Literal["raise", "none"] = "raise",
+        ):
             is_owner = model_owner_id == user_id
             is_authenticated = user_id is not None
             is_public = True
@@ -42,13 +49,43 @@ class ModelUpdate(ModelBase):
                 match getattr(k, "update_privileges", None):
                     case ModelUpdate.UpdatePrivileges.owner:
                         if not is_owner:
-                            setattr(model, k, None)
+                            match unauthorized_update_response:
+                                case "raise":
+                                    raise UnauthorizedUpdateError(
+                                        f"User {user_id} is not authorized to update {k} for {model_owner_id}"
+                                    )
+                                case "none":
+                                    setattr(model, k, None)
+                                case _:
+                                    raise ValueError(
+                                        f"Unauthorized update response {unauthorized_update_response} not supported"
+                                    )
                     case ModelUpdate.UpdatePrivileges.authenticated:
                         if not is_authenticated:
-                            setattr(model, k, None)
+                            match unauthorized_update_response:
+                                case "raise":
+                                    raise UnauthorizedUpdateError(
+                                        f"User {user_id} is not authenticated"
+                                    )
+                                case "none":
+                                    setattr(model, k, None)
+                                case _:
+                                    raise ValueError(
+                                        f"Unauthorized update response {unauthorized_update_response} not supported"
+                                    )
                     case ModelUpdate.UpdatePrivileges.public:
                         if not is_public:
-                            setattr(model, k, None)
+                            match unauthorized_update_response:
+                                case "raise":
+                                    raise UnauthorizedUpdateError(
+                                        f"User {user_id} is not authorized to update {k} for {model_owner_id}"
+                                    )
+                                case "none":
+                                    setattr(model, k, None)
+                                case _:
+                                    raise ValueError(
+                                        f"Unauthorized update response {unauthorized_update_response} not supported"
+                                    )
                     case _:
                         pass
 
@@ -63,7 +100,7 @@ class ModelRead(ModelBase):
         authenticated = "authenticated"
         public = "public"
 
-        def apply_privileges(self, model: ModelRead, model_owner_id, user_id):
+        def apply_privileges(self, model: ModelRead, model_owner_id: int, user_id: int):
             is_owner = model_owner_id == user_id
             is_authenticated = user_id is not None
             is_public = True

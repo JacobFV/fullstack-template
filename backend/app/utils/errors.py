@@ -1,0 +1,2 @@
+class UnauthorizedUpdateError(Exception):
+    pass
