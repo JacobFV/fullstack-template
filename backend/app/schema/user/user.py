@@ -13,7 +13,7 @@ from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
 from typing_extensions import Unpack
 
 from app.core.redis import get_redis_connection
-from app.schema.crud_base import CRUDBase
+from app.schema.crud_base import ModelBase
 from app.schema.user.identity import (
     Identity,
     IdentityBase,
@@ -40,7 +40,7 @@ class UserCreate(IdentityCreate, UserBase):
 
 
 # TODO replace email str with EmailStr when sqlmodel supports it
-class UserRegister(CRUDBase):
+class UserRegister(ModelBase):
     email: str
     password: str
     full_name: str | None = None
@@ -54,7 +54,7 @@ class UserUpdate(IdentityUpdate, UserBase):
     full_name: str | None = None
 
 
-class UpdatePassword(CRUDBase):
+class UpdatePassword(ModelBase):
     current_password: str
     new_password: str
 

@@ -13,6 +13,7 @@ from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
 from typing_extensions import Unpack
 
 from app.core.redis import get_redis_connection
+from app.schema.system.api_key import APIKey, APIKeyRead
 from app.schema.user.user import (
     User,
     UserBase,
@@ -38,15 +39,16 @@ class DeveloperUpdate(DeveloperBase, UserUpdate):
     stripe_user_access_token: str | None = None
 
 
+class DeveloperRead(DeveloperBase, UserRead):
+    verification_requests: list[Verification] = Field(
+        schema_extra={"permission": "self"}  # TODO: implement auth in a base class
+    )
+    api_keys: list[APIKeyRead] = Field(schema_extra={"view_privileges": "self"})
+
+
 class Developer(DeveloperBase, User, table=True):
     verification_requests: list[Verification] = Relationship(
         back_populates="verification_requested_by"
     )
     stripe_user_access_token: str | None = None
-    api_keys: list[ApiKey]
-
-
-class DeveloperRead(DeveloperBase, UserRead):
-    verification_requests: list[Verification] = Field(
-        schema_extra={"permission": "self"}  # TODO: implement auth in a base class
-    )
+    api_keys: list[APIKey]

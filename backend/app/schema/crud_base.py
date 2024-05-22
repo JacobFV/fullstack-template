@@ -15,23 +15,77 @@ from typing_extensions import Unpack
 from app.core.redis import get_redis_connection
 
 
-class CRUDBase(SQLModel):
+class ModelBase(SQLModel):
 
-    ModelCreate: ClassVar[type[CRUDCreate]]
-    ModelUpdate: ClassVar[type[CRUDUpdate]]
-    ModelRead: ClassVar[type[CRUDRead]]
-    ModelInDB: ClassVar[type[CRUDInDB]]
+    ModelCreate: ClassVar[type[ModelCreate]]
+    ModelUpdate: ClassVar[type[ModelUpdate]]
+    ModelRead: ClassVar[type[ModelRead]]
+    ModelInDB: ClassVar[type[ModelInDB]]
 
 
-class CRUDCreate(CRUDBase):
+class ModelCreate(ModelBase):
     pass
 
 
-class CRUDUpdate(CRUDBase):
+class ModelUpdate(ModelBase):
+    class UpdatePrivileges(Enum):
+        owner = "owner"
+        authenticated = "authenticated"
+        public = "public"
+
+        def apply_privileges(self, model: ModelUpdate, model_owner_id, user_id):
+            is_owner = model_owner_id == user_id
+            is_authenticated = user_id is not None
+            is_public = True
+
+            for k in model.model_fields:
+                match getattr(k, "update_privileges", None):
+                    case ModelUpdate.UpdatePrivileges.owner:
+                        if not is_owner:
+                            setattr(model, k, None)
+                    case ModelUpdate.UpdatePrivileges.authenticated:
+                        if not is_authenticated:
+                            setattr(model, k, None)
+                    case ModelUpdate.UpdatePrivileges.public:
+                        if not is_public:
+                            setattr(model, k, None)
+                    case _:
+                        pass
+
+            return model
+
     pass
 
 
-class CRUDInDB(CRUDBase, table=True):
+class ModelRead(ModelBase):
+    class ViewPrivileges(Enum):
+        owner = "owner"
+        authenticated = "authenticated"
+        public = "public"
+
+        def apply_privileges(self, model: ModelRead, model_owner_id, user_id):
+            is_owner = model_owner_id == user_id
+            is_authenticated = user_id is not None
+            is_public = True
+
+            for k in model.model_fields:
+                match getattr(k, "view_privileges", None):
+                    case ModelRead.ViewPrivileges.owner:
+                        if not is_owner:
+                            setattr(model, k, None)
+                    case ModelRead.ViewPrivileges.authenticated:
+                        if not is_authenticated:
+                            setattr(model, k, None)
+                    case ModelRead.ViewPrivileges.public:
+                        if not is_public:
+                            setattr(model, k, None)
+                    case _:
+                        pass
+
+    pass
+
+
+class ModelInDB(ModelBase, table=True):
     __tablename__ = "crud_object"
     __mapper_args__ = {
         "polymorphic_identity": "crud_object",  # base class identity
@@ -54,17 +108,17 @@ class CRUDInDB(CRUDBase, table=True):
 
     @staticmethod
     def manually_run_all_ddl(session: Session):
-        for subclass in CRUDInDB.__subclasses__():
+        for subclass in ModelInDB.__subclasses__():
             session.execute(subclass.get_ddl())
 
     @classmethod
     def from_create(
         cls,
-        create_model: CRUDCreate,
+        create_model: ModelCreate,
         session: Session,
         user: User | None = None,
         extra_keys: Optional[dict] = None,
-    ) -> CRUDInDB:
+    ) -> ModelInDB:
         db_entity = cls(**create_model.model_dump(), **(extra_keys or {}))
         # subclasses wrap this and pass in extra keys needed for the indb model that are absent in the create model
         session.add(db_entity)
@@ -73,14 +127,14 @@ class CRUDInDB(CRUDBase, table=True):
 
     def update_from(
         self,
-        update_model: CRUDUpdate,
+        update_model: ModelUpdate,
         session: Session,
         user: User | None = None,
     ) -> None:
         self.sqlmodel_update(update_model.model_dump(exclude_unset=True))
         session.commit()
 
-    def to_read(self, user: User | None = None) -> CRUDRead:
+    def to_read(self, user: User | None = None) -> ModelRead:
         return self.ModelRead.model_validate(self)
 
     # active record methods
@@ -118,7 +172,7 @@ class CRUDInDB(CRUDBase, table=True):
     def update_by_id(
         cls,
         id: int,
-        update_model: CRUDUpdate,
+        update_model: ModelUpdate,
         session: Session,
         commit=True,
     ):
@@ -132,7 +186,7 @@ class CRUDInDB(CRUDBase, table=True):
     def update_by_ids(
         cls,
         ids: list[int],
-        update_model: CRUDUpdate,
+        update_model: ModelUpdate,
         session: Session,
         commit=True,
     ):
@@ -190,7 +244,3 @@ class CRUDInDB(CRUDBase, table=True):
     @classmethod
     def exists_none(cls, ids: list[int], session: Session):
         return not cls.exists_by_ids(ids, session)
-
-
-class CRUDRead(CRUDBase):
-    pass

@@ -12,20 +12,20 @@ from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
 from typing_extensions import Unpack
 
 from app.core.redis import get_redis_connection
-from app.schema.crud_base import CRUDBase
+from app.schema.crud_base import ModelBase
 
 
 # JSON payload containing access token
-class Token(CRUDBase):
+class Token(ModelBase):
     access_token: str
     token_type: str = "bearer"
 
 
 # Contents of JWT token
-class TokenPayload(CRUDBase):
+class TokenPayload(ModelBase):
     sub: int | None = None
 
 
-class NewPassword(CRUDBase):
+class NewPassword(ModelBase):
     token: str
     new_password: str

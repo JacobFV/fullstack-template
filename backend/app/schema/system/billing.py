@@ -1,4 +1,4 @@
-from typing import Generic, TypeVar
+from typing import ClassVar, Generic, TypeVar
 from attrs import define
 
 T = TypeVar("T")
@@ -6,7 +6,7 @@ T = TypeVar("T")
 
 @define
 class Money(Generic[T]):
-    T: type = int
+    T: ClassVar[type] = int
     currency: str = "USD cents"
     amount: T
 

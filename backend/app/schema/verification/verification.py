@@ -13,7 +13,13 @@ from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
 from typing_extensions import Unpack
 
 from app.core.redis import get_redis_connection
-from app.schema.crud_base import CRUDBase, CRUDCreate, CRUDInDB, CRUDRead, CRUDUpdate
+from app.schema.crud_base import (
+    ModelBase,
+    ModelCreate,
+    ModelInDB,
+    ModelRead,
+    ModelUpdate,
+)
 from app.schema.has_redis import HasReddisChannel
 from app.schema.user.user import User
 from app.schema.user.developer import Developer
@@ -26,18 +32,18 @@ class VerificationStatus(Enum):
     FAILED = "failed"
 
 
-class VerificationBase(CRUDBase):
+class VerificationBase(ModelBase):
     pass
 
 
 # TODO: change on_completion_webhook_url and on_completion_redirect_url to URLStr when sqlmodel supports it
-class VerificationRequestBase(VerificationBase, CRUDCreate):
+class VerificationRequestBase(VerificationBase, ModelCreate):
     who_to_verify_id: int
     on_completion_webhook_url: str
     on_completion_redirect_url: str | None = None
 
 
-class Verification(HasReddisChannel, VerificationBase, CRUDInDB, table=True):
+class Verification(HasReddisChannel, VerificationBase, ModelInDB, table=True):
     verification_requested_by_id: int
     verification_requested_by: Developer
     who_to_verify_id: int
@@ -47,7 +53,7 @@ class Verification(HasReddisChannel, VerificationBase, CRUDInDB, table=True):
     on_completion_redirect_url: str | None = None
 
 
-class VerificationPublic(VerificationBase, CRUDRead):
+class VerificationPublic(VerificationBase, ModelRead):
     verification_requested_by_id: int
     verification_requested_by: Developer
     who_to_verify_id: int

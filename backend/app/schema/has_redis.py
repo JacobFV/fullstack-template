@@ -13,10 +13,10 @@ from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
 from typing_extensions import Unpack
 
 from app.core.redis import get_redis_connection
-from app.schema.crud_base import CRUDInDB
+from app.schema.crud_base import ModelInDB
 
 
-class HasReddisChannel(CRUDInDB):
+class HasReddisChannel(ModelInDB):
 
     @hybrid_column
     def redis_channel_name(self):

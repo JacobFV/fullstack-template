@@ -13,26 +13,32 @@ from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
 from typing_extensions import Unpack
 
 from app.core.redis import get_redis_connection
-from app.schema.crud_base import CRUDBase, CRUDCreate, CRUDInDB, CRUDRead, CRUDUpdate
+from app.schema.crud_base import (
+    ModelBase,
+    ModelCreate,
+    ModelInDB,
+    ModelRead,
+    ModelUpdate,
+)
 
 
-class IdentityBase(CRUDBase):
+class IdentityBase(ModelBase):
     pass
 
 
-class IdentityCreate(IdentityBase, CRUDCreate):
+class IdentityCreate(IdentityBase, ModelCreate):
     image: Optional[bytes]
 
 
-class IdentityUpdate(IdentityBase, CRUDUpdate):
+class IdentityUpdate(IdentityBase, ModelUpdate):
     pass
 
 
-class Identity(IdentityBase, CRUDInDB, table=True):
+class Identity(IdentityBase, ModelInDB, table=True):
     id: int | None = Field(default=None, primary_key=True, autoincrement=True)
     image: Optional[bytes]
 
 
-class IdentityRead(IdentityBase, CRUDRead):
+class IdentityRead(IdentityBase, ModelRead):
     id: int
     image: Optional[bytes]
