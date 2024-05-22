@@ -20,6 +20,7 @@ from app.schema.verification.verification import (
     VerificationUpdate,
 )
 from app.utils.crud import build_crud_endpoints
+from backend.app.schema.base import ModelRead
 
 
 class HandSignVerificationBase(VerificationBase):
@@ -31,7 +32,10 @@ class HandSignVerificationRequest(HandSignVerificationBase, VerificationRequestB
 
 
 class HandSignVerificationRead(HandSignVerificationBase, VerificationRead):
-    pass
+    model_name = Field(
+        "hand_sign_verification-001",
+        schema_extra={"view_privileges": ModelRead.ViewPrivileges.owner},
+    )
 
 
 class HandSignVerificationUpdate(HandSignVerificationBase, VerificationUpdate):

@@ -22,7 +22,7 @@ from app.schema.base import (
 )
 from app.schema.has_redis import HasReddisChannel
 from app.schema.user.user import User
-from app.schema.user.developer import Developer
+from app.schema.user.developer import Developer, DeveloperRead
 from app.utils.crud import build_crud_endpoints
 
 
@@ -46,7 +46,7 @@ class VerificationRequestBase(VerificationBase, ModelCreate):
 
 class VerificationRead(VerificationBase, ModelRead):
     verification_requested_by_id: int
-    verification_requested_by: Developer
+    verification_requested_by: DeveloperRead
     who_to_verify_id: int
     who_to_verify: User
     verf_status: VerificationStatus

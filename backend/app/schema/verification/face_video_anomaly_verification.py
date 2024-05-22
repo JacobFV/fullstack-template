@@ -20,6 +20,7 @@ from app.schema.verification.verification import (
     VerificationUpdate,
 )
 from app.utils.crud import build_crud_endpoints
+from backend.app.schema.base import ModelRead
 
 
 class FaceVideoAnomalyVerificationBase(VerificationBase):
@@ -35,7 +36,10 @@ class FaceVideoAnomalyVerificationRequest(
 class FaceVideoAnomalyVerificationRead(
     FaceVideoAnomalyVerificationBase, VerificationRead
 ):
-    pass
+    model_name: str = Field(
+        "face_video_anomaly_verification-001",
+        schema_extra={"view_privileges": ModelRead.ViewPrivileges.owner},
+    )
 
 
 class FaceVideoAnomalyVerificationUpdate(
