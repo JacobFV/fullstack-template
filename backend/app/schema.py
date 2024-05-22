@@ -56,21 +56,30 @@ class CRUDInDB(CRUDBase, table=True):
             session.execute(subclass.get_ddl())
 
     @classmethod
-    def from_create(cls, create_model: CRUDCreate, session: Session, **extra_keys):
+    def from_create(
+        cls,
+        create_model: CRUDCreate,
+        session: Session,
+        user: User | None = None,
+        extra_keys: Optional[dict] = None,
+    ) -> CRUDInDB:
         db_entity = cls(**create_model.model_dump(), **(extra_keys or {}))
         # subclasses wrap this and pass in extra keys needed for the indb model that are absent in the create model
         session.add(db_entity)
         session.commit()
         return db_entity
 
-    @classmethod
-    def update_from(cls, id: int, update_model: CRUDUpdate, session: Session):
-        cls.update_by_id(id, update_model, session)
+    def update_from(
+        self,
+        update_model: CRUDUpdate,
+        session: Session,
+        user: User | None = None,
+    ) -> None:
+        self.sqlmodel_update(update_model.model_dump(exclude_unset=True))
+        session.commit()
 
-    @classmethod
-    def to_read(cls, id: int, session: Session):
-        db_entity = cls.find_by_id(id, session)
-        return cls.ModelRead.model_validate(db_entity)
+    def to_read(self, user: User | None = None) -> CRUDRead:
+        return self.ModelRead.model_validate(self)
 
     # active record methods
     def save(self, session: Session):

@@ -5,7 +5,7 @@ from sqlmodel import col, delete, func, select
 
 from app import crud
 from app.api.deps import (
-    CurrentUser,
+    CurrentUserDep,
     SessionDep,
     get_current_active_superuser,
 )
@@ -76,7 +76,7 @@ def create_user(*, session: SessionDep, user_in: UserCreate) -> Any:
 
 @router.patch("/me", response_model=UserPublic)
 def update_user_me(
-    *, session: SessionDep, user_in: UserUpdateMe, current_user: CurrentUser
+    *, session: SessionDep, user_in: UserUpdateMe, current_user: CurrentUserDep
 ) -> Any:
     """
     Update own user.
@@ -98,7 +98,7 @@ def update_user_me(
 
 @router.patch("/me/password", response_model=Message)
 def update_password_me(
-    *, session: SessionDep, body: UpdatePassword, current_user: CurrentUser
+    *, session: SessionDep, body: UpdatePassword, current_user: CurrentUserDep
 ) -> Any:
     """
     Update own password.
@@ -117,7 +117,7 @@ def update_password_me(
 
 
 @router.get("/me", response_model=UserPublic)
-def read_user_me(current_user: CurrentUser) -> Any:
+def read_user_me(current_user: CurrentUserDep) -> Any:
     """
     Get current user.
     """
@@ -125,7 +125,7 @@ def read_user_me(current_user: CurrentUser) -> Any:
 
 
 @router.delete("/me", response_model=Message)
-def delete_user_me(session: SessionDep, current_user: CurrentUser) -> Any:
+def delete_user_me(session: SessionDep, current_user: CurrentUserDep) -> Any:
     """
     Delete own user.
     """
@@ -163,7 +163,7 @@ def register_user(session: SessionDep, user_in: UserRegister) -> Any:
 
 @router.get("/{user_id}", response_model=UserPublic)
 def read_user_by_id(
-    user_id: int, session: SessionDep, current_user: CurrentUser
+    user_id: int, session: SessionDep, current_user: CurrentUserDep
 ) -> Any:
     """
     Get a specific user by id.
@@ -213,7 +213,7 @@ def update_user(
 
 @router.delete("/{user_id}", dependencies=[Depends(get_current_active_superuser)])
 def delete_user(
-    session: SessionDep, current_user: CurrentUser, user_id: int
+    session: SessionDep, current_user: CurrentUserDep, user_id: int
 ) -> Message:
     """
     Delete a user.
