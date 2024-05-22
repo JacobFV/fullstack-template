@@ -5,4 +5,4 @@
 
 [ ] - Complete Face_Detection.py 
 
-<!-- [ ] -  -->
+[ ] - 
