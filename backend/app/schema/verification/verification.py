@@ -8,10 +8,15 @@ from typing import ClassVar, Optional
 
 from pydantic.config import ConfigDict
 from sqlalchemy import Column, String, func
+from sqlalchemy.ext.hybrid import hybrid_column
 from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
 from typing_extensions import Unpack
 
 from app.core.redis import get_redis_connection
+from app.schema.crud_base import CRUDBase, CRUDCreate, CRUDInDB, CRUDRead, CRUDUpdate
+from app.schema.has_redis import HasReddisChannel
+from app.schema.user.user import User
+from app.schema.user.user_that_requests_verification import UserThatRequestsVerification
 
 
 class VerificationStatus(Enum):
@@ -32,7 +37,7 @@ class VerificationRequestBase(VerificationBase, CRUDCreate):
     on_completion_redirect_url: str | None = None
 
 
-class Verification(HasReddisChannel, VerificationBase, CRUDInDB):
+class Verification(HasReddisChannel, VerificationBase, CRUDInDB, table=True):
     verification_requested_by_id: int
     verification_requested_by: UserThatRequestsVerification
     who_to_verify_id: int
