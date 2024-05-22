@@ -14,6 +14,13 @@ from typing_extensions import Unpack
 from app.core.redis import get_redis_connection
 
 
-# Generic message
-class Message(CRUDBase):
-    message: str
+class HumanSpeechVerificationBase(VerificationBase):
+    model_name: str = "human_speech_verification-001"
+
+
+class HumanSpeechVerification(HumanSpeechVerificationBase, Verification):
+    pass
+
+
+class HumanSpeechVerificationPublic(HumanSpeechVerificationBase, VerificationPublic):
+    pass

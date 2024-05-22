@@ -14,6 +14,13 @@ from typing_extensions import Unpack
 from app.core.redis import get_redis_connection
 
 
-# Generic message
-class Message(CRUDBase):
-    message: str
+class ProofOfIDVerificationBase(VerificationBase):
+    pass
+
+
+class ProofOfIDVerification(ProofOfIDVerificationBase, Verification):
+    pass
+
+
+class ProofOfIDVerificationPublic(ProofOfIDVerificationBase, VerificationPublic):
+    pass

@@ -14,6 +14,21 @@ from typing_extensions import Unpack
 from app.core.redis import get_redis_connection
 
 
-# Generic message
-class Message(CRUDBase):
-    message: str
+class FaceVideoAnomalyVerificationBase(VerificationBase):
+    model_name: str = "face_video_anomaly_verification-001"
+
+
+class FaceVideoAnomalyVerificationRequest(
+    FaceVideoAnomalyVerificationBase, VerificationRequestBase
+):
+    pass
+
+
+class FaceVideoAnomalyVerification(Verification):
+    pass
+
+
+class FaceVideoAnomalyVerificationPublic(
+    FaceVideoAnomalyVerificationBase, VerificationPublic
+):
+    pass

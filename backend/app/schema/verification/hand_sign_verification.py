@@ -14,6 +14,13 @@ from typing_extensions import Unpack
 from app.core.redis import get_redis_connection
 
 
-# Generic message
-class Message(CRUDBase):
-    message: str
+class HandSignVerificationBase(VerificationBase):
+    model_name: str = "hand_sign_verification-001"
+
+
+class HandSignVerification(HandSignVerificationBase, Verification):
+    hand_letters: list[str]
+
+
+class HandSignVerificationPublic(HandSignVerificationBase, VerificationPublic):
+    pass

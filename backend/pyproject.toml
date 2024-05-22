@@ -42,6 +42,8 @@ pre-commit = "^3.6.2"
 types-passlib = "^1.7.7.20240106"
 coverage = "^7.4.3"
 sphinx = "^7.3.7"
+isort = "^5.13.2"
+black = "^24.4.2"
 
 [build-system]
 requires = ["poetry>=0.12"]
