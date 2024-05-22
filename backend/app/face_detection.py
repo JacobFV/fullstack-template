@@ -98,4 +98,4 @@ def test_local_face_detection():
 
 
 if __name__ == "__main__":
-    test_loacl_face_detection()
+    test_local_face_detection()
