@@ -3,15 +3,15 @@ import face_recognition
 import cv2
 import aio_pika
 
-from app.schema import (
+from app.schema.proof_of_id_verification import (
     OneTimeVerifiableIdentity,
     UserThatRequestsVerification,
-    VerificationRequest,
+    Verification,
 )
 
 
 class FaceRecognitionHandler:
-    def __init__(self, verification_request: VerificationRequest):
+    def __init__(self, verification_request: Verification):
         self.video_capture = None
         self.face_locations = []
         self.frame_count = 0  # Initialize frame count
@@ -53,7 +53,7 @@ class FaceRecognitionHandler:
 
 def test_local_face_detection():
     handler = FaceRecognitionHandler(
-        verification_request=VerificationRequest(
+        verification_request=Verification(
             id=1,
             who_to_verify=OneTimeVerifiableIdentity(id=1, image=b""),
             on_completion_redirect_url="",

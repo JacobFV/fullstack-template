@@ -12,36 +12,6 @@ files = [
 ]
 
 [[package]]
-name = "aio-pika"
-version = "9.4.1"
-description = "Wrapper around the aiormq for asyncio and humans"
-optional = false
-python-versions = ">=3.8,<4.0"
-files = [
-    {file = "aio_pika-9.4.1-py3-none-any.whl", hash = "sha256:2d4cec5a5d32005a71e31faaf5be58ee993fa29b8243a5d04b8f4a73df272fe8"},
-    {file = "aio_pika-9.4.1.tar.gz", hash = "sha256:d177404a27aa797a2ac935f6aa2bbb287fe1f0ddf5628ca20a237b7db3ea6324"},
-]
-
-[package.dependencies]
-aiormq = ">=6.8.0,<6.9.0"
-yarl = "*"
-
-[[package]]
-name = "aiormq"
-version = "6.8.0"
-description = "Pure python AMQP asynchronous client library"
-optional = false
-python-versions = ">=3.8,<4.0"
-files = [
-    {file = "aiormq-6.8.0-py3-none-any.whl", hash = "sha256:9a16174dcae4078c957a773d2f02d3dfd6c2fcf12c909dc244333a458f2aeab0"},
-    {file = "aiormq-6.8.0.tar.gz", hash = "sha256:198f9c7430feb7bc491016099a06266dc45880b6b1de3925d410fde6541a66fb"},
-]
-
-[package.dependencies]
-pamqp = "3.3.0"
-yarl = "*"
-
-[[package]]
 name = "alabaster"
 version = "0.7.16"
 description = "A light, configurable Sphinx theme"

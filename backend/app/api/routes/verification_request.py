@@ -7,51 +7,48 @@ from app.api.deps import (
     get_db,
 )
 from app.face_detection import FaceRecognitionHandler
-from app.schema import (
+from app.schema.proof_of_id_verification import (
     User,
     UserThatRequestsVerification,
     VerifiableIdentity,
-    VerificationRequestBase,
+    VerificationBase,
     VerificationRequestCreate,
     VerificationRequestUpdate,
-    VerificationRequestPublic,
-    VerificationRequest,
-    VerificationRequestStatus,
+    VerificationPublic,
+    Verification,
+    VerificationStatus,
 )
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, Request
 from sqlalchemy.orm import Session
 from sqlmodel import select
 import aio_pika
 import os
+
 # I think we need this import and need to add the frames function in the video route
 from face_detection import process_frame
 
 router = APIRouter()
 
 
-@router.get("/", response_model=list[VerificationRequestPublic])
+@router.get("/", response_model=list[VerificationPublic])
 def get_my_verification_requests(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return (
-        db.query(VerificationRequest)
-        .filter(VerificationRequest.user_id == current_user.id)
-        .all()
-    )
+    return db.query(Verification).filter(Verification.user_id == current_user.id).all()
 
 
 def get_verification_request_assigned_to_meby_id(
     verification_request_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> VerificationRequest | None:
+) -> Verification | None:
     try:
         verf_request = db.exec(
-            select(VerificationRequest)
+            select(Verification)
             .filter(
-                VerificationRequest.id == verification_request_id,
-                VerificationRequest.who_to_verify_id == current_user.id,
+                Verification.id == verification_request_id,
+                Verification.who_to_verify_id == current_user.id,
             )
             .first()
         )
@@ -61,11 +58,11 @@ def get_verification_request_assigned_to_meby_id(
 
 
 GetVerificationRequestDep = Annotated[
-    VerificationRequest, Depends(get_verification_request_assigned_to_meby_id)
+    Verification, Depends(get_verification_request_assigned_to_meby_id)
 ]
 
 
-@router.post("/", response_model=VerificationRequestPublic)
+@router.post("/", response_model=VerificationPublic)
 def create_verification_request(
     verification_request_in: VerificationRequestCreate,
     db: Session = Depends(get_db),
@@ -76,13 +73,13 @@ def create_verification_request(
             status_code=403,
             detail="User must face for an other user that requests verification",
         )
-    verification_request = VerificationRequest(**verification_request_in.dict())
+    verification_request = Verification(**verification_request_in.dict())
     db.add(verification_request)
     db.commit()
     return verification_request
 
 
-@router.put("/{verification_request_id}", response_model=VerificationRequestPublic)
+@router.put("/{verification_request_id}", response_model=VerificationPublic)
 def update_verification_request(
     verification_request_in: VerificationRequestUpdate,
     current_verification_request: GetVerificationRequestDep = Depends(
@@ -99,15 +96,15 @@ def update_verification_request(
     return current_verification_request
 
 
-@router.get("/{verification_request_id}", response_model=VerificationRequestStatus)
+@router.get("/{verification_request_id}", response_model=VerificationStatus)
 def check_verification_request_status(
     verification_request_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     verification_request = (
-        db.query(VerificationRequest)
-        .filter(VerificationRequest.id == verification_request_id)
+        db.query(Verification)
+        .filter(Verification.id == verification_request_id)
         .first()
     )
     if not verification_request:
@@ -125,8 +122,8 @@ async def verify_me_websocket_endpoint(
     await websocket.accept()
 
     verification_request = (
-        db.query(VerificationRequest)
-        .filter(VerificationRequest.id == verification_request_id)
+        db.query(Verification)
+        .filter(Verification.id == verification_request_id)
         .first()
     )
     if not verification_request:

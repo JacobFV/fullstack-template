@@ -11,7 +11,7 @@ from sqlmodel import Session, select
 from app.core import security
 from app.core.config import settings
 from app.core.db import engine
-from backend.app.schema import TokenPayload, User, VerifiableIdentity
+from app.schema.proof_of_id_verification import TokenPayload, User, VerifiableIdentity
 
 reusable_oauth2 = OAuth2PasswordBearer(
     tokenUrl=f"{settings.API_V1_STR}/login/access-token"
@@ -41,6 +41,10 @@ def get_current_user(session: SessionDep, token: TokenDep) -> User:
     return _get_current_user(session, token)
 
 
+def maybe_get_current_user(session: SessionDep, token: TokenDep) -> User | None:
+    return _get_current_user(session, token, raise_on_not_found=False)
+
+
 def _get_current_user(
     session: SessionDep, token: TokenDep, raise_on_not_found: bool = True
 ) -> User:
@@ -65,10 +69,11 @@ def _get_current_user(
     return user
 
 
-CurrentUser = Annotated[User, Depends(get_current_user)]
+CurrentUserDep = Annotated[User, Depends(get_current_user)]
+MaybeCurrentUserDep = Annotated[User | None, Depends(maybe_get_current_user)]
 
 
-def get_current_active_superuser(current_user: CurrentUser) -> User:
+def get_current_active_superuser(current_user: CurrentUserDep) -> User:
     if not current_user.is_superuser:
         raise HTTPException(
             status_code=403, detail="The user doesn't have enough privileges"
