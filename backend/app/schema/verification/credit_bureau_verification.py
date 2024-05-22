@@ -28,5 +28,5 @@ class CreditBureauVerification(CreditBureauVerificationBase, Verification):
     pass
 
 
-class CreditBureauVerificationPublic(CreditBureauVerificationBase, VerificationPublic):
+class CreditBureauVerificationRead(CreditBureauVerificationBase, VerificationPublic):
     pass

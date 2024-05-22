@@ -28,5 +28,5 @@ class LivingPupilVerification(LivingPupilVerificationBase, Verification):
     pass
 
 
-class LivingPupilVerificationPublic(LivingPupilVerificationBase, VerificationPublic):
+class LivingPupilVerificationRead(LivingPupilVerificationBase, VerificationPublic):
     pass

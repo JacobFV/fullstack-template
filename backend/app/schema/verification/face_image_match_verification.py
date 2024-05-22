@@ -38,7 +38,7 @@ class FaceImageMatchVerification(FaceImageMatchVerificationBase, Verification):
         )
 
 
-class FaceImageMatchVerificationPublic(
+class FaceImageMatchVerificationRead(
     FaceImageMatchVerificationBase, VerificationPublic
 ):
     pass

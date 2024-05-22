@@ -34,7 +34,7 @@ class FaceVideoAnomalyVerification(Verification):
     pass
 
 
-class FaceVideoAnomalyVerificationPublic(
+class FaceVideoAnomalyVerificationRead(
     FaceVideoAnomalyVerificationBase, VerificationPublic
 ):
     pass

@@ -28,5 +28,5 @@ class HumanSpeechVerification(HumanSpeechVerificationBase, Verification):
     pass
 
 
-class HumanSpeechVerificationPublic(HumanSpeechVerificationBase, VerificationPublic):
+class HumanSpeechVerificationRead(HumanSpeechVerificationBase, VerificationPublic):
     pass

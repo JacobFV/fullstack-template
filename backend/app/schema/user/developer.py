@@ -17,7 +17,7 @@ from app.schema.user.user import (
     User,
     UserBase,
     UserCreate,
-    UserPublic,
+    UserRead,
     UserPublicMe,
     UserUpdate,
     UserUpdateMe,
@@ -26,34 +26,28 @@ from app.schema.verification.verification import Verification
 
 
 # Verifier
-class UserThatRequestsVerificationBase(UserBase):
+class DeveloperBase(UserBase):
     pass
 
 
-class UserThatRequestsVerificationCreate(UserThatRequestsVerificationBase, UserCreate):
+class DeveloperCreate(DeveloperBase, UserCreate):
     stripe_user_access_token: str | None = None
 
 
-class UserThatRequestsVerificationUpdate(UserThatRequestsVerificationBase, UserUpdate):
-    pass
-
-
-class UserThatRequestsVerificationUpdateMe(
-    UserThatRequestsVerificationBase, UserUpdateMe
-):
+class DeveloperUpdate(DeveloperBase, UserUpdate):
     stripe_user_access_token: str | None = None
 
 
-class UserThatRequestsVerification(UserThatRequestsVerificationBase, User, table=True):
+class Developer(DeveloperBase, User, table=True):
     verification_requests: list[Verification] = Relationship(
         back_populates="verification_requested_by"
     )
     stripe_user_access_token: str | None = None
 
 
-class UserThatRequestsVerificationPublic(UserThatRequestsVerificationBase, UserPublic):
+class DeveloperPublic(DeveloperBase, UserRead):
     pass
 
 
-class UserThatRequestsVerificationPublicMe(UserPublicMe):
+class DeveloperPublicMe(DeveloperBase, UserPublicMe):
     verification_requests: list[Verification]

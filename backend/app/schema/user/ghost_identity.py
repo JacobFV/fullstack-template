@@ -13,20 +13,30 @@ from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
 from typing_extensions import Unpack
 
 from app.core.redis import get_redis_connection
-from app.schema.verification.verification import (
-    Verification,
-    VerificationBase,
-    VerificationPublic,
+from app.schema.user.identity import (
+    IdentityBase,
+    IdentityCreate,
+    IdentityRead,
+    IdentityUpdate,
+    Identity,
 )
 
 
-class HandSignVerificationBase(VerificationBase):
-    model_name: str = "hand_sign_verification-001"
+class GhostIdentityBase(IdentityBase):
+    pass
 
 
-class HandSignVerification(HandSignVerificationBase, Verification):
-    hand_letters: list[str]
+class GhostIdentityCreate(GhostIdentityBase, IdentityCreate):
+    pass
 
 
-class HandSignVerificationRead(HandSignVerificationBase, VerificationPublic):
+class GhostIdentityUpdate(GhostIdentityBase, IdentityUpdate):
+    pass
+
+
+class GhostIdentity(GhostIdentityBase, Identity):
+    pass
+
+
+class GhostIdentityRead(IdentityRead):
     pass

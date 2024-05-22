@@ -16,31 +16,23 @@ from app.core.redis import get_redis_connection
 from app.schema.crud_base import CRUDBase, CRUDCreate, CRUDInDB, CRUDRead, CRUDUpdate
 
 
-class VerifiableIdentityBase(CRUDBase):
+class IdentityBase(CRUDBase):
     pass
 
 
-class VerifiableIdentityCreate(VerifiableIdentityBase, CRUDCreate):
+class IdentityCreate(IdentityBase, CRUDCreate):
     image: Optional[bytes]
 
 
-class VerifiableIdentityUpdate(VerifiableIdentityBase, CRUDUpdate):
+class IdentityUpdate(IdentityBase, CRUDUpdate):
     pass
 
 
-class VerifiableIdentityUpdateMe(VerifiableIdentityBase, CRUDUpdate):
-    pass
-
-
-class VerifiableIdentity(VerifiableIdentityBase, CRUDInDB, table=True):
+class Identity(IdentityBase, CRUDInDB, table=True):
     id: int | None = Field(default=None, primary_key=True, autoincrement=True)
     image: Optional[bytes]
 
 
-class VerifiableIdentityPublic(VerifiableIdentityBase, CRUDRead):
+class IdentityRead(IdentityBase, CRUDRead):
     id: int
     image: Optional[bytes]
-
-
-class VerifiableIdentityPublicMe(VerifiableIdentityBase, CRUDRead):
-    id: int

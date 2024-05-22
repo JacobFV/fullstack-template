@@ -28,5 +28,5 @@ class ProofOfIDVerification(ProofOfIDVerificationBase, Verification):
     pass
 
 
-class ProofOfIDVerificationPublic(ProofOfIDVerificationBase, VerificationPublic):
+class ProofOfIDVerificationRead(ProofOfIDVerificationBase, VerificationPublic):
     pass

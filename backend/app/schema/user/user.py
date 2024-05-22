@@ -14,20 +14,20 @@ from typing_extensions import Unpack
 
 from app.core.redis import get_redis_connection
 from app.schema.crud_base import CRUDBase
-from app.schema.user.verifiable_identity import (
-    VerifiableIdentity,
-    VerifiableIdentityBase,
-    VerifiableIdentityCreate,
-    VerifiableIdentityPublic,
+from app.schema.user.identity import (
+    Identity,
+    IdentityBase,
+    IdentityCreate,
+    IdentityRead,
     VerifiableIdentityPublicMe,
-    VerifiableIdentityUpdate,
+    IdentityUpdate,
     VerifiableIdentityUpdateMe,
 )
 
 
 # Shared properties
 # TODO replace email str with EmailStr when sqlmodel supports it
-class UserBase(VerifiableIdentityBase):
+class UserBase(IdentityBase):
     email: str = Field(unique=True, index=True)
     is_active: bool = True
     is_superuser: bool = False
@@ -35,7 +35,7 @@ class UserBase(VerifiableIdentityBase):
 
 
 # Properties to receive via API on creation
-class UserCreate(VerifiableIdentityCreate, UserBase):
+class UserCreate(IdentityCreate, UserBase):
     password: str
 
 
@@ -48,15 +48,10 @@ class UserRegister(CRUDBase):
 
 # Properties to receive via API on update, all are optional
 # TODO replace email str with EmailStr when sqlmodel supports it
-class UserUpdate(VerifiableIdentityUpdate, UserBase):
+class UserUpdate(IdentityUpdate, UserBase):
     email: str | None = None  # type: ignore
     password: str | None = None
-
-
-# TODO replace email str with EmailStr when sqlmodel supports it
-class UserUpdateMe(VerifiableIdentityUpdateMe, UserBase):
     full_name: str | None = None
-    email: str | None = None
 
 
 class UpdatePassword(CRUDBase):
@@ -65,21 +60,11 @@ class UpdatePassword(CRUDBase):
 
 
 # Database model, database table inferred from class name
-class User(VerifiableIdentity, UserBase):
+class User(Identity, UserBase):
     id: int | None = Field(default=None, primary_key=True)
     hashed_password: str
-    items: list["Item"] = Relationship(back_populates="owner")
 
 
 # Properties to return via API, id is always required
-class UserPublic(VerifiableIdentityPublic, UserBase):
+class UserRead(IdentityRead, UserBase):
     id: int
-
-
-class UserPublicMe(VerifiableIdentityPublicMe, UserBase):
-    id: int
-
-
-class UsersPublic(CRUDBase):
-    data: list[UserPublic]
-    count: int
