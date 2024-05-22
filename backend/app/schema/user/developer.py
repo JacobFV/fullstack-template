@@ -43,11 +43,10 @@ class Developer(DeveloperBase, User, table=True):
         back_populates="verification_requested_by"
     )
     stripe_user_access_token: str | None = None
+    api_keys: list[ApiKey]
 
 
-class DeveloperPublic(DeveloperBase, UserRead):
-    pass
-
-
-class DeveloperPublicMe(DeveloperBase, UserPublicMe):
-    verification_requests: list[Verification]
+class DeveloperRead(DeveloperBase, UserRead):
+    verification_requests: list[Verification] = Field(
+        schema_extra={"permission": "self"}  # TODO: implement auth in a base class
+    )
