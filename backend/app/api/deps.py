@@ -11,7 +11,7 @@ from sqlmodel import Session, select
 from app.core import security
 from app.core.config import settings
 from app.core.db import engine
-from app.schema.schema import TokenPayload, User, VerifiableIdentity
+from app.schema.proof_of_id_verification import TokenPayload, User, VerifiableIdentity
 
 reusable_oauth2 = OAuth2PasswordBearer(
     tokenUrl=f"{settings.API_V1_STR}/login/access-token"

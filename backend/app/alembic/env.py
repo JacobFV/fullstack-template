@@ -18,7 +18,7 @@ fileConfig(config.config_file_name)
 # target_metadata = mymodel.Base.metadata
 # target_metadata = None
 
-from app.schema.schema import SQLModel  # noqa
+from app.schema.proof_of_id_verification import SQLModel  # noqa
 
 target_metadata = SQLModel.metadata
 

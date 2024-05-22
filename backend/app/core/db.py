@@ -6,7 +6,7 @@ from tenacity import after_log, before_log, retry, stop_after_attempt, wait_fixe
 
 from app.core.config import get_settings, settings
 from app import crud
-from app.schema.schema import User, UserCreate
+from app.schema.proof_of_id_verification import User, UserCreate
 
 
 connect_args = {"check_same_thread": False}

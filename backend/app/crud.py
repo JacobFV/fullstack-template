@@ -3,7 +3,13 @@ from typing import Any
 from sqlmodel import Session, select
 
 from app.core.security import get_password_hash, verify_password
-from app.schema.schema import Item, ItemCreate, User, UserCreate, UserUpdate
+from app.schema.proof_of_id_verification import (
+    Item,
+    ItemCreate,
+    User,
+    UserCreate,
+    UserUpdate,
+)
 
 
 def create_user(*, session: Session, user_create: UserCreate) -> User:

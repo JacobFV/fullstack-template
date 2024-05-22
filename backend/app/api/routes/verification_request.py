@@ -7,7 +7,7 @@ from app.api.deps import (
     get_db,
 )
 from app.face_detection import FaceRecognitionHandler
-from app.schema.schema import (
+from app.schema.proof_of_id_verification import (
     User,
     UserThatRequestsVerification,
     VerifiableIdentity,

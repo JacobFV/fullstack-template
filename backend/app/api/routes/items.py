@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException
 from sqlmodel import func, select
 
 from app.api.deps import CurrentUserDep, SessionDep
-from app.schema.schema import (
+from app.schema.proof_of_id_verification import (
     Item,
     ItemCreate,
     ItemPublic,

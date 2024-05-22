@@ -1,6 +1,12 @@
 from typing import Any, Optional
 from app.api.deps import SessionDep, get_db, MaybeCurrentUserDep
-from app.schema.schema import CRUDBase, CRUDCreate, CRUDInDB, CRUDRead, CRUDUpdate
+from app.schema.proof_of_id_verification import (
+    CRUDBase,
+    CRUDCreate,
+    CRUDInDB,
+    CRUDRead,
+    CRUDUpdate,
+)
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session
 
