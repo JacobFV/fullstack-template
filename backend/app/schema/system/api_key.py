@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from sqlmodel import Field
-from app.schema.crud_base import (
+from app.schema.base import (
     ModelBase,
     ModelCreate,
     ModelRead,

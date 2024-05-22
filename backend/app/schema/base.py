@@ -86,9 +86,9 @@ class ModelRead(ModelBase):
 
 
 class ModelInDB(ModelBase, table=True):
-    __tablename__ = "crud_object"
+    __tablename__ = "entity"
     __mapper_args__ = {
-        "polymorphic_identity": "crud_object",  # base class identity
+        "polymorphic_identity": "entity",  # base class identity
         "polymorphic_on": type,  # specifying which field is the discriminator
     }
     type: str = Field(sa_column=Column(String), index=True, nullable=False)
@@ -114,12 +114,12 @@ class ModelInDB(ModelBase, table=True):
     @classmethod
     def from_create(
         cls,
-        create_model: ModelCreate,
+        model_create: ModelCreate,
         session: Session,
-        user: User | None = None,
+        user: "User" | None = None,
         extra_keys: Optional[dict] = None,
     ) -> ModelInDB:
-        db_entity = cls(**create_model.model_dump(), **(extra_keys or {}))
+        db_entity = cls(**model_create.model_dump(), **(extra_keys or {}))
         # subclasses wrap this and pass in extra keys needed for the indb model that are absent in the create model
         session.add(db_entity)
         session.commit()
@@ -127,15 +127,22 @@ class ModelInDB(ModelBase, table=True):
 
     def update_from(
         self,
-        update_model: ModelUpdate,
+        model_update: ModelUpdate,
         session: Session,
-        user: User | None = None,
+        user: "User" | None = None,
     ) -> None:
-        self.sqlmodel_update(update_model.model_dump(exclude_unset=True))
+        model_update = ModelUpdate.UpdatePrivileges.apply_privileges(
+            model_update, self.id, user.id if user else None
+        )
+        self.sqlmodel_update(model_update.model_dump(exclude_unset=True))
         session.commit()
 
     def to_read(self, user: User | None = None) -> ModelRead:
-        return self.ModelRead.model_validate(self)
+        model_read = self.ModelRead.model_validate(self)
+        model_read = ModelRead.ViewPrivileges.apply_privileges(
+            model_read, self.id, user.id if user else None
+        )
+        return model_read
 
     # active record methods
     def save(self, session: Session):
