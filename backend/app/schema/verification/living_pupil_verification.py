@@ -16,17 +16,40 @@ from app.core.redis import get_redis_connection
 from app.schema.verification.verification import (
     Verification,
     VerificationBase,
-    VerificationPublic,
+    VerificationRead,
+    VerificationRequestBase,
+    VerificationUpdate,
 )
+from app.utils.crud import build_crud_endpoints
 
 
 class LivingPupilVerificationBase(VerificationBase):
     model_name: str = "living_pupil_verification-001"
 
 
+class LivingPupilVerificationRequest(
+    LivingPupilVerificationBase, VerificationRequestBase
+):
+    pass
+
+
+class LivingPupilVerificationRead(LivingPupilVerificationBase, VerificationRead):
+    pass
+
+
+class LivingPupilVerificationUpdate(LivingPupilVerificationBase, VerificationUpdate):
+    pass
+
+
 class LivingPupilVerification(LivingPupilVerificationBase, Verification):
     pass
 
 
-class LivingPupilVerificationRead(LivingPupilVerificationBase, VerificationPublic):
-    pass
+crud_router = build_crud_endpoints(
+    router=router,
+    t_model_base=LivingPupilVerificationBase,
+    t_model_create=LivingPupilVerificationRequest,
+    t_model_read=LivingPupilVerificationRead,
+    t_model_update=LivingPupilVerificationUpdate,
+    t_model_in_db=LivingPupilVerification,
+)

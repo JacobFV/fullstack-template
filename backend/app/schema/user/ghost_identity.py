@@ -20,6 +20,7 @@ from app.schema.user.identity import (
     IdentityUpdate,
     Identity,
 )
+from app.utils.crud import build_crud_endpoints
 
 
 class GhostIdentityBase(IdentityBase):
@@ -27,6 +28,10 @@ class GhostIdentityBase(IdentityBase):
 
 
 class GhostIdentityCreate(GhostIdentityBase, IdentityCreate):
+    pass
+
+
+class GhostIdentityRead(IdentityRead):
     pass
 
 
@@ -38,5 +43,10 @@ class GhostIdentity(GhostIdentityBase, Identity):
     pass
 
 
-class GhostIdentityRead(IdentityRead):
-    pass
+crud_router = build_crud_endpoints(
+    t_model_base=GhostIdentityBase,
+    t_model_create=GhostIdentityCreate,
+    t_model_read=GhostIdentityRead,
+    t_model_update=GhostIdentityUpdate,
+    t_model_in_db=GhostIdentity,
+)

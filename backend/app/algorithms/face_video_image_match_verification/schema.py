@@ -16,7 +16,7 @@ from app.core.redis import get_redis_connection
 from app.schema.verification.verification import (
     Verification,
     VerificationBase,
-    VerificationPublic,
+    VerificationRead,
 )
 
 
@@ -38,7 +38,5 @@ class FaceImageMatchVerification(FaceImageMatchVerificationBase, Verification):
         )
 
 
-class FaceImageMatchVerificationRead(
-    FaceImageMatchVerificationBase, VerificationPublic
-):
+class FaceImageMatchVerificationRead(FaceImageMatchVerificationBase, VerificationRead):
     pass

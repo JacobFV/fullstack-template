@@ -16,11 +16,27 @@ from app.core.redis import get_redis_connection
 from app.schema.verification.verification import (
     Verification,
     VerificationBase,
-    VerificationPublic,
+    VerificationRead,
+    VerificationUpdate,
 )
+from app.utils.crud import build_crud_endpoints
 
 
 class CreditBureauVerificationBase(VerificationBase):
+    pass
+
+
+class CreditBureauVerificationRequest(
+    CreditBureauVerificationBase, VerificationRequestBase
+):
+    pass
+
+
+class CreditBureauVerificationRead(CreditBureauVerificationBase, VerificationRead):
+    pass
+
+
+class CreditBureauVerificationUpdate(CreditBureauVerificationBase, VerificationUpdate):
     pass
 
 
@@ -28,5 +44,10 @@ class CreditBureauVerification(CreditBureauVerificationBase, Verification):
     pass
 
 
-class CreditBureauVerificationRead(CreditBureauVerificationBase, VerificationPublic):
-    pass
+crud_router = build_crud_endpoints(
+    t_model_base=CreditBureauVerificationBase,
+    t_model_create=CreditBureauVerificationRequest,
+    t_model_read=CreditBureauVerificationRead,
+    t_model_update=CreditBureauVerificationUpdate,
+    t_model_in_db=CreditBureauVerification,
+)

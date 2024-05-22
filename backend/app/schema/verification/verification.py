@@ -23,6 +23,7 @@ from app.schema.base import (
 from app.schema.has_redis import HasReddisChannel
 from app.schema.user.user import User
 from app.schema.user.developer import Developer
+from app.utils.crud import build_crud_endpoints
 
 
 class VerificationStatus(Enum):
@@ -43,6 +44,21 @@ class VerificationRequestBase(VerificationBase, ModelCreate):
     on_completion_redirect_url: str | None = None
 
 
+class VerificationRead(VerificationBase, ModelRead):
+    verification_requested_by_id: int
+    verification_requested_by: Developer
+    who_to_verify_id: int
+    who_to_verify: User
+    verf_status: VerificationStatus
+    on_completion_webhook_url: str
+    on_completion_redirect_url: str | None = None
+
+
+class VerificationUpdate(VerificationBase, ModelUpdate):
+    on_completion_webhook_url: str
+    on_completion_redirect_url: str | None = None
+
+
 class Verification(HasReddisChannel, VerificationBase, ModelInDB, table=True):
     verification_requested_by_id: int
     verification_requested_by: Developer
@@ -53,11 +69,9 @@ class Verification(HasReddisChannel, VerificationBase, ModelInDB, table=True):
     on_completion_redirect_url: str | None = None
 
 
-class VerificationPublic(VerificationBase, ModelRead):
-    verification_requested_by_id: int
-    verification_requested_by: Developer
-    who_to_verify_id: int
-    who_to_verify: User
-    verf_status: VerificationStatus
-    on_completion_webhook_url: str
-    on_completion_redirect_url: str | None = None
+crud_router = build_crud_endpoints(
+    t_model_base=VerificationBase,
+    t_model_create=VerificationRequestBase,
+    t_model_read=VerificationRead,
+    t_model_in_db=Verification,
+)

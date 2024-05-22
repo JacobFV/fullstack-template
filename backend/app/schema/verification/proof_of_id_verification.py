@@ -16,11 +16,26 @@ from app.core.redis import get_redis_connection
 from app.schema.verification.verification import (
     Verification,
     VerificationBase,
-    VerificationPublic,
+    VerificationRead,
+    VerificationRequestBase,
+    VerificationUpdate,
 )
+from app.utils.crud import build_crud_endpoints
 
 
 class ProofOfIDVerificationBase(VerificationBase):
+    pass
+
+
+class ProofOfIDVerificationRequest(ProofOfIDVerificationBase, VerificationRequestBase):
+    pass
+
+
+class ProofOfIDVerificationRead(ProofOfIDVerificationBase, VerificationRead):
+    pass
+
+
+class ProofOfIDVerificationUpdate(ProofOfIDVerificationBase, VerificationUpdate):
     pass
 
 
@@ -28,5 +43,10 @@ class ProofOfIDVerification(ProofOfIDVerificationBase, Verification):
     pass
 
 
-class ProofOfIDVerificationRead(ProofOfIDVerificationBase, VerificationPublic):
-    pass
+crud_router = build_crud_endpoints(
+    t_model_base=ProofOfIDVerificationBase,
+    t_model_create=ProofOfIDVerificationRequest,
+    t_model_read=ProofOfIDVerificationRead,
+    t_model_update=ProofOfIDVerificationUpdate,
+    t_model_in_db=ProofOfIDVerification,
+)

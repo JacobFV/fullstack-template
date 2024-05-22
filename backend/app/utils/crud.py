@@ -1,34 +1,37 @@
 from typing import Any, Optional
 from app.api.deps import SessionDep, get_db, MaybeCurrentUserDep
 from app.schema.proof_of_id_verification import (
-    CRUDBase,
-    CRUDCreate,
-    CRUDInDB,
-    CRUDRead,
-    CRUDUpdate,
+    ModelBase,
+    ModelCreate,
+    ModelInDB,
+    ModelRead,
+    ModelUpdate,
 )
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session
 
 
 def build_crud_endpoints(
-    router: APIRouter,
-    t_model_base: type[CRUDBase],
-    t_model_create: type[CRUDCreate] = CRUDCreate,
-    t_model_read: type[CRUDRead] = CRUDRead,
-    t_model_update: type[CRUDUpdate] = CRUDUpdate,
-    t_model_in_db: type[CRUDInDB] = CRUDInDB,
+    t_model_base: type[ModelBase],
+    t_model_create: type[ModelCreate] = None,
+    t_model_read: type[ModelRead] = None,
+    t_model_update: type[ModelUpdate] = None,
+    t_model_in_db: type[ModelInDB] = None,
     implement_create=True,
     implement_read=True,
     implement_update=True,
     implement_delete=True,
+    router: APIRouter = None,
 ):
+    if router is None:
+        router = APIRouter()
+
     t_model_base.ModelCreate = t_model_create
     t_model_base.ModelUpdate = t_model_update
     t_model_base.ModelRead = t_model_read
     t_model_base.ModelInDB = t_model_in_db
 
-    if implement_create:
+    if implement_create and not t_model_create is not None:
 
         @router.post(
             "/",
@@ -90,7 +93,7 @@ def build_crud_endpoints(
                 for item in items
             ]
 
-    if implement_read:
+    if implement_read and not t_model_read is not None:
 
         @router.get(
             "/{id}",
@@ -216,7 +219,7 @@ def build_crud_endpoints(
             all_items_in_db = t_model_in_db.find_all(session=session)
             return [item.to_read(user=user) for item in all_items_in_db]
 
-    if implement_update:
+    if implement_update and not t_model_update is not None:
 
         @router.put(
             "/{id}",

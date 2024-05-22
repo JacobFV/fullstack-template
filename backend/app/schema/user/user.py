@@ -23,6 +23,7 @@ from app.schema.user.identity import (
     IdentityUpdate,
     VerifiableIdentityUpdateMe,
 )
+from app.utils.crud import build_crud_endpoints
 
 
 # Shared properties
@@ -54,9 +55,9 @@ class UserUpdate(IdentityUpdate, UserBase):
     full_name: str | None = None
 
 
-class UpdatePassword(ModelBase):
-    current_password: str
-    new_password: str
+# Properties to return via API, id is always required
+class UserRead(IdentityRead, UserBase):
+    id: int
 
 
 # Database model, database table inferred from class name
@@ -65,6 +66,16 @@ class User(Identity, UserBase):
     hashed_password: str
 
 
-# Properties to return via API, id is always required
-class UserRead(IdentityRead, UserBase):
-    id: int
+# other API models
+class UpdatePassword(ModelBase):
+    current_password: str
+    new_password: str
+
+
+crud_router = build_crud_endpoints(
+    t_model_base=UserBase,
+    t_model_create=UserCreate,
+    t_model_read=UserRead,
+    t_model_update=UserUpdate,
+    t_model_in_db=User,
+)

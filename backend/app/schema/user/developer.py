@@ -24,6 +24,7 @@ from app.schema.user.user import (
     UserUpdateMe,
 )
 from app.schema.verification.verification import Verification
+from app.utils.crud import build_crud_endpoints
 
 
 # Verifier
@@ -35,15 +36,15 @@ class DeveloperCreate(DeveloperBase, UserCreate):
     stripe_user_access_token: str | None = None
 
 
-class DeveloperUpdate(DeveloperBase, UserUpdate):
-    stripe_user_access_token: str | None = None
-
-
 class DeveloperRead(DeveloperBase, UserRead):
     verification_requests: list[Verification] = Field(
         schema_extra={"permission": "self"}  # TODO: implement auth in a base class
     )
     api_keys: list[APIKeyRead] = Field(schema_extra={"view_privileges": "self"})
+
+
+class DeveloperUpdate(DeveloperBase, UserUpdate):
+    stripe_user_access_token: str | None = None
 
 
 class Developer(DeveloperBase, User, table=True):
@@ -52,3 +53,12 @@ class Developer(DeveloperBase, User, table=True):
     )
     stripe_user_access_token: str | None = None
     api_keys: list[APIKey]
+
+
+crud_router = build_crud_endpoints(
+    t_model_base=DeveloperBase,
+    t_model_create=DeveloperCreate,
+    t_model_read=DeveloperRead,
+    t_model_update=DeveloperUpdate,
+    t_model_in_db=Developer,
+)

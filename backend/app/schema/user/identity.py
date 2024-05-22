@@ -20,6 +20,7 @@ from app.schema.base import (
     ModelRead,
     ModelUpdate,
 )
+from app.utils.crud import build_crud_endpoints
 
 
 class IdentityBase(ModelBase):
@@ -27,6 +28,11 @@ class IdentityBase(ModelBase):
 
 
 class IdentityCreate(IdentityBase, ModelCreate):
+    image: Optional[bytes]
+
+
+class IdentityRead(IdentityBase, ModelRead):
+    id: int
     image: Optional[bytes]
 
 
@@ -39,6 +45,10 @@ class Identity(IdentityBase, ModelInDB, table=True):
     image: Optional[bytes]
 
 
-class IdentityRead(IdentityBase, ModelRead):
-    id: int
-    image: Optional[bytes]
+crud_router = build_crud_endpoints(
+    t_model_base=IdentityBase,
+    t_model_create=IdentityCreate,
+    t_model_read=IdentityRead,
+    t_model_update=IdentityUpdate,
+    t_model_in_db=Identity,
+)

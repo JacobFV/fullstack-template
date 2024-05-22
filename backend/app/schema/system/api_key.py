@@ -10,12 +10,22 @@ from app.schema.base import (
     ModelUpdate,
     ModelInDB,
 )
+from app.schema.system.api_key_use import APIKeyUseRead, APIKeyUse
 from app.schema.system.billing import Money
 from app.schema.user.developer import Developer, DeveloperRead
+from app.utils.crud import build_crud_endpoints
 
 
 class APIKeyBase(ModelBase):
     pass
+
+
+class APIKeyCreate(APIKeyBase, ModelCreate):
+    name: str
+    description: str
+    spend_limit: Money.T
+    scopes: list[str]
+    expires_at: datetime
 
 
 class APIKeyRead(APIKeyBase, ModelRead):
@@ -27,14 +37,7 @@ class APIKeyRead(APIKeyBase, ModelRead):
     scopes: list[str]
     expires_at: datetime
     truncated_secret: str
-
-
-class APIKeyCreate(APIKeyBase, ModelCreate):
-    name: str
-    description: str
-    spend_limit: Money.T
-    scopes: list[str]
-    expires_at: datetime
+    uses: list[APIKeyUseRead]
 
 
 class APIKeyUpdate(APIKeyBase, ModelUpdate):
@@ -50,32 +53,15 @@ class APIKey(APIKeyBase, ModelInDB):
     owner_id: int
     owner: Developer
     scopes: list[str]
-    uses: list[APIKeyUse]
+    uses: list["APIKeyUse"]
     spend_limit: Money.T
     secret: str = Field(private=True)
 
 
-class APIKeyUseBase(ModelBase):
-    pass
-
-
-class APIKeyUseRead(APIKeyUseBase, ModelRead):
-    api_key_id: int
-    api_key: APIKeyRead
-    timestamp: datetime
-    ip_address: str
-    user_agent: str
-    headers: dict[str, str]
-    path: str
-    method: str
-
-
-class APIKeyUse(APIKeyUseBase, ModelInDB):
-    api_key_id: int
-    api_key: APIKey
-    timestamp: datetime
-    ip_address: str
-    user_agent: str
-    headers: dict[str, str]
-    path: str
-    method: str
+crud_router = build_crud_endpoints(
+    t_model_base=APIKeyBase,
+    t_model_create=APIKeyCreate,
+    t_model_read=APIKeyRead,
+    t_model_update=APIKeyUpdate,
+    t_model_in_db=APIKey,
+)

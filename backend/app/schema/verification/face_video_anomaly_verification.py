@@ -16,8 +16,10 @@ from app.core.redis import get_redis_connection
 from app.schema.verification.verification import (
     Verification,
     VerificationBase,
-    VerificationPublic,
+    VerificationRead,
+    VerificationUpdate,
 )
+from app.utils.crud import build_crud_endpoints
 
 
 class FaceVideoAnomalyVerificationBase(VerificationBase):
@@ -30,11 +32,26 @@ class FaceVideoAnomalyVerificationRequest(
     pass
 
 
+class FaceVideoAnomalyVerificationRead(
+    FaceVideoAnomalyVerificationBase, VerificationRead
+):
+    pass
+
+
+class FaceVideoAnomalyVerificationUpdate(
+    FaceVideoAnomalyVerificationBase, VerificationUpdate
+):
+    pass
+
+
 class FaceVideoAnomalyVerification(Verification):
     pass
 
 
-class FaceVideoAnomalyVerificationRead(
-    FaceVideoAnomalyVerificationBase, VerificationPublic
-):
-    pass
+crud_router = build_crud_endpoints(
+    t_model_base=FaceVideoAnomalyVerificationBase,
+    t_model_create=FaceVideoAnomalyVerificationRequest,
+    t_model_read=FaceVideoAnomalyVerificationRead,
+    t_model_update=FaceVideoAnomalyVerificationUpdate,
+    t_model_in_db=FaceVideoAnomalyVerification,
+)

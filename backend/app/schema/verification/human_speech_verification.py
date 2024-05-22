@@ -16,17 +16,39 @@ from app.core.redis import get_redis_connection
 from app.schema.verification.verification import (
     Verification,
     VerificationBase,
-    VerificationPublic,
+    VerificationRead,
+    VerificationRequestBase,
+    VerificationUpdate,
 )
+from app.utils.crud import build_crud_endpoints
 
 
 class HumanSpeechVerificationBase(VerificationBase):
     model_name: str = "human_speech_verification-001"
 
 
+class HumanSpeechVerificationRequest(
+    HumanSpeechVerificationBase, VerificationRequestBase
+):
+    pass
+
+
+class HumanSpeechVerificationRead(HumanSpeechVerificationBase, VerificationRead):
+    pass
+
+
+class HumanSpeechVerificationUpdate(HumanSpeechVerificationBase, VerificationUpdate):
+    pass
+
+
 class HumanSpeechVerification(HumanSpeechVerificationBase, Verification):
     pass
 
 
-class HumanSpeechVerificationRead(HumanSpeechVerificationBase, VerificationPublic):
-    pass
+crud_router = build_crud_endpoints(
+    t_model_base=HumanSpeechVerificationBase,
+    t_model_create=HumanSpeechVerificationRequest,
+    t_model_read=HumanSpeechVerificationRead,
+    t_model_update=HumanSpeechVerificationUpdate,
+    t_model_in_db=HumanSpeechVerification,
+)
