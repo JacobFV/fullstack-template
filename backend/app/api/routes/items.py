@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException
 from sqlmodel import func, select
 
 from app.api.deps import CurrentUserDep, SessionDep
-from backend.app.schema import (
+from app.schema.schema import (
     Item,
     ItemCreate,
     ItemPublic,

@@ -3,7 +3,7 @@ import face_recognition
 import cv2
 import aio_pika
 
-from app.schema import (
+from app.schema.schema import (
     OneTimeVerifiableIdentity,
     UserThatRequestsVerification,
     Verification,
