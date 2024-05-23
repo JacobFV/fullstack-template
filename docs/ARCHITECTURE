@@ -1,0 +1,51 @@
+# GOTCHA - Graphical Online Turing test to Confirm Human Activity
+
+## Tech Stack
+
+- Frontend: Vite web app, React with TypeScript for development, TanStack state management and routing, styled with Chakra.
+
+- Backend: FastAPI + Uvicorn server. CRUD, video streaming, authentication and authorization, SQLModel ORM, retry and validation, and more.
+
+## Pages
+
+Auth:
+
+- Login
+- Register
+- Forgot Password
+- Reset Password
+
+Account:
+
+- Verify Email
+- Activity
+  - all verification
+- Billing
+  - history
+  - projections
+- API Keys
+  - list of keys
+  - expands to show all api key uses for each key
+- Settings
+  - change name
+  - change email
+  - change password
+  - export data
+  - delete account
+
+Verification:
+
+- Verification Request
+
+Public:
+
+- Landing (index)
+- Privacy Policy
+- Terms of Service
+
+Documentation:
+
+- Concepts
+- API Reference
+- Tutorial
+- Contribute
