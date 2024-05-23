@@ -36,10 +36,18 @@ Account:
 Verification:
 
 - Verification Request
+  - this is the page the use lands on when the system requests verification
+  - the user can choose to verify or decline
+  - if the user chooses to verify, the system will send the user to the verification page
 
 Public:
 
 - Landing (index)
+  - try out our embedded verf gotcha system on the top of the homepage
+  - 3 features tailored to our audience
+  - pricing
+  - contact us (lead funnel)
+  - footer (copyright, company name, socials, privacy policy, ToS, etc)
 - Privacy Policy
 - Terms of Service
 
