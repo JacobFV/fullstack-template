@@ -2,6 +2,7 @@ import os
 import subprocess
 from typing import Annotated
 import typer
+import uvicorn
 
 from app.core.config import Settings, get_settings
 from app.main import fastapi_app
