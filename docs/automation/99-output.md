@@ -24607,7 +24607,232 @@ USER
 Next chunk. No trunc, no fillers, no placeholdrs. Go:
 
 
+Certainly! Let's continue with the next set of files.
 
-No file chosen
+43. `src/tests/pages/Billing.test.tsx`
 
-Add messages
+```tsx
+import { render, screen, waitFor } from '../utils/test-utils';
+import Billing from '../../pages/Billing';
+
+describe('Billing', () => {
+  it('renders the billing page with billing history and information', async () => {
+    render(<Billing />);
+    await waitFor(() => {
+      expect(screen.getByText('Billing')).toBeInTheDocument();
+      expect(screen.getByText('Billing History')).toBeInTheDocument();
+      expect(screen.getByText('Date')).toBeInTheDocument();
+      expect(screen.getByText('Amount')).toBeInTheDocument();
+      expect(screen.getByText('Status')).toBeInTheDocument();
+      expect(screen.getByText('Billing Information')).toBeInTheDocument();
+      expect(screen.getByText('Current Plan')).toBeInTheDocument();
+      expect(screen.getByText('Next Billing Date')).toBeInTheDocument();
+    });
+  });
+
+  it('displays the billing history items', async () => {
+    render(<Billing />);
+    await waitFor(() => {
+      expect(screen.getByText('2023-05-01')).toBeInTheDocument();
+      expect(screen.getByText('$99.99')).toBeInTheDocument();
+      expect(screen.getByText('paid')).toBeInTheDocument();
+    });
+  });
+
+  it('displays the current plan and next billing date', async () => {
+    render(<Billing />);
+    await waitFor(() => {
+      expect(screen.getByText('Pro Plan')).toBeInTheDocument();
+      expect(screen.getByText('2023-06-30')).toBeInTheDocument();
+    });
+  });
+});
+```
+
+44. `src/tests/pages/APIKeys.test.tsx`
+
+```tsx
+import { render, screen, fireEvent, waitFor } from '../utils/test-utils';
+import APIKeys from '../../pages/APIKeys';
+
+describe('APIKeys', () => {
+  it('renders the API keys page with user API keys', async () => {
+    render(<APIKeys />);
+    await waitFor(() => {
+      expect(screen.getByText('API Keys')).toBeInTheDocument();
+      expect(screen.getByText('Your API Keys')).toBeInTheDocument();
+      expect(screen.getByText('Key')).toBeInTheDocument();
+      expect(screen.getByText('Created At')).toBeInTheDocument();
+      expect(screen.getByText('Actions')).toBeInTheDocument();
+      expect(screen.getByText('Create New API Key')).toBeInTheDocument();
+    });
+  });
+
+  it('displays the user API keys', async () => {
+    render(<APIKeys />);
+    await waitFor(() => {
+      expect(screen.getByText('abc123')).toBeInTheDocument();
+      expect(screen.getByText('2023-06-01')).toBeInTheDocument();
+      expect(screen.getByText('Revoke')).toBeInTheDocument();
+    });
+  });
+
+  it('creates a new API key', async () => {
+    render(<APIKeys />);
+    const createButton = screen.getByText('Create API Key');
+    fireEvent.click(createButton);
+    await waitFor(() => {
+      expect(screen.getByText('API key created successfully')).toBeInTheDocument();
+    });
+  });
+
+  it('revokes an API key', async () => {
+    render(<APIKeys />);
+    const revokeButton = screen.getByText('Revoke');
+    fireEvent.click(revokeButton);
+    await waitFor(() => {
+      expect(screen.getByText('API key revoked successfully')).toBeInTheDocument();
+    });
+  });
+});
+```
+
+45. `src/tests/pages/Settings.test.tsx`
+
+```tsx
+import { render, screen, fireEvent, waitFor } from '../utils/test-utils';
+import Settings from '../../pages/Settings';
+
+describe('Settings', () => {
+  it('renders the settings page with user information and options', async () => {
+    render(<Settings />);
+    await waitFor(() => {
+      expect(screen.getByText('Settings')).toBeInTheDocument();
+      expect(screen.getByText('User Information')).toBeInTheDocument();
+      expect(screen.getByText('Name')).toBeInTheDocument();
+      expect(screen.getByText('Email')).toBeInTheDocument();
+      expect(screen.getByText('Change Password')).toBeInTheDocument();
+      expect(screen.getByText('Export Data')).toBeInTheDocument();
+      expect(screen.getByText('Delete Account')).toBeInTheDocument();
+    });
+  });
+
+  it('updates user information', async () => {
+    render(<Settings />);
+    const nameInput = screen.getByLabelText('Name');
+    const emailInput = screen.getByLabelText('Email');
+    const saveButton = screen.getByText('Save Changes');
+
+    fireEvent.change(nameInput, { target: { value: 'John Doe' } });
+    fireEvent.change(emailInput, { target: { value: 'johndoe@example.com' } });
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('User information updated successfully')).toBeInTheDocument();
+    });
+  });
+
+  it('changes user password', async () => {
+    render(<Settings />);
+    const currentPasswordInput = screen.getByLabelText('Current Password');
+    const newPasswordInput = screen.getByLabelText('New Password');
+    const confirmPasswordInput = screen.getByLabelText('Confirm Password');
+    const changePasswordButton = screen.getByText('Change Password');
+
+    fireEvent.change(currentPasswordInput, { target: { value: 'currentpassword' } });
+    fireEvent.change(newPasswordInput, { target: { value: 'newpassword' } });
+    fireEvent.change(confirmPasswordInput, { target: { value: 'newpassword' } });
+    fireEvent.click(changePasswordButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Password changed successfully')).toBeInTheDocument();
+    });
+  });
+
+  it('exports user data', async () => {
+    render(<Settings />);
+    const exportDataButton = screen.getByText('Export Data');
+    fireEvent.click(exportDataButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Data export initiated')).toBeInTheDocument();
+    });
+  });
+
+  it('deletes user account', async () => {
+    render(<Settings />);
+    const deleteAccountButton = screen.getByText('Delete Account');
+    fireEvent.click(deleteAccountButton);
+
+    const confirmDeleteButton = screen.getByText('Confirm');
+    fireEvent.click(confirmDeleteButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Account deleted successfully')).toBeInTheDocument();
+    });
+  });
+});
+```
+
+46. `src/tests/pages/VerificationRequest.test.tsx`
+
+```tsx
+import { render, screen, fireEvent, waitFor } from '../utils/test-utils';
+import VerificationRequest from '../../pages/VerificationRequest';
+
+describe('VerificationRequest', () => {
+  it('renders the verification request page with request details', async () => {
+    render(<VerificationRequest />);
+    await waitFor(() => {
+      expect(screen.getByText('Verification Request')).toBeInTheDocument();
+      expect(screen.getByText('Request Details')).toBeInTheDocument();
+      expect(screen.getByText('Purpose')).toBeInTheDocument();
+      expect(screen.getByText('Required Steps')).toBeInTheDocument();
+      expect(screen.getByText('Verify')).toBeInTheDocument();
+      expect(screen.getByText('Decline')).toBeInTheDocument();
+    });
+  });
+
+  it('displays the verification request purpose and required steps', async () => {
+    render(<VerificationRequest />);
+    await waitFor(() => {
+      expect(screen.getByText('Identity Verification')).toBeInTheDocument();
+      expect(screen.getByText('Capture photo, Provide personal information')).toBeInTheDocument();
+    });
+  });
+
+  it('navigates to the verification page when "Verify" is clicked', async () => {
+    render(<VerificationRequest />);
+    const verifyButton = screen.getByText('Verify');
+    fireEvent.click(verifyButton);
+
+    await waitFor(() => {
+      expect(window.location.pathname).toBe('/verification');
+    });
+  });
+
+  it('handles declining the verification request', async () => {
+    render(<VerificationRequest />);
+    const declineButton = screen.getByText('Decline');
+    fireEvent.click(declineButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Verification request declined')).toBeInTheDocument();
+    });
+  });
+});
+```
+
+These files contain test cases for the `Billing`, `APIKeys`, `Settings`, and `VerificationRequest` pages using the testing library.
+
+The `src/tests/pages/Billing.test.tsx` file tests the rendering of the billing page with billing history and information, displaying the billing history items, and displaying the current plan and next billing date.
+
+The `src/tests/pages/APIKeys.test.tsx` file tests the rendering of the API keys page with user API keys, displaying the user API keys, creating a new API key, and revoking an API key.
+
+The `src/tests/pages/Settings.test.tsx` file tests the rendering of the settings page with user information and options, updating user information, changing user password, exporting user data, and deleting the user account.
+
+The `src/tests/pages/VerificationRequest.test.tsx` file tests the rendering of the verification request page with request details, displaying the verification request purpose and required steps, navigating to the verification page when "Verify" is clicked, and handling declining the verification request.
+
+Please note that these test cases assume the existence of certain elements and behaviors in the corresponding page components. Make sure to update the test cases according to your actual implementation.
+
+Let me know if you have any further questions or if there's anything else I can assist you with!
