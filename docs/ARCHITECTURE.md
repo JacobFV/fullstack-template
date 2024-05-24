@@ -20,7 +20,8 @@ Account:
 
 - Verify Email
 - Playground
-  - interactive test environment
+  - interactive test environment with embeddable form
+  - copy the playground form code here
   - get api keys
   - sidebar shows of activity
 - Activity
