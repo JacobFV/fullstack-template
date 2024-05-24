@@ -14,7 +14,7 @@ SettingsTyperDep = Annotated[Settings, typer.Depends(get_settings)]
 
 # Main command: serve
 @dev_cli.command()
-async def serve(host: str = settings.HOST, port: int = settings.PORT):
+async def serve(host: str = Settings.HOST, port: int = Settings.PORT):
     uvicorn.run(fastapi_app, host=host, port=port)
 
 
