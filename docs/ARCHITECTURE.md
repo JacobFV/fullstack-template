@@ -15,9 +15,14 @@ Auth:
 - Forgot Password
 - Reset Password
 
+
 Account:
 
 - Verify Email
+- Playground
+  - interactive test environment
+  - get api keys
+  - sidebar shows of activity
 - Activity
   - all verification
 - Billing
