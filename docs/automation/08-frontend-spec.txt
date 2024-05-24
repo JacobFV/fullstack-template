@@ -1,0 +1,288 @@
+Frontend Detailed Specification
+
+1. `src/main.tsx`
+   - This is the entry point of the application.
+   - It sets up the React application, including the root component, router, and any necessary providers.
+   - It initializes the Chakra UI theme and any global styles.
+   - It configures the TanStack Query client and any other necessary libraries.
+   - It renders the root component and mounts it to the DOM.
+
+2. `src/App.tsx`
+   - This is the root component of the application.
+   - It sets up the main layout and structure of the application.
+   - It includes the main navigation component and any global components, such as headers or footers.
+   - It defines the routes and their corresponding components using TanStack Router.
+   - It handles any global state management, if required.
+
+3. `src/components/Navigation.tsx`
+   - This component represents the main navigation menu of the application.
+   - It includes links to different pages or sections of the application, such as Home, Account, Verification, and Documentation.
+   - It handles the active state of the navigation items based on the current route.
+   - It uses Chakra UI components for styling and layout.
+
+4. `src/components/Footer.tsx`
+   - This component represents the footer section of the application.
+   - It includes copyright information, company name, social media links, and links to important pages like Privacy Policy and Terms of Service.
+   - It uses Chakra UI components for styling and layout.
+
+5. `src/pages/Home.tsx`
+   - This component represents the home page of the application.
+   - It includes a hero section with a call-to-action button and a brief description of the application.
+   - It showcases the key features and benefits of the application, tailored to the target audience.
+   - It includes pricing information and a contact form for lead generation.
+   - It uses Chakra UI components for styling and layout.
+
+6. `src/pages/Login.tsx`
+   - This component represents the login page of the application.
+   - It includes a form with input fields for email and password.
+   - It handles form submission and sends a request to the backend API for authentication.
+   - It displays error messages for invalid credentials or authentication failures.
+   - It redirects the user to the appropriate page upon successful login.
+   - It uses Chakra UI components for styling and layout.
+
+7. `src/pages/Register.tsx`
+   - This component represents the registration page of the application.
+   - It includes a form with input fields for name, email, password, and any other required information.
+   - It handles form submission and sends a request to the backend API for user registration.
+   - It displays error messages for invalid input or registration failures.
+   - It redirects the user to the login page or a confirmation page upon successful registration.
+   - It uses Chakra UI components for styling and layout.
+
+8. `src/pages/ForgotPassword.tsx`
+   - This component represents the forgot password page of the application.
+   - It includes a form with an input field for the user's email address.
+   - It handles form submission and sends a request to the backend API to initiate the password reset process.
+   - It displays a success message or error message based on the response from the backend.
+   - It uses Chakra UI components for styling and layout.
+
+9. `src/pages/ResetPassword.tsx`
+   - This component represents the reset password page of the application.
+   - It is accessed via a unique token sent to the user's email after initiating the password reset process.
+   - It includes a form with input fields for the new password and password confirmation.
+   - It handles form submission and sends a request to the backend API to update the user's password.
+   - It displays a success message or error message based on the response from the backend.
+   - It uses Chakra UI components for styling and layout.
+
+10. `src/pages/Account.tsx`
+    - This component represents the user's account page.
+    - It includes sections for verifying the user's email, accessing the playground, viewing activity history, managing billing, and configuring API keys.
+    - It fetches the user's account data from the backend API using TanStack Query.
+    - It uses Chakra UI components for styling and layout.
+
+11. `src/pages/Playground.tsx`
+    - This component represents the playground page for interactive testing.
+    - It includes an embedded form or code editor where users can test the verification system.
+    - It provides options to copy the playground form code and retrieve API keys.
+    - It displays a sidebar with the user's activity history.
+    - It uses Chakra UI components for styling and layout.
+
+12. `src/pages/Activity.tsx`
+    - This component represents the activity page, displaying all verification requests.
+    - It fetches the user's verification history from the backend API using TanStack Query.
+    - It displays a list or table of verification requests, including details like date, status, and actions.
+    - It allows the user to filter or search the verification requests based on specific criteria.
+    - It uses Chakra UI components for styling and layout.
+
+13. `src/pages/Billing.tsx`
+    - This component represents the billing page, displaying the user's billing history and projections.
+    - It fetches the user's billing data from the backend API using TanStack Query.
+    - It displays a summary of the user's current billing plan and usage.
+    - It shows a list or table of past billing transactions and invoices.
+    - It provides options for updating the billing plan or payment methods.
+    - It uses Chakra UI components for styling and layout.
+
+14. `src/pages/APIKeys.tsx`
+    - This component represents the API keys page, displaying the user's API keys and their usage.
+    - It fetches the user's API keys from the backend API using TanStack Query.
+    - It displays a list of API keys, including their names, creation dates, and permissions.
+    - It allows the user to create new API keys, update existing keys, or revoke keys.
+    - It expands each API key to show detailed usage information, such as request counts and last used timestamps.
+    - It uses Chakra UI components for styling and layout.
+
+15. `src/pages/Settings.tsx`
+    - This component represents the user's settings page.
+    - It includes sections for changing the user's name, email, password, exporting data, and deleting the account.
+    - It fetches the user's current settings from the backend API using TanStack Query.
+    - It provides forms or input fields for updating the user's information.
+    - It handles form submission and sends requests to the backend API to update the user's settings.
+    - It displays success or error messages based on the response from the backend.
+    - It uses Chakra UI components for styling and layout.
+
+16. `src/pages/VerificationRequest.tsx`
+    - This component represents the verification request page, where the user lands when the system requests verification.
+    - It displays information about the verification request, including the purpose and required steps.
+    - It provides options for the user to choose to verify or decline the request.
+    - If the user chooses to verify, it redirects them to the verification page.
+    - It uses Chakra UI components for styling and layout.
+
+17. `src/pages/Verification.tsx`
+    - This component represents the verification page, where the user completes the verification process.
+    - It guides the user through the necessary steps, such as capturing photos, providing personal information, or completing challenges.
+    - It communicates with the backend API to initiate and complete the verification process.
+    - It displays progress indicators and instructions to assist the user.
+    - It handles errors or exceptions that may occur during the verification process.
+    - It uses Chakra UI components for styling and layout.
+
+18. `src/pages/PrivacyPolicy.tsx`
+    - This component represents the privacy policy page.
+    - It displays the company's privacy policy, explaining how user data is collected, used, and protected.
+    - It uses Chakra UI components for styling and layout.
+
+19. `src/pages/TermsOfService.tsx`
+    - This component represents the terms of service page.
+    - It displays the company's terms of service, outlining the rules and conditions for using the application.
+    - It uses Chakra UI components for styling and layout.
+
+20. `src/services/api.ts`
+    - This file contains the configuration and setup for making API requests to the backend.
+    - It uses libraries like Axios or the built-in `fetch` API to send HTTP requests.
+    - It defines the base URL for the backend API and any default headers or authentication tokens.
+    - It provides functions or classes for making specific API requests, such as user registration, login, or verification.
+    - It handles the response from the backend and returns the relevant data or error messages.
+
+21. `src/utils/auth.ts`
+    - This file contains utility functions related to authentication and authorization.
+    - It provides functions for storing and retrieving authentication tokens from local storage or cookies.
+    - It includes functions for checking the user's authentication status and role-based permissions.
+    - It handles the logic for logging in, logging out, and managing user sessions.
+
+22. `src/utils/validation.ts`
+    - This file contains utility functions for form validation.
+    - It defines validation schemas or rules for different form fields, such as email, password, or phone number.
+    - It provides functions for validating form inputs and returning error messages if the validation fails.
+    - It can use libraries like Yup or Joi for schema-based validation.
+
+23. `src/utils/helpers.ts`
+    - This file contains various helper functions used throughout the application.
+    - It includes functions for formatting dates, currencies, or other data.
+    - It provides utility functions for manipulating arrays, objects, or strings.
+    - It defines any custom hooks or reusable logic that can be shared across components.
+
+24. `src/styles/theme.ts`
+    - This file defines the custom theme configuration for Chakra UI.
+    - It specifies the color palette, typography, spacing, and other design tokens used in the application.
+    - It can override or extend the default Chakra UI theme to match the desired visual style.
+
+25. `src/styles/global.css`
+    - This file contains global styles that are applied throughout the application.
+    - It includes CSS resets, font imports, and any other global CSS rules.
+    - It can be used to define custom utility classes or common styles shared across components.
+
+26. `src/types/index.ts`
+    - This file contains TypeScript type definitions used in the application.
+    - It defines interfaces, enums, or custom types for data structures, API responses, or form inputs.
+    - It helps ensure type safety and provides autocompletion and type checking during development.
+
+27. `src/tests/`
+    - This directory contains the test files for the frontend components and utilities.
+    - It includes unit tests for individual components, hooks, or helper functions.
+    - It may also include integration tests to verify the interaction between components and the backend API.
+    - It uses testing frameworks like Jest and React Testing Library for writing and running tests.
+    - It follows a naming convention, such as `ComponentName.test.tsx`, for organizing test files.
+
+28. `src/config/`
+    - This directory contains configuration files for the frontend application.
+    - It includes files for environment-specific variables, such as API endpoints, authentication keys, or feature flags.
+    - It helps manage different configurations for development, staging, and production environments.
+
+29. `public/`
+    - This directory contains the public assets of the application.
+    - It includes the `index.html` file, which is the entry point of the application.
+    - It also includes static assets like images, fonts, or favicon.
+    - The files in this directory are served as-is by the web server.
+
+30. `package.json` and `package-lock.json`
+    - These files contain the project's dependencies and scripts.
+    - `package.json` lists the project's metadata, dependencies, and scripts for building, testing, and running the application.
+    - `package-lock.json` is automatically generated and contains the exact versions of the installed dependencies.
+
+31. `tsconfig.json`
+    - This file contains the TypeScript configuration for the project.
+    - It specifies the compiler options, such as target ECMAScript version, module system, and strict type checking.
+    - It also defines the include and exclude patterns for TypeScript files.
+
+32. `.env`
+    - This file contains environment variables used by the application.
+    - It stores sensitive information, such as API keys, database credentials, or other configuration values.
+    - It should not be committed to version control and should be kept secure.
+
+33. `.gitignore`
+    - This file specifies the files and directories that should be ignored by Git version control.
+    - It typically includes build artifacts, dependencies, and generated files that should not be committed to the repository.
+
+34. `README.md`
+    - This file provides an overview and documentation for the frontend application.
+    - It includes instructions for setting up the development environment, running the application, and deploying it.
+    - It also provides information about the project's structure, dependencies, and any other relevant details.
+
+
+`src/config/`
+35. `src/config/api.ts`
+   - This file contains the configuration for the backend API.
+   - It defines the base URL for the API endpoints.
+   - It also includes any API-specific settings or constants.
+
+36. `src/config/auth.ts`
+   - This file contains the configuration for authentication.
+   - It defines the authentication endpoints, such as login and register.
+   - It also includes any authentication-related constants or settings.
+
+37. `src/config/theme.ts`
+   - This file contains the configuration for the Chakra UI theme.
+   - It defines the custom theme settings, such as colors, fonts, and spacing.
+   - It also includes any theme-related constants or settings.
+
+38. `src/config/constants.ts`
+   - This file contains various constants used throughout the application.
+   - It defines constants for routes, local storage keys, or any other application-specific constants.
+
+`src/tests/`
+39. `src/tests/components/`
+   - This directory contains the test files for individual components.
+   - Each component should have a corresponding test file, e.g., `Navigation.test.tsx`, `Footer.test.tsx`, etc.
+   - The test files should cover the rendering, behavior, and edge cases of the components.
+
+40. `src/tests/pages/`
+   - This directory contains the test files for page components.
+   - Each page component should have a corresponding test file, e.g., `Home.test.tsx`, `Login.test.tsx`, etc.
+   - The test files should cover the rendering, user interactions, and integration with other components or services.
+
+41. `src/tests/services/`
+   - This directory contains the test files for service modules.
+   - Each service module should have a corresponding test file, e.g., `api.test.ts`, `auth.test.ts`, etc.
+   - The test files should cover the functionality, error handling, and edge cases of the service modules.
+
+42. `src/tests/utils/`
+   - This directory contains the test files for utility functions.
+   - Each utility function or module should have a corresponding test file, e.g., `validation.test.ts`, `helpers.test.ts`, etc.
+   - The test files should cover the input/output behavior and edge cases of the utility functions.
+
+43. `src/tests/setup.ts`
+   - This file contains the setup configuration for the testing environment.
+   - It includes any necessary setup steps, such as initializing libraries or mocking dependencies.
+   - It is executed before running the test suite.
+
+`public/`
+44. `public/index.html`
+   - This file is the main HTML template for the application.
+   - It includes the root element where the React application will be rendered.
+   - It also includes any necessary meta tags, links to stylesheets, or scripts.
+
+45. `public/favicon.ico`
+   - This file is the favicon image for the application.
+   - It is displayed in the browser's address bar and bookmarks.
+
+46. `public/logo.png`
+   - This file is the logo image for the application.
+   - It can be used in various places throughout the application, such as the header or footer.
+
+47. `public/manifest.json`
+   - This file is the web app manifest for the application.
+   - It provides metadata about the application, such as the name, icons, and theme colors.
+   - It is used by browsers and devices to provide a more native-like experience.
+
+48. `public/robots.txt`
+   - This file is used to control the behavior of web crawlers and search engine bots.
+   - It specifies which pages or sections of the application should be crawled or indexed.
+
+Now that we have covered all the necessary files and directories in detail, we are ready to begin implementing the code for the frontend application. Let me know if you have any further questions or if you would like me to proceed with the implementation of specific files or components.

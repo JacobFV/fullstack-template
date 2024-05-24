@@ -1,3 +1,5 @@
+Here's the frontend tech requirements:
+
 # GOTCHA - Graphical Online Turing test to Confirm Human Activity
 
 ## Tech Stack
@@ -62,3 +64,6 @@ Documentation:
 - API Reference
 - Tutorial
 - Contribute
+
+
+Now, write a full stack summary of what the frontend architecture tech spec should be to conform to the backend:

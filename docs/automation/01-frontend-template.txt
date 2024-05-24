@@ -1,0 +1,4501 @@
+Start by reading and understanding our frontend template we cloned from the github (this will obviously need to be modified some):
+
+$ tree . -I node_modules
+.
+├── biome.json
+├── Dockerfile
+├── dump.txt
+├── index.html
+├── modify-openapi-operationids.js
+├── nginx-backend-not-found.conf
+├── nginx.conf
+├── package.json
+├── package-lock.json
+├── public
+│   └── assets
+│       └── images
+│           ├── fastapi-logo.svg
+│           └── favicon.png
+├── README.md
+├── src
+│   ├── client
+│   │   ├── core
+│   │   │   ├── ApiError.ts
+│   │   │   ├── ApiRequestOptions.ts
+│   │   │   ├── ApiResult.ts
+│   │   │   ├── CancelablePromise.ts
+│   │   │   ├── OpenAPI.ts
+│   │   │   ├── request.ts
+│   │   │   └── types.ts
+│   │   ├── index.ts
+│   │   ├── models.ts
+│   │   ├── schemas.ts
+│   │   └── services.ts
+│   ├── components
+│   │   ├── Admin
+│   │   │   ├── AddUser.tsx
+│   │   │   └── EditUser.tsx
+│   │   ├── Common
+│   │   │   ├── ActionsMenu.tsx
+│   │   │   ├── DeleteAlert.tsx
+│   │   │   ├── Navbar.tsx
+│   │   │   ├── NotFound.tsx
+│   │   │   ├── SidebarItems.tsx
+│   │   │   ├── Sidebar.tsx
+│   │   │   └── UserMenu.tsx
+│   │   ├── Gotcha
+│   │   │   └── VerifyCameraStream.tsx
+│   │   ├── Items
+│   │   │   ├── AddItem.tsx
+│   │   │   └── EditItem.tsx
+│   │   └── UserSettings
+│   │       ├── Appearance.tsx
+│   │       ├── ChangePassword.tsx
+│   │       ├── DeleteAccount.tsx
+│   │       ├── DeleteConfirmation.tsx
+│   │       └── UserInformation.tsx
+│   ├── hooks
+│   │   ├── useAuth.ts
+│   │   └── useCustomToast.ts
+│   ├── main.tsx
+│   ├── routes
+│   │   ├── _layout
+│   │   │   ├── admin.tsx
+│   │   │   ├── gotcha.tsx
+│   │   │   ├── index.tsx
+│   │   │   ├── items.tsx
+│   │   │   └── settings.tsx
+│   │   ├── _layout.tsx
+│   │   ├── login.tsx
+│   │   ├── recover-password.tsx
+│   │   ├── reset-password.tsx
+│   │   └── __root.tsx
+│   ├── routeTree.gen.ts
+│   ├── theme.tsx
+│   ├── utils.ts
+│   └── vite-env.d.ts
+├── tsconfig.json
+├── tsconfig.node.json
+└── vite.config.ts
+
+15 directories, 60 files
+
+$ find src -type f -exec sh -c 'echo "<{}>"; cat {}; echo "</{}>\n"' \; > dump.txt
+
+<src/hooks/useAuth.ts>
+import { useMutation, useQuery } from "@tanstack/react-query"
+import { useNavigate } from "@tanstack/react-router"
+import { useState } from "react"
+
+import { AxiosError } from "axios"
+import {
+  type Body_login_login_access_token as AccessToken,
+  type ApiError,
+  LoginService,
+  type UserPublic,
+  UsersService,
+} from "../client"
+
+const isLoggedIn = () => {
+  return localStorage.getItem("access_token") !== null
+}
+
+const useAuth = () => {
+  const [error, setError] = useState<string | null>(null)
+  const navigate = useNavigate()
+  const { data: user, isLoading } = useQuery<UserPublic | null, Error>({
+    queryKey: ["currentUser"],
+    queryFn: UsersService.readUserMe,
+    enabled: isLoggedIn(),
+  })
+
+  const login = async (data: AccessToken) => {
+    const response = await LoginService.loginAccessToken({
+      formData: data,
+    })
+    localStorage.setItem("access_token", response.access_token)
+  }
+
+  const loginMutation = useMutation({
+    mutationFn: login,
+    onSuccess: () => {
+      navigate({ to: "/" })
+    },
+    onError: (err: ApiError) => {
+      let errDetail = (err.body as any)?.detail
+
+      if (err instanceof AxiosError) {
+        errDetail = err.message
+      }
+
+      if (Array.isArray(errDetail)) {
+        errDetail = "Something went wrong"
+      }
+
+      setError(errDetail)
+    },
+  })
+
+  const logout = () => {
+    localStorage.removeItem("access_token")
+    navigate({ to: "/login" })
+  }
+
+  return {
+    loginMutation,
+    logout,
+    user,
+    isLoading,
+    error,
+    resetError: () => setError(null),
+  }
+}
+
+export { isLoggedIn }
+export default useAuth
+</src/hooks/useAuth.ts>
+
+<src/hooks/useCustomToast.ts>
+import { useToast } from "@chakra-ui/react"
+import { useCallback } from "react"
+
+const useCustomToast = () => {
+  const toast = useToast()
+
+  const showToast = useCallback(
+    (title: string, description: string, status: "success" | "error") => {
+      toast({
+        title,
+        description,
+        status,
+        isClosable: true,
+        position: "bottom-right",
+      })
+    },
+    [toast],
+  )
+
+  return showToast
+}
+
+export default useCustomToast
+</src/hooks/useCustomToast.ts>
+
+<src/utils.ts>
+export const emailPattern = {
+  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+  message: "Invalid email address",
+}
+
+export const namePattern = {
+  value: /^[A-Za-z\s\u00C0-\u017F]{1,30}$/,
+  message: "Invalid name",
+}
+
+export const passwordRules = (isRequired = true) => {
+  const rules: any = {
+    minLength: {
+      value: 8,
+      message: "Password must be at least 8 characters",
+    },
+  }
+
+  if (isRequired) {
+    rules.required = "Password is required"
+  }
+
+  return rules
+}
+
+export const confirmPasswordRules = (
+  getValues: () => any,
+  isRequired = true,
+) => {
+  const rules: any = {
+    validate: (value: string) => {
+      const password = getValues().password || getValues().new_password
+      return value === password ? true : "The passwords do not match"
+    },
+  }
+
+  if (isRequired) {
+    rules.required = "Password confirmation is required"
+  }
+
+  return rules
+}
+</src/utils.ts>
+
+<src/routes/recover-password.tsx>
+import {
+  Button,
+  Container,
+  FormControl,
+  FormErrorMessage,
+  Heading,
+  Input,
+  Text,
+} from "@chakra-ui/react"
+import { createFileRoute, redirect } from "@tanstack/react-router"
+import { type SubmitHandler, useForm } from "react-hook-form"
+
+import { LoginService } from "../client"
+import { isLoggedIn } from "../hooks/useAuth"
+import useCustomToast from "../hooks/useCustomToast"
+import { emailPattern } from "../utils"
+
+interface FormData {
+  email: string
+}
+
+export const Route = createFileRoute("/recover-password")({
+  component: RecoverPassword,
+  beforeLoad: async () => {
+    if (isLoggedIn()) {
+      throw redirect({
+        to: "/",
+      })
+    }
+  },
+})
+
+function RecoverPassword() {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<FormData>()
+  const showToast = useCustomToast()
+
+  const onSubmit: SubmitHandler<FormData> = async (data) => {
+    await LoginService.recoverPassword({
+      email: data.email,
+    })
+    showToast(
+      "Email sent.",
+      "We sent an email with a link to get back into your account.",
+      "success",
+    )
+  }
+
+  return (
+    <Container
+      as="form"
+      onSubmit={handleSubmit(onSubmit)}
+      h="100vh"
+      maxW="sm"
+      alignItems="stretch"
+      justifyContent="center"
+      gap={4}
+      centerContent
+    >
+      <Heading size="xl" color="ui.main" textAlign="center" mb={2}>
+        Password Recovery
+      </Heading>
+      <Text align="center">
+        A password recovery email will be sent to the registered account.
+      </Text>
+      <FormControl isInvalid={!!errors.email}>
+        <Input
+          id="email"
+          {...register("email", {
+            required: "Email is required",
+            pattern: emailPattern,
+          })}
+          placeholder="Email"
+          type="email"
+        />
+        {errors.email && (
+          <FormErrorMessage>{errors.email.message}</FormErrorMessage>
+        )}
+      </FormControl>
+      <Button variant="primary" type="submit" isLoading={isSubmitting}>
+        Continue
+      </Button>
+    </Container>
+  )
+}
+</src/routes/recover-password.tsx>
+
+<src/routes/_layout/index.tsx>
+import { Box, Container, Text } from "@chakra-ui/react"
+import { useQueryClient } from "@tanstack/react-query"
+import { createFileRoute } from "@tanstack/react-router"
+
+import type { UserPublic } from "../../client"
+
+export const Route = createFileRoute("/_layout/")({
+  component: Dashboard,
+})
+
+function Dashboard() {
+  const queryClient = useQueryClient()
+
+  const currentUser = queryClient.getQueryData<UserPublic>(["currentUser"])
+
+  return (
+    <>
+      <Container maxW="full">
+        <Box pt={12} m={4}>
+          <Text fontSize="2xl">
+            Hi, {currentUser?.full_name || currentUser?.email} 👋🏼
+          </Text>
+          <Text>Welcome back, nice to see you again!</Text>
+        </Box>
+      </Container>
+    </>
+  )
+}
+</src/routes/_layout/index.tsx>
+
+<src/routes/_layout/admin.tsx>
+import {
+  Badge,
+  Box,
+  Container,
+  Flex,
+  Heading,
+  SkeletonText,
+  Table,
+  TableContainer,
+  Tbody,
+  Td,
+  Th,
+  Thead,
+  Tr,
+} from "@chakra-ui/react"
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
+import { createFileRoute } from "@tanstack/react-router"
+
+import { Suspense } from "react"
+import { type UserPublic, UsersService } from "../../client"
+import ActionsMenu from "../../components/Common/ActionsMenu"
+import Navbar from "../../components/Common/Navbar"
+
+export const Route = createFileRoute("/_layout/admin")({
+  component: Admin,
+})
+
+const MembersTableBody = () => {
+  const queryClient = useQueryClient()
+  const currentUser = queryClient.getQueryData<UserPublic>(["currentUser"])
+
+  const { data: users } = useSuspenseQuery({
+    queryKey: ["users"],
+    queryFn: () => UsersService.readUsers({}),
+  })
+
+  return (
+    <Tbody>
+      {users.data.map((user) => (
+        <Tr key={user.id}>
+          <Td color={!user.full_name ? "ui.dim" : "inherit"}>
+            {user.full_name || "N/A"}
+            {currentUser?.id === user.id && (
+              <Badge ml="1" colorScheme="teal">
+                You
+              </Badge>
+            )}
+          </Td>
+          <Td>{user.email}</Td>
+          <Td>{user.is_superuser ? "Superuser" : "User"}</Td>
+          <Td>
+            <Flex gap={2}>
+              <Box
+                w="2"
+                h="2"
+                borderRadius="50%"
+                bg={user.is_active ? "ui.success" : "ui.danger"}
+                alignSelf="center"
+              />
+              {user.is_active ? "Active" : "Inactive"}
+            </Flex>
+          </Td>
+          <Td>
+            <ActionsMenu
+              type="User"
+              value={user}
+              disabled={currentUser?.id === user.id ? true : false}
+            />
+          </Td>
+        </Tr>
+      ))}
+    </Tbody>
+  )
+}
+
+const MembersBodySkeleton = () => {
+  return (
+    <Tbody>
+      <Tr>
+        {new Array(5).fill(null).map((_, index) => (
+          <Td key={index}>
+            <SkeletonText noOfLines={1} paddingBlock="16px" />
+          </Td>
+        ))}
+      </Tr>
+    </Tbody>
+  )
+}
+
+function Admin() {
+  return (
+    <Container maxW="full">
+      <Heading size="lg" textAlign={{ base: "center", md: "left" }} pt={12}>
+        User Management
+      </Heading>
+      <Navbar type={"User"} />
+      <TableContainer>
+        <Table fontSize="md" size={{ base: "sm", md: "md" }}>
+          <Thead>
+            <Tr>
+              <Th width="20%">Full name</Th>
+              <Th width="50%">Email</Th>
+              <Th width="10%">Role</Th>
+              <Th width="10%">Status</Th>
+              <Th width="10%">Actions</Th>
+            </Tr>
+          </Thead>
+          <Suspense fallback={<MembersBodySkeleton />}>
+            <MembersTableBody />
+          </Suspense>
+        </Table>
+      </TableContainer>
+    </Container>
+  )
+}
+</src/routes/_layout/admin.tsx>
+
+<src/routes/_layout/settings.tsx>
+import {
+  Container,
+  Heading,
+  Tab,
+  TabList,
+  TabPanel,
+  TabPanels,
+  Tabs,
+} from "@chakra-ui/react"
+import { useQueryClient } from "@tanstack/react-query"
+import { createFileRoute } from "@tanstack/react-router"
+
+import type { UserPublic } from "../../client"
+import Appearance from "../../components/UserSettings/Appearance"
+import ChangePassword from "../../components/UserSettings/ChangePassword"
+import DeleteAccount from "../../components/UserSettings/DeleteAccount"
+import UserInformation from "../../components/UserSettings/UserInformation"
+
+const tabsConfig = [
+  { title: "My profile", component: UserInformation },
+  { title: "Password", component: ChangePassword },
+  { title: "Appearance", component: Appearance },
+  { title: "Danger zone", component: DeleteAccount },
+]
+
+export const Route = createFileRoute("/_layout/settings")({
+  component: UserSettings,
+})
+
+function UserSettings() {
+  const queryClient = useQueryClient()
+  const currentUser = queryClient.getQueryData<UserPublic>(["currentUser"])
+  const finalTabs = currentUser?.is_superuser
+    ? tabsConfig.slice(0, 3)
+    : tabsConfig
+
+  return (
+    <Container maxW="full">
+      <Heading size="lg" textAlign={{ base: "center", md: "left" }} py={12}>
+        User Settings
+      </Heading>
+      <Tabs variant="enclosed">
+        <TabList>
+          {finalTabs.map((tab, index) => (
+            <Tab key={index}>{tab.title}</Tab>
+          ))}
+        </TabList>
+        <TabPanels>
+          {finalTabs.map((tab, index) => (
+            <TabPanel key={index}>
+              <tab.component />
+            </TabPanel>
+          ))}
+        </TabPanels>
+      </Tabs>
+    </Container>
+  )
+}
+</src/routes/_layout/settings.tsx>
+
+<src/routes/_layout/gotcha.tsx>
+import React from 'react';
+import VideoStreamer from '../../components/Gotcha/VerifyCameraStream';
+import { createFileRoute } from '@tanstack/react-router';
+
+export const Route = createFileRoute("/_layout/gotcha")({
+    component: Gotcha,
+  })
+
+function Gotcha() {
+    return (
+        <div>
+            <h1>Video Verification</h1>
+            <VideoStreamer />
+        </div>
+    );
+};
+</src/routes/_layout/gotcha.tsx>
+
+<src/routes/_layout/items.tsx>
+import {
+  Container,
+  Flex,
+  Heading,
+  Skeleton,
+  Table,
+  TableContainer,
+  Tbody,
+  Td,
+  Th,
+  Thead,
+  Tr,
+} from "@chakra-ui/react"
+import { useSuspenseQuery } from "@tanstack/react-query"
+import { createFileRoute } from "@tanstack/react-router"
+
+import { Suspense } from "react"
+import { ErrorBoundary } from "react-error-boundary"
+import { ItemsService } from "../../client"
+import ActionsMenu from "../../components/Common/ActionsMenu"
+import Navbar from "../../components/Common/Navbar"
+
+export const Route = createFileRoute("/_layout/items")({
+  component: Items,
+})
+
+function ItemsTableBody() {
+  const { data: items } = useSuspenseQuery({
+    queryKey: ["items"],
+    queryFn: () => ItemsService.readItems({}),
+  })
+
+  return (
+    <Tbody>
+      {items.data.map((item) => (
+        <Tr key={item.id}>
+          <Td>{item.id}</Td>
+          <Td>{item.title}</Td>
+          <Td color={!item.description ? "ui.dim" : "inherit"}>
+            {item.description || "N/A"}
+          </Td>
+          <Td>
+            <ActionsMenu type={"Item"} value={item} />
+          </Td>
+        </Tr>
+      ))}
+    </Tbody>
+  )
+}
+function ItemsTable() {
+  return (
+    <TableContainer>
+      <Table size={{ base: "sm", md: "md" }}>
+        <Thead>
+          <Tr>
+            <Th>ID</Th>
+            <Th>Title</Th>
+            <Th>Description</Th>
+            <Th>Actions</Th>
+          </Tr>
+        </Thead>
+        <ErrorBoundary
+          fallbackRender={({ error }) => (
+            <Tbody>
+              <Tr>
+                <Td colSpan={4}>Something went wrong: {error.message}</Td>
+              </Tr>
+            </Tbody>
+          )}
+        >
+          <Suspense
+            fallback={
+              <Tbody>
+                {new Array(5).fill(null).map((_, index) => (
+                  <Tr key={index}>
+                    {new Array(4).fill(null).map((_, index) => (
+                      <Td key={index}>
+                        <Flex>
+                          <Skeleton height="20px" width="20px" />
+                        </Flex>
+                      </Td>
+                    ))}
+                  </Tr>
+                ))}
+              </Tbody>
+            }
+          >
+            <ItemsTableBody />
+          </Suspense>
+        </ErrorBoundary>
+      </Table>
+    </TableContainer>
+  )
+}
+
+function Items() {
+  return (
+    <Container maxW="full">
+      <Heading size="lg" textAlign={{ base: "center", md: "left" }} pt={12}>
+        Items Management
+      </Heading>
+
+      <Navbar type={"Item"} />
+      <ItemsTable />
+    </Container>
+  )
+}
+</src/routes/_layout/items.tsx>
+
+<src/routes/__root.tsx>
+import { Outlet, createRootRoute } from "@tanstack/react-router"
+import React, { Suspense } from "react"
+
+import NotFound from "../components/Common/NotFound"
+
+const TanStackRouterDevtools =
+  process.env.NODE_ENV === "production"
+    ? () => null
+    : React.lazy(() =>
+        import("@tanstack/router-devtools").then((res) => ({
+          default: res.TanStackRouterDevtools,
+        })),
+      )
+
+export const Route = createRootRoute({
+  component: () => (
+    <>
+      <Outlet />
+      <Suspense>
+        <TanStackRouterDevtools />
+      </Suspense>
+    </>
+  ),
+  notFoundComponent: () => <NotFound />,
+})
+</src/routes/__root.tsx>
+
+<src/routes/reset-password.tsx>
+import {
+  Button,
+  Container,
+  FormControl,
+  FormErrorMessage,
+  FormLabel,
+  Heading,
+  Input,
+  Text,
+} from "@chakra-ui/react"
+import { useMutation } from "@tanstack/react-query"
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router"
+import { type SubmitHandler, useForm } from "react-hook-form"
+
+import { type ApiError, LoginService, type NewPassword } from "../client"
+import { isLoggedIn } from "../hooks/useAuth"
+import useCustomToast from "../hooks/useCustomToast"
+import { confirmPasswordRules, passwordRules } from "../utils"
+
+interface NewPasswordForm extends NewPassword {
+  confirm_password: string
+}
+
+export const Route = createFileRoute("/reset-password")({
+  component: ResetPassword,
+  beforeLoad: async () => {
+    if (isLoggedIn()) {
+      throw redirect({
+        to: "/",
+      })
+    }
+  },
+})
+
+function ResetPassword() {
+  const {
+    register,
+    handleSubmit,
+    getValues,
+    reset,
+    formState: { errors },
+  } = useForm<NewPasswordForm>({
+    mode: "onBlur",
+    criteriaMode: "all",
+    defaultValues: {
+      new_password: "",
+    },
+  })
+  const showToast = useCustomToast()
+  const navigate = useNavigate()
+
+  const resetPassword = async (data: NewPassword) => {
+    const token = new URLSearchParams(window.location.search).get("token")
+    if (!token) return
+    await LoginService.resetPassword({
+      requestBody: { new_password: data.new_password, token: token },
+    })
+  }
+
+  const mutation = useMutation({
+    mutationFn: resetPassword,
+    onSuccess: () => {
+      showToast("Success!", "Password updated.", "success")
+      reset()
+      navigate({ to: "/login" })
+    },
+    onError: (err: ApiError) => {
+      const errDetail = (err.body as any)?.detail
+      showToast("Something went wrong.", `${errDetail}`, "error")
+    },
+  })
+
+  const onSubmit: SubmitHandler<NewPasswordForm> = async (data) => {
+    mutation.mutate(data)
+  }
+
+  return (
+    <Container
+      as="form"
+      onSubmit={handleSubmit(onSubmit)}
+      h="100vh"
+      maxW="sm"
+      alignItems="stretch"
+      justifyContent="center"
+      gap={4}
+      centerContent
+    >
+      <Heading size="xl" color="ui.main" textAlign="center" mb={2}>
+        Reset Password
+      </Heading>
+      <Text textAlign="center">
+        Please enter your new password and confirm it to reset your password.
+      </Text>
+      <FormControl mt={4} isInvalid={!!errors.new_password}>
+        <FormLabel htmlFor="password">Set Password</FormLabel>
+        <Input
+          id="password"
+          {...register("new_password", passwordRules())}
+          placeholder="Password"
+          type="password"
+        />
+        {errors.new_password && (
+          <FormErrorMessage>{errors.new_password.message}</FormErrorMessage>
+        )}
+      </FormControl>
+      <FormControl mt={4} isInvalid={!!errors.confirm_password}>
+        <FormLabel htmlFor="confirm_password">Confirm Password</FormLabel>
+        <Input
+          id="confirm_password"
+          {...register("confirm_password", confirmPasswordRules(getValues))}
+          placeholder="Password"
+          type="password"
+        />
+        {errors.confirm_password && (
+          <FormErrorMessage>{errors.confirm_password.message}</FormErrorMessage>
+        )}
+      </FormControl>
+      <Button variant="primary" type="submit">
+        Reset Password
+      </Button>
+    </Container>
+  )
+}
+</src/routes/reset-password.tsx>
+
+<src/routes/_layout.tsx>
+import { Flex, Spinner } from "@chakra-ui/react"
+import { Outlet, createFileRoute, redirect } from "@tanstack/react-router"
+
+import Sidebar from "../components/Common/Sidebar"
+import UserMenu from "../components/Common/UserMenu"
+import useAuth, { isLoggedIn } from "../hooks/useAuth"
+
+export const Route = createFileRoute("/_layout")({
+  component: Layout,
+  beforeLoad: async () => {
+    if (!isLoggedIn()) {
+      throw redirect({
+        to: "/login",
+      })
+    }
+  },
+})
+
+function Layout() {
+  const { isLoading } = useAuth()
+
+  return (
+    <Flex maxW="large" h="auto" position="relative">
+      <Sidebar />
+      {isLoading ? (
+        <Flex justify="center" align="center" height="100vh" width="full">
+          <Spinner size="xl" color="ui.main" />
+        </Flex>
+      ) : (
+        <Outlet />
+      )}
+      <UserMenu />
+    </Flex>
+  )
+}
+</src/routes/_layout.tsx>
+
+<src/routes/login.tsx>
+import { ViewIcon, ViewOffIcon } from "@chakra-ui/icons"
+import {
+  Button,
+  Center,
+  Container,
+  FormControl,
+  FormErrorMessage,
+  Icon,
+  Image,
+  Input,
+  InputGroup,
+  InputRightElement,
+  Link,
+  useBoolean,
+} from "@chakra-ui/react"
+import {
+  Link as RouterLink,
+  createFileRoute,
+  redirect,
+} from "@tanstack/react-router"
+import { type SubmitHandler, useForm } from "react-hook-form"
+
+import Logo from "/assets/images/fastapi-logo.svg"
+import type { Body_login_login_access_token as AccessToken } from "../client"
+import useAuth, { isLoggedIn } from "../hooks/useAuth"
+import { emailPattern } from "../utils"
+
+export const Route = createFileRoute("/login")({
+  component: Login,
+  beforeLoad: async () => {
+    if (isLoggedIn()) {
+      throw redirect({
+        to: "/",
+      })
+    }
+  },
+})
+
+function Login() {
+  const [show, setShow] = useBoolean()
+  const { loginMutation, error, resetError } = useAuth()
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<AccessToken>({
+    mode: "onBlur",
+    criteriaMode: "all",
+    defaultValues: {
+      username: "",
+      password: "",
+    },
+  })
+
+  const onSubmit: SubmitHandler<AccessToken> = async (data) => {
+    if (isSubmitting) return
+
+    resetError()
+
+    try {
+      await loginMutation.mutateAsync(data)
+    } catch {
+      // error is handled by useAuth hook
+    }
+  }
+
+  return (
+    <>
+      <Container
+        as="form"
+        onSubmit={handleSubmit(onSubmit)}
+        h="100vh"
+        maxW="sm"
+        alignItems="stretch"
+        justifyContent="center"
+        gap={4}
+        centerContent
+      >
+        <Image
+          src={Logo}
+          alt="FastAPI logo"
+          height="auto"
+          maxW="2xs"
+          alignSelf="center"
+          mb={4}
+        />
+        <FormControl id="username" isInvalid={!!errors.username || !!error}>
+          <Input
+            id="username"
+            {...register("username", {
+              pattern: emailPattern,
+            })}
+            placeholder="Email"
+            type="email"
+            required
+          />
+          {errors.username && (
+            <FormErrorMessage>{errors.username.message}</FormErrorMessage>
+          )}
+        </FormControl>
+        <FormControl id="password" isInvalid={!!error}>
+          <InputGroup>
+            <Input
+              {...register("password")}
+              type={show ? "text" : "password"}
+              placeholder="Password"
+              required
+            />
+            <InputRightElement
+              color="ui.dim"
+              _hover={{
+                cursor: "pointer",
+              }}
+            >
+              <Icon
+                onClick={setShow.toggle}
+                aria-label={show ? "Hide password" : "Show password"}
+              >
+                {show ? <ViewOffIcon /> : <ViewIcon />}
+              </Icon>
+            </InputRightElement>
+          </InputGroup>
+          {error && <FormErrorMessage>{error}</FormErrorMessage>}
+        </FormControl>
+        <Center>
+          <Link as={RouterLink} to="/recover-password" color="blue.500">
+            Forgot password?
+          </Link>
+        </Center>
+        <Button variant="primary" type="submit" isLoading={isSubmitting}>
+          Log In
+        </Button>
+      </Container>
+    </>
+  )
+}
+</src/routes/login.tsx>
+
+<src/routeTree.gen.ts>
+/* prettier-ignore-start */
+
+/* eslint-disable */
+
+// @ts-nocheck
+
+// noinspection JSUnusedGlobalSymbols
+
+// This file is auto-generated by TanStack Router
+
+// Import Routes
+
+import { Route as rootRoute } from './routes/__root'
+import { Route as ResetPasswordImport } from './routes/reset-password'
+import { Route as RecoverPasswordImport } from './routes/recover-password'
+import { Route as LoginImport } from './routes/login'
+import { Route as LayoutImport } from './routes/_layout'
+import { Route as LayoutIndexImport } from './routes/_layout/index'
+import { Route as LayoutSettingsImport } from './routes/_layout/settings'
+import { Route as LayoutItemsImport } from './routes/_layout/items'
+import { Route as LayoutGotchaImport } from './routes/_layout/gotcha'
+import { Route as LayoutAdminImport } from './routes/_layout/admin'
+
+// Create/Update Routes
+
+const ResetPasswordRoute = ResetPasswordImport.update({
+  path: '/reset-password',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const RecoverPasswordRoute = RecoverPasswordImport.update({
+  path: '/recover-password',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const LoginRoute = LoginImport.update({
+  path: '/login',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const LayoutRoute = LayoutImport.update({
+  id: '/_layout',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const LayoutIndexRoute = LayoutIndexImport.update({
+  path: '/',
+  getParentRoute: () => LayoutRoute,
+} as any)
+
+const LayoutSettingsRoute = LayoutSettingsImport.update({
+  path: '/settings',
+  getParentRoute: () => LayoutRoute,
+} as any)
+
+const LayoutItemsRoute = LayoutItemsImport.update({
+  path: '/items',
+  getParentRoute: () => LayoutRoute,
+} as any)
+
+const LayoutGotchaRoute = LayoutGotchaImport.update({
+  path: '/gotcha',
+  getParentRoute: () => LayoutRoute,
+} as any)
+
+const LayoutAdminRoute = LayoutAdminImport.update({
+  path: '/admin',
+  getParentRoute: () => LayoutRoute,
+} as any)
+
+// Populate the FileRoutesByPath interface
+
+declare module '@tanstack/react-router' {
+  interface FileRoutesByPath {
+    '/_layout': {
+      preLoaderRoute: typeof LayoutImport
+      parentRoute: typeof rootRoute
+    }
+    '/login': {
+      preLoaderRoute: typeof LoginImport
+      parentRoute: typeof rootRoute
+    }
+    '/recover-password': {
+      preLoaderRoute: typeof RecoverPasswordImport
+      parentRoute: typeof rootRoute
+    }
+    '/reset-password': {
+      preLoaderRoute: typeof ResetPasswordImport
+      parentRoute: typeof rootRoute
+    }
+    '/_layout/admin': {
+      preLoaderRoute: typeof LayoutAdminImport
+      parentRoute: typeof LayoutImport
+    }
+    '/_layout/gotcha': {
+      preLoaderRoute: typeof LayoutGotchaImport
+      parentRoute: typeof LayoutImport
+    }
+    '/_layout/items': {
+      preLoaderRoute: typeof LayoutItemsImport
+      parentRoute: typeof LayoutImport
+    }
+    '/_layout/settings': {
+      preLoaderRoute: typeof LayoutSettingsImport
+      parentRoute: typeof LayoutImport
+    }
+    '/_layout/': {
+      preLoaderRoute: typeof LayoutIndexImport
+      parentRoute: typeof LayoutImport
+    }
+  }
+}
+
+// Create and export the route tree
+
+export const routeTree = rootRoute.addChildren([
+  LayoutRoute.addChildren([
+    LayoutAdminRoute,
+    LayoutGotchaRoute,
+    LayoutItemsRoute,
+    LayoutSettingsRoute,
+    LayoutIndexRoute,
+  ]),
+  LoginRoute,
+  RecoverPasswordRoute,
+  ResetPasswordRoute,
+])
+
+/* prettier-ignore-end */
+</src/routeTree.gen.ts>
+
+<src/components/Items/AddItem.tsx>
+import {
+  Button,
+  FormControl,
+  FormErrorMessage,
+  FormLabel,
+  Input,
+  Modal,
+  ModalBody,
+  ModalCloseButton,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  ModalOverlay,
+} from "@chakra-ui/react"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { type SubmitHandler, useForm } from "react-hook-form"
+
+import { type ApiError, type ItemCreate, ItemsService } from "../../client"
+import useCustomToast from "../../hooks/useCustomToast"
+
+interface AddItemProps {
+  isOpen: boolean
+  onClose: () => void
+}
+
+const AddItem = ({ isOpen, onClose }: AddItemProps) => {
+  const queryClient = useQueryClient()
+  const showToast = useCustomToast()
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<ItemCreate>({
+    mode: "onBlur",
+    criteriaMode: "all",
+    defaultValues: {
+      title: "",
+      description: "",
+    },
+  })
+
+  const mutation = useMutation({
+    mutationFn: (data: ItemCreate) =>
+      ItemsService.createItem({ requestBody: data }),
+    onSuccess: () => {
+      showToast("Success!", "Item created successfully.", "success")
+      reset()
+      onClose()
+    },
+    onError: (err: ApiError) => {
+      const errDetail = (err.body as any)?.detail
+      showToast("Something went wrong.", `${errDetail}`, "error")
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["items"] })
+    },
+  })
+
+  const onSubmit: SubmitHandler<ItemCreate> = (data) => {
+    mutation.mutate(data)
+  }
+
+  return (
+    <>
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        size={{ base: "sm", md: "md" }}
+        isCentered
+      >
+        <ModalOverlay />
+        <ModalContent as="form" onSubmit={handleSubmit(onSubmit)}>
+          <ModalHeader>Add Item</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <FormControl isRequired isInvalid={!!errors.title}>
+              <FormLabel htmlFor="title">Title</FormLabel>
+              <Input
+                id="title"
+                {...register("title", {
+                  required: "Title is required.",
+                })}
+                placeholder="Title"
+                type="text"
+              />
+              {errors.title && (
+                <FormErrorMessage>{errors.title.message}</FormErrorMessage>
+              )}
+            </FormControl>
+            <FormControl mt={4}>
+              <FormLabel htmlFor="description">Description</FormLabel>
+              <Input
+                id="description"
+                {...register("description")}
+                placeholder="Description"
+                type="text"
+              />
+            </FormControl>
+          </ModalBody>
+
+          <ModalFooter gap={3}>
+            <Button variant="primary" type="submit" isLoading={isSubmitting}>
+              Save
+            </Button>
+            <Button onClick={onClose}>Cancel</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+    </>
+  )
+}
+
+export default AddItem
+</src/components/Items/AddItem.tsx>
+
+<src/components/Items/EditItem.tsx>
+import {
+  Button,
+  FormControl,
+  FormErrorMessage,
+  FormLabel,
+  Input,
+  Modal,
+  ModalBody,
+  ModalCloseButton,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  ModalOverlay,
+} from "@chakra-ui/react"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { type SubmitHandler, useForm } from "react-hook-form"
+
+import {
+  type ApiError,
+  type ItemPublic,
+  type ItemUpdate,
+  ItemsService,
+} from "../../client"
+import useCustomToast from "../../hooks/useCustomToast"
+
+interface EditItemProps {
+  item: ItemPublic
+  isOpen: boolean
+  onClose: () => void
+}
+
+const EditItem = ({ item, isOpen, onClose }: EditItemProps) => {
+  const queryClient = useQueryClient()
+  const showToast = useCustomToast()
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { isSubmitting, errors, isDirty },
+  } = useForm<ItemUpdate>({
+    mode: "onBlur",
+    criteriaMode: "all",
+    defaultValues: item,
+  })
+
+  const mutation = useMutation({
+    mutationFn: (data: ItemUpdate) =>
+      ItemsService.updateItem({ id: item.id, requestBody: data }),
+    onSuccess: () => {
+      showToast("Success!", "Item updated successfully.", "success")
+      onClose()
+    },
+    onError: (err: ApiError) => {
+      const errDetail = (err.body as any)?.detail
+      showToast("Something went wrong.", `${errDetail}`, "error")
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["items"] })
+    },
+  })
+
+  const onSubmit: SubmitHandler<ItemUpdate> = async (data) => {
+    mutation.mutate(data)
+  }
+
+  const onCancel = () => {
+    reset()
+    onClose()
+  }
+
+  return (
+    <>
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        size={{ base: "sm", md: "md" }}
+        isCentered
+      >
+        <ModalOverlay />
+        <ModalContent as="form" onSubmit={handleSubmit(onSubmit)}>
+          <ModalHeader>Edit Item</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <FormControl isInvalid={!!errors.title}>
+              <FormLabel htmlFor="title">Title</FormLabel>
+              <Input
+                id="title"
+                {...register("title", {
+                  required: "Title is required",
+                })}
+                type="text"
+              />
+              {errors.title && (
+                <FormErrorMessage>{errors.title.message}</FormErrorMessage>
+              )}
+            </FormControl>
+            <FormControl mt={4}>
+              <FormLabel htmlFor="description">Description</FormLabel>
+              <Input
+                id="description"
+                {...register("description")}
+                placeholder="Description"
+                type="text"
+              />
+            </FormControl>
+          </ModalBody>
+          <ModalFooter gap={3}>
+            <Button
+              variant="primary"
+              type="submit"
+              isLoading={isSubmitting}
+              isDisabled={!isDirty}
+            >
+              Save
+            </Button>
+            <Button onClick={onCancel}>Cancel</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+    </>
+  )
+}
+
+export default EditItem
+</src/components/Items/EditItem.tsx>
+
+<src/components/Common/SidebarItems.tsx>
+import { Box, Flex, Icon, Text, useColorModeValue } from "@chakra-ui/react"
+import { useQueryClient } from "@tanstack/react-query"
+import { Link } from "@tanstack/react-router"
+import { FiBriefcase, FiHome, FiSettings, FiUsers } from "react-icons/fi"
+
+import type { UserPublic } from "../../client"
+
+const items = [
+  { icon: FiHome, title: "Dashboard", path: "/" },
+  { icon: FiBriefcase, title: "Items", path: "/items" },
+  { icon: FiSettings, title: "User Settings", path: "/settings" },
+]
+
+interface SidebarItemsProps {
+  onClose?: () => void
+}
+
+const SidebarItems = ({ onClose }: SidebarItemsProps) => {
+  const queryClient = useQueryClient()
+  const textColor = useColorModeValue("ui.main", "ui.light")
+  const bgActive = useColorModeValue("#E2E8F0", "#4A5568")
+  const currentUser = queryClient.getQueryData<UserPublic>(["currentUser"])
+
+  const finalItems = currentUser?.is_superuser
+    ? [...items, { icon: FiUsers, title: "Admin", path: "/admin" }]
+    : items
+
+  const listItems = finalItems.map(({ icon, title, path }) => (
+    <Flex
+      as={Link}
+      to={path}
+      w="100%"
+      p={2}
+      key={title}
+      activeProps={{
+        style: {
+          background: bgActive,
+          borderRadius: "12px",
+        },
+      }}
+      color={textColor}
+      onClick={onClose}
+    >
+      <Icon as={icon} alignSelf="center" />
+      <Text ml={2}>{title}</Text>
+    </Flex>
+  ))
+
+  return (
+    <>
+      <Box>{listItems}</Box>
+    </>
+  )
+}
+
+export default SidebarItems
+</src/components/Common/SidebarItems.tsx>
+
+<src/components/Common/NotFound.tsx>
+import { Button, Container, Text } from "@chakra-ui/react"
+import { Link } from "@tanstack/react-router"
+
+const NotFound = () => {
+  return (
+    <>
+      <Container
+        h="100vh"
+        alignItems="stretch"
+        justifyContent="center"
+        textAlign="center"
+        maxW="sm"
+        centerContent
+      >
+        <Text
+          fontSize="8xl"
+          color="ui.main"
+          fontWeight="bold"
+          lineHeight="1"
+          mb={4}
+        >
+          404
+        </Text>
+        <Text fontSize="md">Oops!</Text>
+        <Text fontSize="md">Page not found.</Text>
+        <Button
+          as={Link}
+          to="/"
+          color="ui.main"
+          borderColor="ui.main"
+          variant="outline"
+          mt={4}
+        >
+          Go back
+        </Button>
+      </Container>
+    </>
+  )
+}
+
+export default NotFound
+</src/components/Common/NotFound.tsx>
+
+<src/components/Common/DeleteAlert.tsx>
+import {
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogOverlay,
+  Button,
+} from "@chakra-ui/react"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import React from "react"
+import { useForm } from "react-hook-form"
+
+import { ItemsService, UsersService } from "../../client"
+import useCustomToast from "../../hooks/useCustomToast"
+
+interface DeleteProps {
+  type: string
+  id: number
+  isOpen: boolean
+  onClose: () => void
+}
+
+const Delete = ({ type, id, isOpen, onClose }: DeleteProps) => {
+  const queryClient = useQueryClient()
+  const showToast = useCustomToast()
+  const cancelRef = React.useRef<HTMLButtonElement | null>(null)
+  const {
+    handleSubmit,
+    formState: { isSubmitting },
+  } = useForm()
+
+  const deleteEntity = async (id: number) => {
+    if (type === "Item") {
+      await ItemsService.deleteItem({ id: id })
+    } else if (type === "User") {
+      await UsersService.deleteUser({ userId: id })
+    } else {
+      throw new Error(`Unexpected type: ${type}`)
+    }
+  }
+
+  const mutation = useMutation({
+    mutationFn: deleteEntity,
+    onSuccess: () => {
+      showToast(
+        "Success",
+        `The ${type.toLowerCase()} was deleted successfully.`,
+        "success",
+      )
+      onClose()
+    },
+    onError: () => {
+      showToast(
+        "An error occurred.",
+        `An error occurred while deleting the ${type.toLowerCase()}.`,
+        "error",
+      )
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: [type === "Item" ? "items" : "users"],
+      })
+    },
+  })
+
+  const onSubmit = async () => {
+    mutation.mutate(id)
+  }
+
+  return (
+    <>
+      <AlertDialog
+        isOpen={isOpen}
+        onClose={onClose}
+        leastDestructiveRef={cancelRef}
+        size={{ base: "sm", md: "md" }}
+        isCentered
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent as="form" onSubmit={handleSubmit(onSubmit)}>
+            <AlertDialogHeader>Delete {type}</AlertDialogHeader>
+
+            <AlertDialogBody>
+              {type === "User" && (
+                <span>
+                  All items associated with this user will also be{" "}
+                  <strong>permantly deleted. </strong>
+                </span>
+              )}
+              Are you sure? You will not be able to undo this action.
+            </AlertDialogBody>
+
+            <AlertDialogFooter gap={3}>
+              <Button variant="danger" type="submit" isLoading={isSubmitting}>
+                Delete
+              </Button>
+              <Button
+                ref={cancelRef}
+                onClick={onClose}
+                isDisabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
+    </>
+  )
+}
+
+export default Delete
+</src/components/Common/DeleteAlert.tsx>
+
+<src/components/Common/Sidebar.tsx>
+import {
+  Box,
+  Drawer,
+  DrawerBody,
+  DrawerCloseButton,
+  DrawerContent,
+  DrawerOverlay,
+  Flex,
+  IconButton,
+  Image,
+  Text,
+  useColorModeValue,
+  useDisclosure,
+} from "@chakra-ui/react"
+import { useQueryClient } from "@tanstack/react-query"
+import { FiLogOut, FiMenu } from "react-icons/fi"
+
+import Logo from "/assets/images/fastapi-logo.svg"
+import type { UserPublic } from "../../client"
+import useAuth from "../../hooks/useAuth"
+import SidebarItems from "./SidebarItems"
+
+const Sidebar = () => {
+  const queryClient = useQueryClient()
+  const bgColor = useColorModeValue("ui.light", "ui.dark")
+  const textColor = useColorModeValue("ui.dark", "ui.light")
+  const secBgColor = useColorModeValue("ui.secondary", "ui.darkSlate")
+  const currentUser = queryClient.getQueryData<UserPublic>(["currentUser"])
+  const { isOpen, onOpen, onClose } = useDisclosure()
+  const { logout } = useAuth()
+
+  const handleLogout = async () => {
+    logout()
+  }
+
+  return (
+    <>
+      {/* Mobile */}
+      <IconButton
+        onClick={onOpen}
+        display={{ base: "flex", md: "none" }}
+        aria-label="Open Menu"
+        position="absolute"
+        fontSize="20px"
+        m={4}
+        icon={<FiMenu />}
+      />
+      <Drawer isOpen={isOpen} placement="left" onClose={onClose}>
+        <DrawerOverlay />
+        <DrawerContent maxW="250px">
+          <DrawerCloseButton />
+          <DrawerBody py={8}>
+            <Flex flexDir="column" justify="space-between">
+              <Box>
+                <Image src={Logo} alt="logo" p={6} />
+                <SidebarItems onClose={onClose} />
+                <Flex
+                  as="button"
+                  onClick={handleLogout}
+                  p={2}
+                  color="ui.danger"
+                  fontWeight="bold"
+                  alignItems="center"
+                >
+                  <FiLogOut />
+                  <Text ml={2}>Log out</Text>
+                </Flex>
+              </Box>
+              {currentUser?.email && (
+                <Text color={textColor} noOfLines={2} fontSize="sm" p={2}>
+                  Logged in as: {currentUser.email}
+                </Text>
+              )}
+            </Flex>
+          </DrawerBody>
+        </DrawerContent>
+      </Drawer>
+
+      {/* Desktop */}
+      <Box
+        bg={bgColor}
+        p={3}
+        h="100vh"
+        position="sticky"
+        top="0"
+        display={{ base: "none", md: "flex" }}
+      >
+        <Flex
+          flexDir="column"
+          justify="space-between"
+          bg={secBgColor}
+          p={4}
+          borderRadius={12}
+        >
+          <Box>
+            <Image src={Logo} alt="Logo" w="180px" maxW="2xs" p={6} />
+            <SidebarItems />
+          </Box>
+          {currentUser?.email && (
+            <Text
+              color={textColor}
+              noOfLines={2}
+              fontSize="sm"
+              p={2}
+              maxW="180px"
+            >
+              Logged in as: {currentUser.email}
+            </Text>
+          )}
+        </Flex>
+      </Box>
+    </>
+  )
+}
+
+export default Sidebar
+</src/components/Common/Sidebar.tsx>
+
+<src/components/Common/UserMenu.tsx>
+import {
+  Box,
+  IconButton,
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuList,
+} from "@chakra-ui/react"
+import { Link } from "@tanstack/react-router"
+import { FaUserAstronaut } from "react-icons/fa"
+import { FiLogOut, FiUser } from "react-icons/fi"
+
+import useAuth from "../../hooks/useAuth"
+
+const UserMenu = () => {
+  const { logout } = useAuth()
+
+  const handleLogout = async () => {
+    logout()
+  }
+
+  return (
+    <>
+      {/* Desktop */}
+      <Box
+        display={{ base: "none", md: "block" }}
+        position="fixed"
+        top={4}
+        right={4}
+      >
+        <Menu>
+          <MenuButton
+            as={IconButton}
+            aria-label="Options"
+            icon={<FaUserAstronaut color="white" fontSize="18px" />}
+            bg="ui.main"
+            isRound
+          />
+          <MenuList>
+            <MenuItem icon={<FiUser fontSize="18px" />} as={Link} to="settings">
+              My profile
+            </MenuItem>
+            <MenuItem
+              icon={<FiLogOut fontSize="18px" />}
+              onClick={handleLogout}
+              color="ui.danger"
+              fontWeight="bold"
+            >
+              Log out
+            </MenuItem>
+          </MenuList>
+        </Menu>
+      </Box>
+    </>
+  )
+}
+
+export default UserMenu
+</src/components/Common/UserMenu.tsx>
+
+<src/components/Common/ActionsMenu.tsx>
+import {
+  Button,
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuList,
+  useDisclosure,
+} from "@chakra-ui/react"
+import { BsThreeDotsVertical } from "react-icons/bs"
+import { FiEdit, FiTrash } from "react-icons/fi"
+
+import type { ItemPublic, UserPublic } from "../../client"
+import EditUser from "../Admin/EditUser"
+import EditItem from "../Items/EditItem"
+import Delete from "./DeleteAlert"
+
+interface ActionsMenuProps {
+  type: string
+  value: ItemPublic | UserPublic
+  disabled?: boolean
+}
+
+const ActionsMenu = ({ type, value, disabled }: ActionsMenuProps) => {
+  const editUserModal = useDisclosure()
+  const deleteModal = useDisclosure()
+
+  return (
+    <>
+      <Menu>
+        <MenuButton
+          isDisabled={disabled}
+          as={Button}
+          rightIcon={<BsThreeDotsVertical />}
+          variant="unstyled"
+        />
+        <MenuList>
+          <MenuItem
+            onClick={editUserModal.onOpen}
+            icon={<FiEdit fontSize="16px" />}
+          >
+            Edit {type}
+          </MenuItem>
+          <MenuItem
+            onClick={deleteModal.onOpen}
+            icon={<FiTrash fontSize="16px" />}
+            color="ui.danger"
+          >
+            Delete {type}
+          </MenuItem>
+        </MenuList>
+        {type === "User" ? (
+          <EditUser
+            user={value as UserPublic}
+            isOpen={editUserModal.isOpen}
+            onClose={editUserModal.onClose}
+          />
+        ) : (
+          <EditItem
+            item={value as ItemPublic}
+            isOpen={editUserModal.isOpen}
+            onClose={editUserModal.onClose}
+          />
+        )}
+        <Delete
+          type={type}
+          id={value.id}
+          isOpen={deleteModal.isOpen}
+          onClose={deleteModal.onClose}
+        />
+      </Menu>
+    </>
+  )
+}
+
+export default ActionsMenu
+</src/components/Common/ActionsMenu.tsx>
+
+<src/components/Common/Navbar.tsx>
+import { Button, Flex, Icon, useDisclosure } from "@chakra-ui/react"
+import { FaPlus } from "react-icons/fa"
+
+import AddUser from "../Admin/AddUser"
+import AddItem from "../Items/AddItem"
+
+interface NavbarProps {
+  type: string
+}
+
+const Navbar = ({ type }: NavbarProps) => {
+  const addUserModal = useDisclosure()
+  const addItemModal = useDisclosure()
+
+  return (
+    <>
+      <Flex py={8} gap={4}>
+        {/* TODO: Complete search functionality */}
+        {/* <InputGroup w={{ base: '100%', md: 'auto' }}>
+                    <InputLeftElement pointerEvents='none'>
+                        <Icon as={FaSearch} color='ui.dim' />
+                    </InputLeftElement>
+                    <Input type='text' placeholder='Search' fontSize={{ base: 'sm', md: 'inherit' }} borderRadius='8px' />
+                </InputGroup> */}
+        <Button
+          variant="primary"
+          gap={1}
+          fontSize={{ base: "sm", md: "inherit" }}
+          onClick={type === "User" ? addUserModal.onOpen : addItemModal.onOpen}
+        >
+          <Icon as={FaPlus} /> Add {type}
+        </Button>
+        <AddUser isOpen={addUserModal.isOpen} onClose={addUserModal.onClose} />
+        <AddItem isOpen={addItemModal.isOpen} onClose={addItemModal.onClose} />
+      </Flex>
+    </>
+  )
+}
+
+export default Navbar
+</src/components/Common/Navbar.tsx>
+
+<src/components/Admin/EditUser.tsx>
+import {
+  Button,
+  Checkbox,
+  Flex,
+  FormControl,
+  FormErrorMessage,
+  FormLabel,
+  Input,
+  Modal,
+  ModalBody,
+  ModalCloseButton,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  ModalOverlay,
+} from "@chakra-ui/react"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { type SubmitHandler, useForm } from "react-hook-form"
+
+import {
+  type ApiError,
+  type UserPublic,
+  type UserUpdate,
+  UsersService,
+} from "../../client"
+import useCustomToast from "../../hooks/useCustomToast"
+import { emailPattern } from "../../utils"
+
+interface EditUserProps {
+  user: UserPublic
+  isOpen: boolean
+  onClose: () => void
+}
+
+interface UserUpdateForm extends UserUpdate {
+  confirm_password: string
+}
+
+const EditUser = ({ user, isOpen, onClose }: EditUserProps) => {
+  const queryClient = useQueryClient()
+  const showToast = useCustomToast()
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    getValues,
+    formState: { errors, isSubmitting, isDirty },
+  } = useForm<UserUpdateForm>({
+    mode: "onBlur",
+    criteriaMode: "all",
+    defaultValues: user,
+  })
+
+  const mutation = useMutation({
+    mutationFn: (data: UserUpdateForm) =>
+      UsersService.updateUser({ userId: user.id, requestBody: data }),
+    onSuccess: () => {
+      showToast("Success!", "User updated successfully.", "success")
+      onClose()
+    },
+    onError: (err: ApiError) => {
+      const errDetail = (err.body as any)?.detail
+      showToast("Something went wrong.", `${errDetail}`, "error")
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] })
+    },
+  })
+
+  const onSubmit: SubmitHandler<UserUpdateForm> = async (data) => {
+    if (data.password === "") {
+      data.password = undefined
+    }
+    mutation.mutate(data)
+  }
+
+  const onCancel = () => {
+    reset()
+    onClose()
+  }
+
+  return (
+    <>
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        size={{ base: "sm", md: "md" }}
+        isCentered
+      >
+        <ModalOverlay />
+        <ModalContent as="form" onSubmit={handleSubmit(onSubmit)}>
+          <ModalHeader>Edit User</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <FormControl isInvalid={!!errors.email}>
+              <FormLabel htmlFor="email">Email</FormLabel>
+              <Input
+                id="email"
+                {...register("email", {
+                  required: "Email is required",
+                  pattern: emailPattern,
+                })}
+                placeholder="Email"
+                type="email"
+              />
+              {errors.email && (
+                <FormErrorMessage>{errors.email.message}</FormErrorMessage>
+              )}
+            </FormControl>
+            <FormControl mt={4}>
+              <FormLabel htmlFor="name">Full name</FormLabel>
+              <Input id="name" {...register("full_name")} type="text" />
+            </FormControl>
+            <FormControl mt={4} isInvalid={!!errors.password}>
+              <FormLabel htmlFor="password">Set Password</FormLabel>
+              <Input
+                id="password"
+                {...register("password", {
+                  minLength: {
+                    value: 8,
+                    message: "Password must be at least 8 characters",
+                  },
+                })}
+                placeholder="Password"
+                type="password"
+              />
+              {errors.password && (
+                <FormErrorMessage>{errors.password.message}</FormErrorMessage>
+              )}
+            </FormControl>
+            <FormControl mt={4} isInvalid={!!errors.confirm_password}>
+              <FormLabel htmlFor="confirm_password">Confirm Password</FormLabel>
+              <Input
+                id="confirm_password"
+                {...register("confirm_password", {
+                  validate: (value) =>
+                    value === getValues().password ||
+                    "The passwords do not match",
+                })}
+                placeholder="Password"
+                type="password"
+              />
+              {errors.confirm_password && (
+                <FormErrorMessage>
+                  {errors.confirm_password.message}
+                </FormErrorMessage>
+              )}
+            </FormControl>
+            <Flex>
+              <FormControl mt={4}>
+                <Checkbox {...register("is_superuser")} colorScheme="teal">
+                  Is superuser?
+                </Checkbox>
+              </FormControl>
+              <FormControl mt={4}>
+                <Checkbox {...register("is_active")} colorScheme="teal">
+                  Is active?
+                </Checkbox>
+              </FormControl>
+            </Flex>
+          </ModalBody>
+
+          <ModalFooter gap={3}>
+            <Button
+              variant="primary"
+              type="submit"
+              isLoading={isSubmitting}
+              isDisabled={!isDirty}
+            >
+              Save
+            </Button>
+            <Button onClick={onCancel}>Cancel</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+    </>
+  )
+}
+
+export default EditUser
+</src/components/Admin/EditUser.tsx>
+
+<src/components/Admin/AddUser.tsx>
+import {
+  Button,
+  Checkbox,
+  Flex,
+  FormControl,
+  FormErrorMessage,
+  FormLabel,
+  Input,
+  Modal,
+  ModalBody,
+  ModalCloseButton,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  ModalOverlay,
+} from "@chakra-ui/react"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { type SubmitHandler, useForm } from "react-hook-form"
+
+import { type UserCreate, UsersService } from "../../client"
+import type { ApiError } from "../../client/core/ApiError"
+import useCustomToast from "../../hooks/useCustomToast"
+import { emailPattern } from "../../utils"
+
+interface AddUserProps {
+  isOpen: boolean
+  onClose: () => void
+}
+
+interface UserCreateForm extends UserCreate {
+  confirm_password: string
+}
+
+const AddUser = ({ isOpen, onClose }: AddUserProps) => {
+  const queryClient = useQueryClient()
+  const showToast = useCustomToast()
+  const {
+    register,
+    handleSubmit,
+    reset,
+    getValues,
+    formState: { errors, isSubmitting },
+  } = useForm<UserCreateForm>({
+    mode: "onBlur",
+    criteriaMode: "all",
+    defaultValues: {
+      email: "",
+      full_name: "",
+      password: "",
+      confirm_password: "",
+      is_superuser: false,
+      is_active: false,
+    },
+  })
+
+  const mutation = useMutation({
+    mutationFn: (data: UserCreate) =>
+      UsersService.createUser({ requestBody: data }),
+    onSuccess: () => {
+      showToast("Success!", "User created successfully.", "success")
+      reset()
+      onClose()
+    },
+    onError: (err: ApiError) => {
+      const errDetail = (err.body as any)?.detail
+      showToast("Something went wrong.", `${errDetail}`, "error")
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] })
+    },
+  })
+
+  const onSubmit: SubmitHandler<UserCreateForm> = (data) => {
+    mutation.mutate(data)
+  }
+
+  return (
+    <>
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        size={{ base: "sm", md: "md" }}
+        isCentered
+      >
+        <ModalOverlay />
+        <ModalContent as="form" onSubmit={handleSubmit(onSubmit)}>
+          <ModalHeader>Add User</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <FormControl isRequired isInvalid={!!errors.email}>
+              <FormLabel htmlFor="email">Email</FormLabel>
+              <Input
+                id="email"
+                {...register("email", {
+                  required: "Email is required",
+                  pattern: emailPattern,
+                })}
+                placeholder="Email"
+                type="email"
+              />
+              {errors.email && (
+                <FormErrorMessage>{errors.email.message}</FormErrorMessage>
+              )}
+            </FormControl>
+            <FormControl mt={4} isInvalid={!!errors.full_name}>
+              <FormLabel htmlFor="name">Full name</FormLabel>
+              <Input
+                id="name"
+                {...register("full_name")}
+                placeholder="Full name"
+                type="text"
+              />
+              {errors.full_name && (
+                <FormErrorMessage>{errors.full_name.message}</FormErrorMessage>
+              )}
+            </FormControl>
+            <FormControl mt={4} isRequired isInvalid={!!errors.password}>
+              <FormLabel htmlFor="password">Set Password</FormLabel>
+              <Input
+                id="password"
+                {...register("password", {
+                  required: "Password is required",
+                  minLength: {
+                    value: 8,
+                    message: "Password must be at least 8 characters",
+                  },
+                })}
+                placeholder="Password"
+                type="password"
+              />
+              {errors.password && (
+                <FormErrorMessage>{errors.password.message}</FormErrorMessage>
+              )}
+            </FormControl>
+            <FormControl
+              mt={4}
+              isRequired
+              isInvalid={!!errors.confirm_password}
+            >
+              <FormLabel htmlFor="confirm_password">Confirm Password</FormLabel>
+              <Input
+                id="confirm_password"
+                {...register("confirm_password", {
+                  required: "Please confirm your password",
+                  validate: (value) =>
+                    value === getValues().password ||
+                    "The passwords do not match",
+                })}
+                placeholder="Password"
+                type="password"
+              />
+              {errors.confirm_password && (
+                <FormErrorMessage>
+                  {errors.confirm_password.message}
+                </FormErrorMessage>
+              )}
+            </FormControl>
+            <Flex mt={4}>
+              <FormControl>
+                <Checkbox {...register("is_superuser")} colorScheme="teal">
+                  Is superuser?
+                </Checkbox>
+              </FormControl>
+              <FormControl>
+                <Checkbox {...register("is_active")} colorScheme="teal">
+                  Is active?
+                </Checkbox>
+              </FormControl>
+            </Flex>
+          </ModalBody>
+          <ModalFooter gap={3}>
+            <Button variant="primary" type="submit" isLoading={isSubmitting}>
+              Save
+            </Button>
+            <Button onClick={onClose}>Cancel</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+    </>
+  )
+}
+
+export default AddUser
+</src/components/Admin/AddUser.tsx>
+
+<src/components/UserSettings/ChangePassword.tsx>
+import {
+  Box,
+  Button,
+  Container,
+  FormControl,
+  FormErrorMessage,
+  FormLabel,
+  Heading,
+  Input,
+  useColorModeValue,
+} from "@chakra-ui/react"
+import { useMutation } from "@tanstack/react-query"
+import { type SubmitHandler, useForm } from "react-hook-form"
+
+import { type ApiError, type UpdatePassword, UsersService } from "../../client"
+import useCustomToast from "../../hooks/useCustomToast"
+import { confirmPasswordRules, passwordRules } from "../../utils"
+
+interface UpdatePasswordForm extends UpdatePassword {
+  confirm_password: string
+}
+
+const ChangePassword = () => {
+  const color = useColorModeValue("inherit", "ui.light")
+  const showToast = useCustomToast()
+  const {
+    register,
+    handleSubmit,
+    reset,
+    getValues,
+    formState: { errors, isSubmitting },
+  } = useForm<UpdatePasswordForm>({
+    mode: "onBlur",
+    criteriaMode: "all",
+  })
+
+  const mutation = useMutation({
+    mutationFn: (data: UpdatePassword) =>
+      UsersService.updatePasswordMe({ requestBody: data }),
+    onSuccess: () => {
+      showToast("Success!", "Password updated.", "success")
+      reset()
+    },
+    onError: (err: ApiError) => {
+      const errDetail = (err.body as any)?.detail
+      showToast("Something went wrong.", `${errDetail}`, "error")
+    },
+  })
+
+  const onSubmit: SubmitHandler<UpdatePasswordForm> = async (data) => {
+    mutation.mutate(data)
+  }
+
+  return (
+    <>
+      <Container maxW="full">
+        <Heading size="sm" py={4}>
+          Change Password
+        </Heading>
+        <Box
+          w={{ sm: "full", md: "50%" }}
+          as="form"
+          onSubmit={handleSubmit(onSubmit)}
+        >
+          <FormControl isRequired isInvalid={!!errors.current_password}>
+            <FormLabel color={color} htmlFor="current_password">
+              Current Password
+            </FormLabel>
+            <Input
+              id="current_password"
+              {...register("current_password")}
+              placeholder="Password"
+              type="password"
+            />
+            {errors.current_password && (
+              <FormErrorMessage>
+                {errors.current_password.message}
+              </FormErrorMessage>
+            )}
+          </FormControl>
+          <FormControl mt={4} isRequired isInvalid={!!errors.new_password}>
+            <FormLabel htmlFor="password">Set Password</FormLabel>
+            <Input
+              id="password"
+              {...register("new_password", passwordRules())}
+              placeholder="Password"
+              type="password"
+            />
+            {errors.new_password && (
+              <FormErrorMessage>{errors.new_password.message}</FormErrorMessage>
+            )}
+          </FormControl>
+          <FormControl mt={4} isRequired isInvalid={!!errors.confirm_password}>
+            <FormLabel htmlFor="confirm_password">Confirm Password</FormLabel>
+            <Input
+              id="confirm_password"
+              {...register("confirm_password", confirmPasswordRules(getValues))}
+              placeholder="Password"
+              type="password"
+            />
+            {errors.confirm_password && (
+              <FormErrorMessage>
+                {errors.confirm_password.message}
+              </FormErrorMessage>
+            )}
+          </FormControl>
+          <Button
+            variant="primary"
+            mt={4}
+            type="submit"
+            isLoading={isSubmitting}
+          >
+            Save
+          </Button>
+        </Box>
+      </Container>
+    </>
+  )
+}
+export default ChangePassword
+</src/components/UserSettings/ChangePassword.tsx>
+
+<src/components/UserSettings/DeleteAccount.tsx>
+import {
+  Button,
+  Container,
+  Heading,
+  Text,
+  useDisclosure,
+} from "@chakra-ui/react"
+
+import DeleteConfirmation from "./DeleteConfirmation"
+
+const DeleteAccount = () => {
+  const confirmationModal = useDisclosure()
+
+  return (
+    <>
+      <Container maxW="full">
+        <Heading size="sm" py={4}>
+          Delete Account
+        </Heading>
+        <Text>
+          Permanently delete your data and everything associated with your
+          account.
+        </Text>
+        <Button variant="danger" mt={4} onClick={confirmationModal.onOpen}>
+          Delete
+        </Button>
+        <DeleteConfirmation
+          isOpen={confirmationModal.isOpen}
+          onClose={confirmationModal.onClose}
+        />
+      </Container>
+    </>
+  )
+}
+export default DeleteAccount
+</src/components/UserSettings/DeleteAccount.tsx>
+
+<src/components/UserSettings/Appearance.tsx>
+import {
+  Badge,
+  Container,
+  Heading,
+  Radio,
+  RadioGroup,
+  Stack,
+  useColorMode,
+} from "@chakra-ui/react"
+
+const Appearance = () => {
+  const { colorMode, toggleColorMode } = useColorMode()
+
+  return (
+    <>
+      <Container maxW="full">
+        <Heading size="sm" py={4}>
+          Appearance
+        </Heading>
+        <RadioGroup onChange={toggleColorMode} value={colorMode}>
+          <Stack>
+            {/* TODO: Add system default option */}
+            <Radio value="light" colorScheme="teal">
+              Light Mode
+              <Badge ml="1" colorScheme="teal">
+                Default
+              </Badge>
+            </Radio>
+            <Radio value="dark" colorScheme="teal">
+              Dark Mode
+            </Radio>
+          </Stack>
+        </RadioGroup>
+      </Container>
+    </>
+  )
+}
+export default Appearance
+</src/components/UserSettings/Appearance.tsx>
+
+<src/components/UserSettings/DeleteConfirmation.tsx>
+import {
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogOverlay,
+  Button,
+} from "@chakra-ui/react"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import React from "react"
+import { useForm } from "react-hook-form"
+
+import { type ApiError, type UserPublic, UsersService } from "../../client"
+import useAuth from "../../hooks/useAuth"
+import useCustomToast from "../../hooks/useCustomToast"
+
+interface DeleteProps {
+  isOpen: boolean
+  onClose: () => void
+}
+
+const DeleteConfirmation = ({ isOpen, onClose }: DeleteProps) => {
+  const queryClient = useQueryClient()
+  const showToast = useCustomToast()
+  const cancelRef = React.useRef<HTMLButtonElement | null>(null)
+  const {
+    handleSubmit,
+    formState: { isSubmitting },
+  } = useForm()
+  const currentUser = queryClient.getQueryData<UserPublic>(["currentUser"])
+  const { logout } = useAuth()
+
+  const mutation = useMutation({
+    mutationFn: (id: number) => UsersService.deleteUser({ userId: id }),
+    onSuccess: () => {
+      showToast(
+        "Success",
+        "Your account has been successfully deleted.",
+        "success",
+      )
+      logout()
+      onClose()
+    },
+    onError: (err: ApiError) => {
+      const errDetail = (err.body as any)?.detail
+      showToast("Something went wrong.", `${errDetail}`, "error")
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["currentUser"] })
+    },
+  })
+
+  const onSubmit = async () => {
+    mutation.mutate(currentUser!.id)
+  }
+
+  return (
+    <>
+      <AlertDialog
+        isOpen={isOpen}
+        onClose={onClose}
+        leastDestructiveRef={cancelRef}
+        size={{ base: "sm", md: "md" }}
+        isCentered
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent as="form" onSubmit={handleSubmit(onSubmit)}>
+            <AlertDialogHeader>Confirmation Required</AlertDialogHeader>
+
+            <AlertDialogBody>
+              All your account data will be{" "}
+              <strong>permanently deleted.</strong> If you are sure, please
+              click <strong>"Confirm"</strong> to proceed. This action cannot be
+              undone.
+            </AlertDialogBody>
+
+            <AlertDialogFooter gap={3}>
+              <Button variant="danger" type="submit" isLoading={isSubmitting}>
+                Confirm
+              </Button>
+              <Button
+                ref={cancelRef}
+                onClick={onClose}
+                isDisabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
+    </>
+  )
+}
+
+export default DeleteConfirmation
+</src/components/UserSettings/DeleteConfirmation.tsx>
+
+<src/components/UserSettings/UserInformation.tsx>
+import {
+  Box,
+  Button,
+  Container,
+  Flex,
+  FormControl,
+  FormErrorMessage,
+  FormLabel,
+  Heading,
+  Input,
+  Text,
+  useColorModeValue,
+} from "@chakra-ui/react"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useState } from "react"
+import { type SubmitHandler, useForm } from "react-hook-form"
+
+import {
+  type ApiError,
+  type UserPublic,
+  type UserUpdateMe,
+  UsersService,
+} from "../../client"
+import useAuth from "../../hooks/useAuth"
+import useCustomToast from "../../hooks/useCustomToast"
+import { emailPattern } from "../../utils"
+
+const UserInformation = () => {
+  const queryClient = useQueryClient()
+  const color = useColorModeValue("inherit", "ui.light")
+  const showToast = useCustomToast()
+  const [editMode, setEditMode] = useState(false)
+  const { user: currentUser } = useAuth()
+  const {
+    register,
+    handleSubmit,
+    reset,
+    getValues,
+    formState: { isSubmitting, errors, isDirty },
+  } = useForm<UserPublic>({
+    mode: "onBlur",
+    criteriaMode: "all",
+    defaultValues: {
+      full_name: currentUser?.full_name,
+      email: currentUser?.email,
+    },
+  })
+
+  const toggleEditMode = () => {
+    setEditMode(!editMode)
+  }
+
+  const mutation = useMutation({
+    mutationFn: (data: UserUpdateMe) =>
+      UsersService.updateUserMe({ requestBody: data }),
+    onSuccess: () => {
+      showToast("Success!", "User updated successfully.", "success")
+    },
+    onError: (err: ApiError) => {
+      const errDetail = (err.body as any)?.detail
+      showToast("Something went wrong.", `${errDetail}`, "error")
+    },
+    onSettled: () => {
+      // TODO: can we do just one call now?
+      queryClient.invalidateQueries({ queryKey: ["users"] })
+      queryClient.invalidateQueries({ queryKey: ["currentUser"] })
+    },
+  })
+
+  const onSubmit: SubmitHandler<UserUpdateMe> = async (data) => {
+    mutation.mutate(data)
+  }
+
+  const onCancel = () => {
+    reset()
+    toggleEditMode()
+  }
+
+  return (
+    <>
+      <Container maxW="full">
+        <Heading size="sm" py={4}>
+          User Information
+        </Heading>
+        <Box
+          w={{ sm: "full", md: "50%" }}
+          as="form"
+          onSubmit={handleSubmit(onSubmit)}
+        >
+          <FormControl>
+            <FormLabel color={color} htmlFor="name">
+              Full name
+            </FormLabel>
+            {editMode ? (
+              <Input
+                id="name"
+                {...register("full_name", { maxLength: 30 })}
+                type="text"
+                size="md"
+              />
+            ) : (
+              <Text
+                size="md"
+                py={2}
+                color={!currentUser?.full_name ? "ui.dim" : "inherit"}
+              >
+                {currentUser?.full_name || "N/A"}
+              </Text>
+            )}
+          </FormControl>
+          <FormControl mt={4} isInvalid={!!errors.email}>
+            <FormLabel color={color} htmlFor="email">
+              Email
+            </FormLabel>
+            {editMode ? (
+              <Input
+                id="email"
+                {...register("email", {
+                  required: "Email is required",
+                  pattern: emailPattern,
+                })}
+                type="email"
+                size="md"
+              />
+            ) : (
+              <Text size="md" py={2}>
+                {currentUser?.email}
+              </Text>
+            )}
+            {errors.email && (
+              <FormErrorMessage>{errors.email.message}</FormErrorMessage>
+            )}
+          </FormControl>
+          <Flex mt={4} gap={3}>
+            <Button
+              variant="primary"
+              onClick={toggleEditMode}
+              type={editMode ? "button" : "submit"}
+              isLoading={editMode ? isSubmitting : false}
+              isDisabled={editMode ? !isDirty || !getValues("email") : false}
+            >
+              {editMode ? "Save" : "Edit"}
+            </Button>
+            {editMode && (
+              <Button onClick={onCancel} isDisabled={isSubmitting}>
+                Cancel
+              </Button>
+            )}
+          </Flex>
+        </Box>
+      </Container>
+    </>
+  )
+}
+
+export default UserInformation
+</src/components/UserSettings/UserInformation.tsx>
+
+<src/components/Gotcha/VerifyCameraStream.tsx>
+import React, { useState, useRef, useEffect } from 'react';
+import Webcam from 'react-webcam';
+import axios from 'axios';
+
+const VideoStreamer: React.FC = () => {
+    const webcamRef = useRef<Webcam>(null);
+    const [messages, setMessages] = useState<string[]>([]);
+    const [verificationRequestId, setVerificationRequestId] = useState<number | null>(null);
+    const ws = useRef<WebSocket | null>(null);
+
+    useEffect(() => {
+        if (verificationRequestId && !ws.current) {
+            ws.current = new WebSocket(`ws://localhost:8000/api/ws/${verificationRequestId}`);
+            ws.current.onmessage = (event) => {
+                setMessages(prev => [...prev, event.data]);
+            };
+            ws.current.onclose = () => console.log('WebSocket closed');
+            ws.current.onerror = (error) => console.log('WebSocket error:', error);
+        }
+
+        return () => {
+            ws.current?.close();
+        };
+    }, [verificationRequestId]);
+
+    const handleStart = async () => {
+        const videoBlob = webcamRef.current?.getScreenshot();
+        if (videoBlob) {
+            try {
+                const response = await axios.post('http://localhost:8000/api/video/{verification_request_id}', videoBlob, {
+                    headers: {
+                        'Content-Type': 'application/octet-stream',
+                    },
+                });
+                setVerificationRequestId(response.data.id);
+            } catch (error) {
+                console.error('Error sending video:', error);
+            }
+        }
+    };
+
+    return (
+        <div>
+            <Webcam
+                audio={false}
+                ref={webcamRef}
+                screenshotFormat="image/jpeg"
+            />
+            <button onClick={handleStart}>Start Verification</button>
+            <div>
+                {messages.map((msg, index) => (
+                    <div key={index}>{msg}</div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+export default VideoStreamer;</src/components/Gotcha/VerifyCameraStream.tsx>
+
+<src/main.tsx>
+import { ChakraProvider } from "@chakra-ui/react"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { RouterProvider, createRouter } from "@tanstack/react-router"
+import ReactDOM from "react-dom/client"
+import { routeTree } from "./routeTree.gen"
+
+import { StrictMode } from "react"
+import { OpenAPI } from "./client"
+import theme from "./theme"
+
+OpenAPI.BASE = import.meta.env.VITE_API_URL
+OpenAPI.TOKEN = async () => {
+  return localStorage.getItem("access_token") || ""
+}
+
+const queryClient = new QueryClient()
+
+const router = createRouter({ routeTree })
+declare module "@tanstack/react-router" {
+  interface Register {
+    router: typeof router
+  }
+}
+
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <StrictMode>
+    <ChakraProvider theme={theme}>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>
+    </ChakraProvider>
+  </StrictMode>,
+)
+</src/main.tsx>
+
+<src/theme.tsx>
+import { extendTheme } from "@chakra-ui/react"
+
+const disabledStyles = {
+  _disabled: {
+    backgroundColor: "ui.main",
+  },
+}
+
+const theme = extendTheme({
+  colors: {
+    ui: {
+      main: "#009688",
+      secondary: "#EDF2F7",
+      success: "#48BB78",
+      danger: "#E53E3E",
+      light: "#FAFAFA",
+      dark: "#1A202C",
+      darkSlate: "#252D3D",
+      dim: "#A0AEC0",
+    },
+  },
+  components: {
+    Button: {
+      variants: {
+        primary: {
+          backgroundColor: "ui.main",
+          color: "ui.light",
+          _hover: {
+            backgroundColor: "#00766C",
+          },
+          _disabled: {
+            ...disabledStyles,
+            _hover: {
+              ...disabledStyles,
+            },
+          },
+        },
+        danger: {
+          backgroundColor: "ui.danger",
+          color: "ui.light",
+          _hover: {
+            backgroundColor: "#E32727",
+          },
+        },
+      },
+    },
+    Tabs: {
+      variants: {
+        enclosed: {
+          tab: {
+            _selected: {
+              color: "ui.main",
+            },
+          },
+        },
+      },
+    },
+  },
+})
+
+export default theme
+</src/theme.tsx>
+
+<src/client/core/ApiRequestOptions.ts>
+export type ApiRequestOptions = {
+	readonly method: 'GET' | 'PUT' | 'POST' | 'DELETE' | 'OPTIONS' | 'HEAD' | 'PATCH';
+	readonly url: string;
+	readonly path?: Record<string, unknown>;
+	readonly cookies?: Record<string, unknown>;
+	readonly headers?: Record<string, unknown>;
+	readonly query?: Record<string, unknown>;
+	readonly formData?: Record<string, unknown>;
+	readonly body?: any;
+	readonly mediaType?: string;
+	readonly responseHeader?: string;
+	readonly errors?: Record<number, string>;
+};</src/client/core/ApiRequestOptions.ts>
+
+<src/client/core/ApiError.ts>
+import type { ApiRequestOptions } from './ApiRequestOptions';
+import type { ApiResult } from './ApiResult';
+
+export class ApiError extends Error {
+	public readonly url: string;
+	public readonly status: number;
+	public readonly statusText: string;
+	public readonly body: unknown;
+	public readonly request: ApiRequestOptions;
+
+	constructor(request: ApiRequestOptions, response: ApiResult, message: string) {
+		super(message);
+
+		this.name = 'ApiError';
+		this.url = response.url;
+		this.status = response.status;
+		this.statusText = response.statusText;
+		this.body = response.body;
+		this.request = request;
+	}
+}</src/client/core/ApiError.ts>
+
+<src/client/core/CancelablePromise.ts>
+export class CancelError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = 'CancelError';
+	}
+
+	public get isCancelled(): boolean {
+		return true;
+	}
+}
+
+export interface OnCancel {
+	readonly isResolved: boolean;
+	readonly isRejected: boolean;
+	readonly isCancelled: boolean;
+
+	(cancelHandler: () => void): void;
+}
+
+export class CancelablePromise<T> implements Promise<T> {
+	private _isResolved: boolean;
+	private _isRejected: boolean;
+	private _isCancelled: boolean;
+	readonly cancelHandlers: (() => void)[];
+	readonly promise: Promise<T>;
+	private _resolve?: (value: T | PromiseLike<T>) => void;
+	private _reject?: (reason?: unknown) => void;
+
+	constructor(
+		executor: (
+			resolve: (value: T | PromiseLike<T>) => void,
+			reject: (reason?: unknown) => void,
+			onCancel: OnCancel
+		) => void
+	) {
+		this._isResolved = false;
+		this._isRejected = false;
+		this._isCancelled = false;
+		this.cancelHandlers = [];
+		this.promise = new Promise<T>((resolve, reject) => {
+			this._resolve = resolve;
+			this._reject = reject;
+
+			const onResolve = (value: T | PromiseLike<T>): void => {
+				if (this._isResolved || this._isRejected || this._isCancelled) {
+					return;
+				}
+				this._isResolved = true;
+				if (this._resolve) this._resolve(value);
+			};
+
+			const onReject = (reason?: unknown): void => {
+				if (this._isResolved || this._isRejected || this._isCancelled) {
+					return;
+				}
+				this._isRejected = true;
+				if (this._reject) this._reject(reason);
+			};
+
+			const onCancel = (cancelHandler: () => void): void => {
+				if (this._isResolved || this._isRejected || this._isCancelled) {
+					return;
+				}
+				this.cancelHandlers.push(cancelHandler);
+			};
+
+			Object.defineProperty(onCancel, 'isResolved', {
+				get: (): boolean => this._isResolved,
+			});
+
+			Object.defineProperty(onCancel, 'isRejected', {
+				get: (): boolean => this._isRejected,
+			});
+
+			Object.defineProperty(onCancel, 'isCancelled', {
+				get: (): boolean => this._isCancelled,
+			});
+
+			return executor(onResolve, onReject, onCancel as OnCancel);
+		});
+	}
+
+	get [Symbol.toStringTag]() {
+		return "Cancellable Promise";
+	}
+
+	public then<TResult1 = T, TResult2 = never>(
+		onFulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | null,
+		onRejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+	): Promise<TResult1 | TResult2> {
+		return this.promise.then(onFulfilled, onRejected);
+	}
+
+	public catch<TResult = never>(
+		onRejected?: ((reason: unknown) => TResult | PromiseLike<TResult>) | null
+	): Promise<T | TResult> {
+		return this.promise.catch(onRejected);
+	}
+
+	public finally(onFinally?: (() => void) | null): Promise<T> {
+		return this.promise.finally(onFinally);
+	}
+
+	public cancel(): void {
+		if (this._isResolved || this._isRejected || this._isCancelled) {
+			return;
+		}
+		this._isCancelled = true;
+		if (this.cancelHandlers.length) {
+			try {
+				for (const cancelHandler of this.cancelHandlers) {
+					cancelHandler();
+				}
+			} catch (error) {
+				console.warn('Cancellation threw an error', error);
+				return;
+			}
+		}
+		this.cancelHandlers.length = 0;
+		if (this._reject) this._reject(new CancelError('Request aborted'));
+	}
+
+	public get isCancelled(): boolean {
+		return this._isCancelled;
+	}
+}</src/client/core/CancelablePromise.ts>
+
+<src/client/core/types.ts>
+import type { ApiResult } from './ApiResult';
+
+export type TResult = 'body' | 'raw';
+
+export type TApiResponse<T extends TResult, TData> =
+  Exclude<T, 'raw'> extends never
+    ? ApiResult<TData>
+    : ApiResult<TData>['body'];
+
+export type TConfig<T extends TResult> = {
+  _result?: T;
+};</src/client/core/types.ts>
+
+<src/client/core/ApiResult.ts>
+export type ApiResult<TData = any> = {
+	readonly body: TData;
+	readonly ok: boolean;
+	readonly status: number;
+	readonly statusText: string;
+	readonly url: string;
+};</src/client/core/ApiResult.ts>
+
+<src/client/core/OpenAPI.ts>
+import type { AxiosRequestConfig, AxiosResponse } from 'axios';import type { ApiRequestOptions } from './ApiRequestOptions';
+import type { TResult } from './types';
+
+type Headers = Record<string, string>;
+type Middleware<T> = (value: T) => T | Promise<T>;
+type Resolver<T> = (options: ApiRequestOptions) => Promise<T>;
+
+export class Interceptors<T> {
+  _fns: Middleware<T>[];
+
+  constructor() {
+    this._fns = [];
+  }
+
+  eject(fn: Middleware<T>) {
+    const index = this._fns.indexOf(fn);
+    if (index !== -1) {
+      this._fns = [
+        ...this._fns.slice(0, index),
+        ...this._fns.slice(index + 1),
+      ];
+    }
+  }
+
+  use(fn: Middleware<T>) {
+    this._fns = [...this._fns, fn];
+  }
+}
+
+export type OpenAPIConfig = {
+	BASE: string;
+	CREDENTIALS: 'include' | 'omit' | 'same-origin';
+	ENCODE_PATH?: ((path: string) => string) | undefined;
+	HEADERS?: Headers | Resolver<Headers> | undefined;
+	PASSWORD?: string | Resolver<string> | undefined;
+	RESULT?: TResult;
+	TOKEN?: string | Resolver<string> | undefined;
+	USERNAME?: string | Resolver<string> | undefined;
+	VERSION: string;
+	WITH_CREDENTIALS: boolean;
+	interceptors: {request: Interceptors<AxiosRequestConfig>;
+		response: Interceptors<AxiosResponse>;};
+};
+
+export const OpenAPI: OpenAPIConfig = {
+	BASE: '',
+	CREDENTIALS: 'include',
+	ENCODE_PATH: undefined,
+	HEADERS: undefined,
+	PASSWORD: undefined,
+	RESULT: 'body',
+	TOKEN: undefined,
+	USERNAME: undefined,
+	VERSION: '0.1.0',
+	WITH_CREDENTIALS: false,
+	interceptors: {request: new Interceptors(),response: new Interceptors(),
+	},
+};</src/client/core/OpenAPI.ts>
+
+<src/client/core/request.ts>
+import axios from 'axios';
+import type { AxiosError, AxiosRequestConfig, AxiosResponse, AxiosInstance } from 'axios';
+
+import { ApiError } from './ApiError';
+import type { ApiRequestOptions } from './ApiRequestOptions';
+import type { ApiResult } from './ApiResult';
+import { CancelablePromise } from './CancelablePromise';
+import type { OnCancel } from './CancelablePromise';
+import type { OpenAPIConfig } from './OpenAPI';
+
+export const isString = (value: unknown): value is string => {
+	return typeof value === 'string';
+};
+
+export const isStringWithValue = (value: unknown): value is string => {
+	return isString(value) && value !== '';
+};
+
+export const isBlob = (value: any): value is Blob => {
+	return value instanceof Blob;
+};
+
+export const isFormData = (value: unknown): value is FormData => {
+	return value instanceof FormData;
+};
+
+export const isSuccess = (status: number): boolean => {
+	return status >= 200 && status < 300;
+};
+
+export const base64 = (str: string): string => {
+	try {
+		return btoa(str);
+	} catch (err) {
+		// @ts-ignore
+		return Buffer.from(str).toString('base64');
+	}
+};
+
+export const getQueryString = (params: Record<string, unknown>): string => {
+	const qs: string[] = [];
+
+	const append = (key: string, value: unknown) => {
+		qs.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`);
+	};
+
+	const encodePair = (key: string, value: unknown) => {
+		if (value === undefined || value === null) {
+			return;
+		}
+
+		if (Array.isArray(value)) {
+			value.forEach(v => encodePair(key, v));
+		} else if (typeof value === 'object') {
+			Object.entries(value).forEach(([k, v]) => encodePair(`${key}[${k}]`, v));
+		} else {
+			append(key, value);
+		}
+	};
+
+	Object.entries(params).forEach(([key, value]) => encodePair(key, value));
+
+	return qs.length ? `?${qs.join('&')}` : '';
+};
+
+const getUrl = (config: OpenAPIConfig, options: ApiRequestOptions): string => {
+	const encoder = config.ENCODE_PATH || encodeURI;
+
+	const path = options.url
+		.replace('{api-version}', config.VERSION)
+		.replace(/{(.*?)}/g, (substring: string, group: string) => {
+			if (options.path?.hasOwnProperty(group)) {
+				return encoder(String(options.path[group]));
+			}
+			return substring;
+		});
+
+	const url = config.BASE + path;
+	return options.query ? url + getQueryString(options.query) : url;
+};
+
+export const getFormData = (options: ApiRequestOptions): FormData | undefined => {
+	if (options.formData) {
+		const formData = new FormData();
+
+		const process = (key: string, value: unknown) => {
+			if (isString(value) || isBlob(value)) {
+				formData.append(key, value);
+			} else {
+				formData.append(key, JSON.stringify(value));
+			}
+		};
+
+		Object.entries(options.formData)
+			.filter(([, value]) => value !== undefined && value !== null)
+			.forEach(([key, value]) => {
+				if (Array.isArray(value)) {
+					value.forEach(v => process(key, v));
+				} else {
+					process(key, value);
+				}
+			});
+
+		return formData;
+	}
+	return undefined;
+};
+
+type Resolver<T> = (options: ApiRequestOptions) => Promise<T>;
+
+export const resolve = async <T>(options: ApiRequestOptions, resolver?: T | Resolver<T>): Promise<T | undefined> => {
+	if (typeof resolver === 'function') {
+		return (resolver as Resolver<T>)(options);
+	}
+	return resolver;
+};
+
+export const getHeaders = async (config: OpenAPIConfig, options: ApiRequestOptions): Promise<Record<string, string>> => {
+	const [token, username, password, additionalHeaders] = await Promise.all([
+		resolve(options, config.TOKEN),
+		resolve(options, config.USERNAME),
+		resolve(options, config.PASSWORD),
+		resolve(options, config.HEADERS),
+	]);
+
+	const headers = Object.entries({
+		Accept: 'application/json',
+		...additionalHeaders,
+		...options.headers,
+	})
+	.filter(([, value]) => value !== undefined && value !== null)
+	.reduce((headers, [key, value]) => ({
+		...headers,
+		[key]: String(value),
+	}), {} as Record<string, string>);
+
+	if (isStringWithValue(token)) {
+		headers['Authorization'] = `Bearer ${token}`;
+	}
+
+	if (isStringWithValue(username) && isStringWithValue(password)) {
+		const credentials = base64(`${username}:${password}`);
+		headers['Authorization'] = `Basic ${credentials}`;
+	}
+
+	if (options.body !== undefined) {
+		if (options.mediaType) {
+			headers['Content-Type'] = options.mediaType;
+		} else if (isBlob(options.body)) {
+			headers['Content-Type'] = options.body.type || 'application/octet-stream';
+		} else if (isString(options.body)) {
+			headers['Content-Type'] = 'text/plain';
+		} else if (!isFormData(options.body)) {
+			headers['Content-Type'] = 'application/json';
+		}
+	} else if (options.formData !== undefined) {
+		if (options.mediaType) {
+			headers['Content-Type'] = options.mediaType;
+		}
+	}
+
+	return headers;
+};
+
+export const getRequestBody = (options: ApiRequestOptions): unknown => {
+	if (options.body) {
+		return options.body;
+	}
+	return undefined;
+};
+
+export const sendRequest = async <T>(
+	config: OpenAPIConfig,
+	options: ApiRequestOptions,
+	url: string,
+	body: unknown,
+	formData: FormData | undefined,
+	headers: Record<string, string>,
+	onCancel: OnCancel,
+	axiosClient: AxiosInstance
+): Promise<AxiosResponse<T>> => {
+	const controller = new AbortController();
+
+	let requestConfig: AxiosRequestConfig = {
+		data: body ?? formData,
+		headers,
+		method: options.method,
+		signal: controller.signal,
+		url,
+		withCredentials: config.WITH_CREDENTIALS,
+	};
+
+	onCancel(() => controller.abort());
+
+	for (const fn of config.interceptors.request._fns) {
+		requestConfig = await fn(requestConfig)
+	}
+
+	try {
+		return await axiosClient.request(requestConfig);
+	} catch (error) {
+		const axiosError = error as AxiosError<T>;
+		if (axiosError.response) {
+			return axiosError.response;
+		}
+		throw error;
+	}
+};
+
+export const getResponseHeader = (response: AxiosResponse<unknown>, responseHeader?: string): string | undefined => {
+	if (responseHeader) {
+		const content = response.headers[responseHeader];
+		if (isString(content)) {
+			return content;
+		}
+	}
+	return undefined;
+};
+
+export const getResponseBody = (response: AxiosResponse<unknown>): unknown => {
+	if (response.status !== 204) {
+		return response.data;
+	}
+	return undefined;
+};
+
+export const catchErrorCodes = (options: ApiRequestOptions, result: ApiResult): void => {
+	const errors: Record<number, string> = {
+		400: 'Bad Request',
+		401: 'Unauthorized',
+		402: 'Payment Required',
+		403: 'Forbidden',
+		404: 'Not Found',
+		405: 'Method Not Allowed',
+		406: 'Not Acceptable',
+		407: 'Proxy Authentication Required',
+		408: 'Request Timeout',
+		409: 'Conflict',
+		410: 'Gone',
+		411: 'Length Required',
+		412: 'Precondition Failed',
+		413: 'Payload Too Large',
+		414: 'URI Too Long',
+		415: 'Unsupported Media Type',
+		416: 'Range Not Satisfiable',
+		417: 'Expectation Failed',
+		418: 'Im a teapot',
+		421: 'Misdirected Request',
+		422: 'Unprocessable Content',
+		423: 'Locked',
+		424: 'Failed Dependency',
+		425: 'Too Early',
+		426: 'Upgrade Required',
+		428: 'Precondition Required',
+		429: 'Too Many Requests',
+		431: 'Request Header Fields Too Large',
+		451: 'Unavailable For Legal Reasons',
+		500: 'Internal Server Error',
+		501: 'Not Implemented',
+		502: 'Bad Gateway',
+		503: 'Service Unavailable',
+		504: 'Gateway Timeout',
+		505: 'HTTP Version Not Supported',
+		506: 'Variant Also Negotiates',
+		507: 'Insufficient Storage',
+		508: 'Loop Detected',
+		510: 'Not Extended',
+		511: 'Network Authentication Required',
+		...options.errors,
+	}
+
+	const error = errors[result.status];
+	if (error) {
+		throw new ApiError(options, result, error);
+	}
+
+	if (!result.ok) {
+		const errorStatus = result.status ?? 'unknown';
+		const errorStatusText = result.statusText ?? 'unknown';
+		const errorBody = (() => {
+			try {
+				return JSON.stringify(result.body, null, 2);
+			} catch (e) {
+				return undefined;
+			}
+		})();
+
+		throw new ApiError(options, result,
+			`Generic Error: status: ${errorStatus}; status text: ${errorStatusText}; body: ${errorBody}`
+		);
+	}
+};
+
+/**
+ * Request method
+ * @param config The OpenAPI configuration object
+ * @param options The request options from the service
+ * @param axiosClient The axios client instance to use
+ * @returns CancelablePromise<T>
+ * @throws ApiError
+ */
+export const request = <T>(config: OpenAPIConfig, options: ApiRequestOptions, axiosClient: AxiosInstance = axios): CancelablePromise<T> => {
+	return new CancelablePromise(async (resolve, reject, onCancel) => {
+		try {
+			const url = getUrl(config, options);
+			const formData = getFormData(options);
+			const body = getRequestBody(options);
+			const headers = await getHeaders(config, options);
+
+			if (!onCancel.isCancelled) {
+				let response = await sendRequest<T>(config, options, url, body, formData, headers, onCancel, axiosClient);
+
+				for (const fn of config.interceptors.response._fns) {
+					response = await fn(response)
+				}
+
+				const responseBody = getResponseBody(response);
+				const responseHeader = getResponseHeader(response, options.responseHeader);
+
+				const result: ApiResult = {
+					url,
+					ok: isSuccess(response.status),
+					status: response.status,
+					statusText: response.statusText,
+					body: responseHeader ?? responseBody,
+				};
+
+				catchErrorCodes(options, result);
+
+				resolve(result.body);
+			}
+		} catch (error) {
+			reject(error);
+		}
+	});
+};</src/client/core/request.ts>
+
+<src/client/models.ts>
+export type Body_login_login_access_token = {
+	grant_type?: string | null;
+	username: string;
+	password: string;
+	scope?: string;
+	client_id?: string | null;
+	client_secret?: string | null;
+};
+
+
+
+export type HTTPValidationError = {
+	detail?: Array<ValidationError>;
+};
+
+
+
+export type ItemCreate = {
+	title: string;
+	description?: string | null;
+};
+
+
+
+export type ItemPublic = {
+	title: string;
+	description?: string | null;
+	id: number;
+	owner_id: number;
+};
+
+
+
+export type ItemUpdate = {
+	title?: string | null;
+	description?: string | null;
+};
+
+
+
+export type ItemsPublic = {
+	data: Array<ItemPublic>;
+	count: number;
+};
+
+
+
+export type Message = {
+	message: string;
+};
+
+
+
+export type NewPassword = {
+	token: string;
+	new_password: string;
+};
+
+
+
+export type Token = {
+	access_token: string;
+	token_type?: string;
+};
+
+
+
+export type UpdatePassword = {
+	current_password: string;
+	new_password: string;
+};
+
+
+
+export type UserCreate = {
+	email: string;
+	is_active?: boolean;
+	is_superuser?: boolean;
+	full_name?: string | null;
+	password: string;
+};
+
+
+
+export type UserPublic = {
+	email: string;
+	is_active?: boolean;
+	is_superuser?: boolean;
+	full_name?: string | null;
+	id: number;
+};
+
+
+
+export type UserRegister = {
+	email: string;
+	password: string;
+	full_name?: string | null;
+};
+
+
+
+export type UserUpdate = {
+	email?: string | null;
+	is_active?: boolean;
+	is_superuser?: boolean;
+	full_name?: string | null;
+	password?: string | null;
+};
+
+
+
+export type UserUpdateMe = {
+	full_name?: string | null;
+	email?: string | null;
+};
+
+
+
+export type UsersPublic = {
+	data: Array<UserPublic>;
+	count: number;
+};
+
+
+
+export type ValidationError = {
+	loc: Array<string | number>;
+	msg: string;
+	type: string;
+};
+
+</src/client/models.ts>
+
+<src/client/index.ts>
+
+export { ApiError } from './core/ApiError';
+export { CancelablePromise, CancelError } from './core/CancelablePromise';
+export { OpenAPI } from './core/OpenAPI';
+export type { OpenAPIConfig } from './core/OpenAPI';
+
+export * from './models'
+export * from './schemas'
+export * from './services'
+</src/client/index.ts>
+
+<src/client/services.ts>
+import type { CancelablePromise } from './core/CancelablePromise';
+import { OpenAPI } from './core/OpenAPI';
+import { request as __request } from './core/request';
+
+import type { Body_login_login_access_token,Message,NewPassword,Token,UserPublic,UpdatePassword,UserCreate,UserRegister,UsersPublic,UserUpdate,UserUpdateMe,ItemCreate,ItemPublic,ItemsPublic,ItemUpdate } from './models';
+
+export type TDataLoginAccessToken = {
+                formData: Body_login_login_access_token
+                
+            }
+export type TDataRecoverPassword = {
+                email: string
+                
+            }
+export type TDataResetPassword = {
+                requestBody: NewPassword
+                
+            }
+export type TDataRecoverPasswordHtmlContent = {
+                email: string
+                
+            }
+
+export class LoginService {
+
+	/**
+	 * Login Access Token
+	 * OAuth2 compatible token login, get an access token for future requests
+	 * @returns Token Successful Response
+	 * @throws ApiError
+	 */
+	public static loginAccessToken(data: TDataLoginAccessToken): CancelablePromise<Token> {
+		const {
+formData,
+} = data;
+		return __request(OpenAPI, {
+			method: 'POST',
+			url: '/api/v1/login/access-token',
+			formData: formData,
+			mediaType: 'application/x-www-form-urlencoded',
+			errors: {
+				422: `Validation Error`,
+			},
+		});
+	}
+
+	/**
+	 * Test Token
+	 * Test access token
+	 * @returns UserPublic Successful Response
+	 * @throws ApiError
+	 */
+	public static testToken(): CancelablePromise<UserPublic> {
+				return __request(OpenAPI, {
+			method: 'POST',
+			url: '/api/v1/login/test-token',
+		});
+	}
+
+	/**
+	 * Recover Password
+	 * Password Recovery
+	 * @returns Message Successful Response
+	 * @throws ApiError
+	 */
+	public static recoverPassword(data: TDataRecoverPassword): CancelablePromise<Message> {
+		const {
+email,
+} = data;
+		return __request(OpenAPI, {
+			method: 'POST',
+			url: '/api/v1/password-recovery/{email}',
+			path: {
+				email
+			},
+			errors: {
+				422: `Validation Error`,
+			},
+		});
+	}
+
+	/**
+	 * Reset Password
+	 * Reset password
+	 * @returns Message Successful Response
+	 * @throws ApiError
+	 */
+	public static resetPassword(data: TDataResetPassword): CancelablePromise<Message> {
+		const {
+requestBody,
+} = data;
+		return __request(OpenAPI, {
+			method: 'POST',
+			url: '/api/v1/reset-password/',
+			body: requestBody,
+			mediaType: 'application/json',
+			errors: {
+				422: `Validation Error`,
+			},
+		});
+	}
+
+	/**
+	 * Recover Password Html Content
+	 * HTML Content for Password Recovery
+	 * @returns string Successful Response
+	 * @throws ApiError
+	 */
+	public static recoverPasswordHtmlContent(data: TDataRecoverPasswordHtmlContent): CancelablePromise<string> {
+		const {
+email,
+} = data;
+		return __request(OpenAPI, {
+			method: 'POST',
+			url: '/api/v1/password-recovery-html-content/{email}',
+			path: {
+				email
+			},
+			errors: {
+				422: `Validation Error`,
+			},
+		});
+	}
+
+}
+
+export type TDataReadUsers = {
+                limit?: number
+skip?: number
+                
+            }
+export type TDataCreateUser = {
+                requestBody: UserCreate
+                
+            }
+export type TDataUpdateUserMe = {
+                requestBody: UserUpdateMe
+                
+            }
+export type TDataUpdatePasswordMe = {
+                requestBody: UpdatePassword
+                
+            }
+export type TDataRegisterUser = {
+                requestBody: UserRegister
+                
+            }
+export type TDataReadUserById = {
+                userId: number
+                
+            }
+export type TDataUpdateUser = {
+                requestBody: UserUpdate
+userId: number
+                
+            }
+export type TDataDeleteUser = {
+                userId: number
+                
+            }
+
+export class UsersService {
+
+	/**
+	 * Read Users
+	 * Retrieve users.
+	 * @returns UsersPublic Successful Response
+	 * @throws ApiError
+	 */
+	public static readUsers(data: TDataReadUsers = {}): CancelablePromise<UsersPublic> {
+		const {
+limit = 100,
+skip = 0,
+} = data;
+		return __request(OpenAPI, {
+			method: 'GET',
+			url: '/api/v1/users/',
+			query: {
+				skip, limit
+			},
+			errors: {
+				422: `Validation Error`,
+			},
+		});
+	}
+
+	/**
+	 * Create User
+	 * Create new user.
+	 * @returns UserPublic Successful Response
+	 * @throws ApiError
+	 */
+	public static createUser(data: TDataCreateUser): CancelablePromise<UserPublic> {
+		const {
+requestBody,
+} = data;
+		return __request(OpenAPI, {
+			method: 'POST',
+			url: '/api/v1/users/',
+			body: requestBody,
+			mediaType: 'application/json',
+			errors: {
+				422: `Validation Error`,
+			},
+		});
+	}
+
+	/**
+	 * Read User Me
+	 * Get current user.
+	 * @returns UserPublic Successful Response
+	 * @throws ApiError
+	 */
+	public static readUserMe(): CancelablePromise<UserPublic> {
+				return __request(OpenAPI, {
+			method: 'GET',
+			url: '/api/v1/users/me',
+		});
+	}
+
+	/**
+	 * Update User Me
+	 * Update own user.
+	 * @returns UserPublic Successful Response
+	 * @throws ApiError
+	 */
+	public static updateUserMe(data: TDataUpdateUserMe): CancelablePromise<UserPublic> {
+		const {
+requestBody,
+} = data;
+		return __request(OpenAPI, {
+			method: 'PATCH',
+			url: '/api/v1/users/me',
+			body: requestBody,
+			mediaType: 'application/json',
+			errors: {
+				422: `Validation Error`,
+			},
+		});
+	}
+
+	/**
+	 * Update Password Me
+	 * Update own password.
+	 * @returns Message Successful Response
+	 * @throws ApiError
+	 */
+	public static updatePasswordMe(data: TDataUpdatePasswordMe): CancelablePromise<Message> {
+		const {
+requestBody,
+} = data;
+		return __request(OpenAPI, {
+			method: 'PATCH',
+			url: '/api/v1/users/me/password',
+			body: requestBody,
+			mediaType: 'application/json',
+			errors: {
+				422: `Validation Error`,
+			},
+		});
+	}
+
+	/**
+	 * Register User
+	 * Create new user without the need to be logged in.
+	 * @returns UserPublic Successful Response
+	 * @throws ApiError
+	 */
+	public static registerUser(data: TDataRegisterUser): CancelablePromise<UserPublic> {
+		const {
+requestBody,
+} = data;
+		return __request(OpenAPI, {
+			method: 'POST',
+			url: '/api/v1/users/signup',
+			body: requestBody,
+			mediaType: 'application/json',
+			errors: {
+				422: `Validation Error`,
+			},
+		});
+	}
+
+	/**
+	 * Read User By Id
+	 * Get a specific user by id.
+	 * @returns UserPublic Successful Response
+	 * @throws ApiError
+	 */
+	public static readUserById(data: TDataReadUserById): CancelablePromise<UserPublic> {
+		const {
+userId,
+} = data;
+		return __request(OpenAPI, {
+			method: 'GET',
+			url: '/api/v1/users/{user_id}',
+			path: {
+				user_id: userId
+			},
+			errors: {
+				422: `Validation Error`,
+			},
+		});
+	}
+
+	/**
+	 * Update User
+	 * Update a user.
+	 * @returns UserPublic Successful Response
+	 * @throws ApiError
+	 */
+	public static updateUser(data: TDataUpdateUser): CancelablePromise<UserPublic> {
+		const {
+requestBody,
+userId,
+} = data;
+		return __request(OpenAPI, {
+			method: 'PATCH',
+			url: '/api/v1/users/{user_id}',
+			path: {
+				user_id: userId
+			},
+			body: requestBody,
+			mediaType: 'application/json',
+			errors: {
+				422: `Validation Error`,
+			},
+		});
+	}
+
+	/**
+	 * Delete User
+	 * Delete a user.
+	 * @returns Message Successful Response
+	 * @throws ApiError
+	 */
+	public static deleteUser(data: TDataDeleteUser): CancelablePromise<Message> {
+		const {
+userId,
+} = data;
+		return __request(OpenAPI, {
+			method: 'DELETE',
+			url: '/api/v1/users/{user_id}',
+			path: {
+				user_id: userId
+			},
+			errors: {
+				422: `Validation Error`,
+			},
+		});
+	}
+
+}
+
+export type TDataTestEmail = {
+                emailTo: string
+                
+            }
+
+export class UtilsService {
+
+	/**
+	 * Test Email
+	 * Test emails.
+	 * @returns Message Successful Response
+	 * @throws ApiError
+	 */
+	public static testEmail(data: TDataTestEmail): CancelablePromise<Message> {
+		const {
+emailTo,
+} = data;
+		return __request(OpenAPI, {
+			method: 'POST',
+			url: '/api/v1/utils/test-email/',
+			query: {
+				email_to: emailTo
+			},
+			errors: {
+				422: `Validation Error`,
+			},
+		});
+	}
+
+}
+
+export type TDataReadItems = {
+                limit?: number
+skip?: number
+                
+            }
+export type TDataCreateItem = {
+                requestBody: ItemCreate
+                
+            }
+export type TDataReadItem = {
+                id: number
+                
+            }
+export type TDataUpdateItem = {
+                id: number
+requestBody: ItemUpdate
+                
+            }
+export type TDataDeleteItem = {
+                id: number
+                
+            }
+
+export class ItemsService {
+
+	/**
+	 * Read Items
+	 * Retrieve items.
+	 * @returns ItemsPublic Successful Response
+	 * @throws ApiError
+	 */
+	public static readItems(data: TDataReadItems = {}): CancelablePromise<ItemsPublic> {
+		const {
+limit = 100,
+skip = 0,
+} = data;
+		return __request(OpenAPI, {
+			method: 'GET',
+			url: '/api/v1/items/',
+			query: {
+				skip, limit
+			},
+			errors: {
+				422: `Validation Error`,
+			},
+		});
+	}
+
+	/**
+	 * Create Item
+	 * Create new item.
+	 * @returns ItemPublic Successful Response
+	 * @throws ApiError
+	 */
+	public static createItem(data: TDataCreateItem): CancelablePromise<ItemPublic> {
+		const {
+requestBody,
+} = data;
+		return __request(OpenAPI, {
+			method: 'POST',
+			url: '/api/v1/items/',
+			body: requestBody,
+			mediaType: 'application/json',
+			errors: {
+				422: `Validation Error`,
+			},
+		});
+	}
+
+	/**
+	 * Read Item
+	 * Get item by ID.
+	 * @returns ItemPublic Successful Response
+	 * @throws ApiError
+	 */
+	public static readItem(data: TDataReadItem): CancelablePromise<ItemPublic> {
+		const {
+id,
+} = data;
+		return __request(OpenAPI, {
+			method: 'GET',
+			url: '/api/v1/items/{id}',
+			path: {
+				id
+			},
+			errors: {
+				422: `Validation Error`,
+			},
+		});
+	}
+
+	/**
+	 * Update Item
+	 * Update an item.
+	 * @returns ItemPublic Successful Response
+	 * @throws ApiError
+	 */
+	public static updateItem(data: TDataUpdateItem): CancelablePromise<ItemPublic> {
+		const {
+id,
+requestBody,
+} = data;
+		return __request(OpenAPI, {
+			method: 'PUT',
+			url: '/api/v1/items/{id}',
+			path: {
+				id
+			},
+			body: requestBody,
+			mediaType: 'application/json',
+			errors: {
+				422: `Validation Error`,
+			},
+		});
+	}
+
+	/**
+	 * Delete Item
+	 * Delete an item.
+	 * @returns Message Successful Response
+	 * @throws ApiError
+	 */
+	public static deleteItem(data: TDataDeleteItem): CancelablePromise<Message> {
+		const {
+id,
+} = data;
+		return __request(OpenAPI, {
+			method: 'DELETE',
+			url: '/api/v1/items/{id}',
+			path: {
+				id
+			},
+			errors: {
+				422: `Validation Error`,
+			},
+		});
+	}
+
+}</src/client/services.ts>
+
+<src/client/schemas.ts>
+export const $Body_login_login_access_token = {
+	properties: {
+		grant_type: {
+	type: 'any-of',
+	contains: [{
+	type: 'string',
+	pattern: 'password',
+}, {
+	type: 'null',
+}],
+},
+		username: {
+	type: 'string',
+	isRequired: true,
+},
+		password: {
+	type: 'string',
+	isRequired: true,
+},
+		scope: {
+	type: 'string',
+	default: '',
+},
+		client_id: {
+	type: 'any-of',
+	contains: [{
+	type: 'string',
+}, {
+	type: 'null',
+}],
+},
+		client_secret: {
+	type: 'any-of',
+	contains: [{
+	type: 'string',
+}, {
+	type: 'null',
+}],
+},
+	},
+} as const;
+
+export const $HTTPValidationError = {
+	properties: {
+		detail: {
+	type: 'array',
+	contains: {
+		type: 'ValidationError',
+	},
+},
+	},
+} as const;
+
+export const $ItemCreate = {
+	properties: {
+		title: {
+	type: 'string',
+	isRequired: true,
+},
+		description: {
+	type: 'any-of',
+	contains: [{
+	type: 'string',
+}, {
+	type: 'null',
+}],
+},
+	},
+} as const;
+
+export const $ItemPublic = {
+	properties: {
+		title: {
+	type: 'string',
+	isRequired: true,
+},
+		description: {
+	type: 'any-of',
+	contains: [{
+	type: 'string',
+}, {
+	type: 'null',
+}],
+},
+		id: {
+	type: 'number',
+	isRequired: true,
+},
+		owner_id: {
+	type: 'number',
+	isRequired: true,
+},
+	},
+} as const;
+
+export const $ItemUpdate = {
+	properties: {
+		title: {
+	type: 'any-of',
+	contains: [{
+	type: 'string',
+}, {
+	type: 'null',
+}],
+},
+		description: {
+	type: 'any-of',
+	contains: [{
+	type: 'string',
+}, {
+	type: 'null',
+}],
+},
+	},
+} as const;
+
+export const $ItemsPublic = {
+	properties: {
+		data: {
+	type: 'array',
+	contains: {
+		type: 'ItemPublic',
+	},
+	isRequired: true,
+},
+		count: {
+	type: 'number',
+	isRequired: true,
+},
+	},
+} as const;
+
+export const $Message = {
+	properties: {
+		message: {
+	type: 'string',
+	isRequired: true,
+},
+	},
+} as const;
+
+export const $NewPassword = {
+	properties: {
+		token: {
+	type: 'string',
+	isRequired: true,
+},
+		new_password: {
+	type: 'string',
+	isRequired: true,
+},
+	},
+} as const;
+
+export const $Token = {
+	properties: {
+		access_token: {
+	type: 'string',
+	isRequired: true,
+},
+		token_type: {
+	type: 'string',
+	default: 'bearer',
+},
+	},
+} as const;
+
+export const $UpdatePassword = {
+	properties: {
+		current_password: {
+	type: 'string',
+	isRequired: true,
+},
+		new_password: {
+	type: 'string',
+	isRequired: true,
+},
+	},
+} as const;
+
+export const $UserCreate = {
+	properties: {
+		email: {
+	type: 'string',
+	isRequired: true,
+},
+		is_active: {
+	type: 'boolean',
+	default: true,
+},
+		is_superuser: {
+	type: 'boolean',
+	default: false,
+},
+		full_name: {
+	type: 'any-of',
+	contains: [{
+	type: 'string',
+}, {
+	type: 'null',
+}],
+},
+		password: {
+	type: 'string',
+	isRequired: true,
+},
+	},
+} as const;
+
+export const $UserPublic = {
+	properties: {
+		email: {
+	type: 'string',
+	isRequired: true,
+},
+		is_active: {
+	type: 'boolean',
+	default: true,
+},
+		is_superuser: {
+	type: 'boolean',
+	default: false,
+},
+		full_name: {
+	type: 'any-of',
+	contains: [{
+	type: 'string',
+}, {
+	type: 'null',
+}],
+},
+		id: {
+	type: 'number',
+	isRequired: true,
+},
+	},
+} as const;
+
+export const $UserRegister = {
+	properties: {
+		email: {
+	type: 'string',
+	isRequired: true,
+},
+		password: {
+	type: 'string',
+	isRequired: true,
+},
+		full_name: {
+	type: 'any-of',
+	contains: [{
+	type: 'string',
+}, {
+	type: 'null',
+}],
+},
+	},
+} as const;
+
+export const $UserUpdate = {
+	properties: {
+		email: {
+	type: 'any-of',
+	contains: [{
+	type: 'string',
+}, {
+	type: 'null',
+}],
+},
+		is_active: {
+	type: 'boolean',
+	default: true,
+},
+		is_superuser: {
+	type: 'boolean',
+	default: false,
+},
+		full_name: {
+	type: 'any-of',
+	contains: [{
+	type: 'string',
+}, {
+	type: 'null',
+}],
+},
+		password: {
+	type: 'any-of',
+	contains: [{
+	type: 'string',
+}, {
+	type: 'null',
+}],
+},
+	},
+} as const;
+
+export const $UserUpdateMe = {
+	properties: {
+		full_name: {
+	type: 'any-of',
+	contains: [{
+	type: 'string',
+}, {
+	type: 'null',
+}],
+},
+		email: {
+	type: 'any-of',
+	contains: [{
+	type: 'string',
+}, {
+	type: 'null',
+}],
+},
+	},
+} as const;
+
+export const $UsersPublic = {
+	properties: {
+		data: {
+	type: 'array',
+	contains: {
+		type: 'UserPublic',
+	},
+	isRequired: true,
+},
+		count: {
+	type: 'number',
+	isRequired: true,
+},
+	},
+} as const;
+
+export const $ValidationError = {
+	properties: {
+		loc: {
+	type: 'array',
+	contains: {
+	type: 'any-of',
+	contains: [{
+	type: 'string',
+}, {
+	type: 'number',
+}],
+},
+	isRequired: true,
+},
+		msg: {
+	type: 'string',
+	isRequired: true,
+},
+		type: {
+	type: 'string',
+	isRequired: true,
+},
+	},
+} as const;</src/client/schemas.ts>
+
+<src/vite-env.d.ts>
+/// <reference types="vite/client" />
+</src/vite-env.d.ts>
+
+Now, please write the tech spec on our frontend template so that you will know how to modify this template for our actuall application

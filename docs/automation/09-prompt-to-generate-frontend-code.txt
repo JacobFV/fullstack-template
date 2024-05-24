@@ -1,0 +1,1 @@
+Now begin writing each file in order. Do not truncate. If you don't have nough tokens to complete all 48 files exhaustively, i will prompt you to pick up where you left off. Just start:

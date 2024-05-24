@@ -1,0 +1,61 @@
+Tech Spec: Frontend Template Modification for FastAPI Backend Integration
+
+Objective:
+The goal is to modify the existing frontend template to integrate with the FastAPI backend and create a fully functional web application. The frontend will utilize the API endpoints provided by the backend to perform CRUD operations on users and items, as well as handle user authentication and authorization.
+
+Technologies:
+- React: JavaScript library for building user interfaces
+- TypeScript: Typed superset of JavaScript for enhanced development experience
+- Chakra UI: Component library for building accessible and customizable UI components
+- Tanstack Query: Data fetching and caching library for efficient data management
+- Tanstack Router: Routing library for declarative and type-safe routing
+- Axios: HTTP client for making API requests
+- Vite: Fast build tool and development server
+
+Frontend Structure:
+The frontend template follows a modular structure with the following main components:
+- `src/client`: Contains the generated API client code for interacting with the backend
+- `src/components`: Contains reusable UI components organized by feature or functionality
+- `src/hooks`: Contains custom React hooks for authentication and toast notifications
+- `src/routes`: Contains the route components and route configuration
+- `src/theme`: Contains the custom theme configuration for Chakra UI
+- `src/utils`: Contains utility functions for form validation and other common tasks
+
+Integration with FastAPI Backend:
+1. Update the API client:
+   - Review the generated API client code in `src/client` to ensure it aligns with the backend API endpoints and data models.
+   - Modify the `OpenAPI` configuration in `src/main.tsx` to set the correct base URL and authentication token handling.
+
+2. Implement user authentication:
+   - Utilize the `useAuth` hook in `src/hooks/useAuth.ts` to handle user login, logout, and token management.
+   - Modify the login and registration forms in `src/routes/login.tsx` and `src/routes/recover-password.tsx` to integrate with the backend authentication endpoints.
+   - Ensure that protected routes are only accessible to authenticated users by checking the authentication state in the route configuration.
+
+3. Implement user management:
+   - Create or update the necessary components in `src/components/Admin` for user management, such as `UserList`, `AddUser`, and `EditUser`.
+   - Utilize the `UsersService` from the API client to perform CRUD operations on users.
+   - Implement the user management functionality in the `src/routes/_layout/admin.tsx` route component.
+
+4. Implement item management:
+   - Create or update the necessary components in `src/components/Items` for item management, such as `ItemList`, `AddItem`, and `EditItem`.
+   - Utilize the `ItemsService` from the API client to perform CRUD operations on items.
+   - Implement the item management functionality in the `src/routes/_layout/items.tsx` route component.
+
+5. Implement user settings:
+   - Create or update the necessary components in `src/components/UserSettings` for user profile and password management.
+   - Utilize the `UsersService` from the API client to update user information and password.
+   - Implement the user settings functionality in the `src/routes/_layout/settings.tsx` route component.
+
+6. Error handling and validation:
+   - Utilize the `useCustomToast` hook in `src/hooks/useCustomToast.ts` to display success and error messages to the user.
+   - Implement proper error handling for API requests and display appropriate error messages to the user.
+   - Utilize the form validation rules defined in `src/utils.ts` to validate user input on the frontend.
+
+7. Testing and deployment:
+   - Write unit tests for critical components and functions to ensure code quality and prevent regressions.
+   - Set up a continuous integration and deployment (CI/CD) pipeline to automatically build, test, and deploy the frontend application.
+   - Configure the necessary environment variables for the production deployment, such as the backend API URL.
+
+By following this tech spec and modifying the frontend template accordingly, you will be able to create a fully functional web application that seamlessly integrates with the FastAPI backend. The frontend will provide a user-friendly interface for managing users, items, and user settings, while ensuring proper authentication and authorization.
+
+Remember to regularly test the application, handle edge cases, and optimize performance as needed. Additionally, keep the code maintainable and follow best practices for React development, such as using functional components, hooks, and modular design patterns.

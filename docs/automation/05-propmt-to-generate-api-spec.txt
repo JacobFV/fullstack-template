@@ -1,0 +1,2 @@
+Write the COMPLETE API spec. NO TRUNC! Make sure to include the crud endpinoints also. Concise --even terse-- dense technical spec. Enough to konw exactly how to interface from the frontend:
+

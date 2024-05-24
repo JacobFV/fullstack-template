@@ -1,0 +1,119 @@
+API Specification: Identity Verification System Backend
+
+Base URL: `https://api.example.com/v1`
+
+Authentication:
+- All endpoints require authentication using JWT (JSON Web Tokens).
+- Obtain an access token by sending a POST request to `/auth/login` with user credentials.
+- Include the access token in the `Authorization` header of subsequent requests: `Bearer <access_token>`.
+
+Endpoints:
+
+1. User Management:
+   - `POST /users`: Register a new user.
+     - Request body: `{ "email": "user@example.com", "password": "password123", "full_name": "John Doe" }`
+     - Response: `{ "id": 1, "email": "user@example.com", "full_name": "John Doe", "created_at": "2023-06-10T12:00:00Z" }`
+
+   - `GET /users/{user_id}`: Get user details by ID.
+     - Response: `{ "id": 1, "email": "user@example.com", "full_name": "John Doe", "created_at": "2023-06-10T12:00:00Z" }`
+
+   - `PUT /users/{user_id}`: Update user details.
+     - Request body: `{ "full_name": "Updated Name" }`
+     - Response: `{ "id": 1, "email": "user@example.com", "full_name": "Updated Name", "created_at": "2023-06-10T12:00:00Z" }`
+
+   - `DELETE /users/{user_id}`: Delete a user.
+     - Response: `{ "message": "User deleted successfully" }`
+
+2. Identity Verification:
+   - `POST /verifications`: Initiate an identity verification request.
+     - Request body: `{ "user_id": 1, "document_type": "passport", "document_front_image": "<base64_encoded_image>", "document_back_image": "<base64_encoded_image>", "selfie_image": "<base64_encoded_image>" }`
+     - Response: `{ "id": 1, "user_id": 1, "status": "pending", "created_at": "2023-06-10T12:00:00Z" }`
+
+   - `GET /verifications/{verification_id}`: Get verification request details.
+     - Response: `{ "id": 1, "user_id": 1, "status": "approved", "created_at": "2023-06-10T12:00:00Z", "updated_at": "2023-06-11T09:30:00Z", "result": { "face_match_score": 0.95, "liveness_score": 0.98, "document_validity": true } }`
+
+   - `GET /users/{user_id}/verifications`: Get all verification requests for a user.
+     - Response: `[ { "id": 1, "user_id": 1, "status": "approved", "created_at": "2023-06-10T12:00:00Z", "updated_at": "2023-06-11T09:30:00Z" }, { "id": 2, "user_id": 1, "status": "rejected", "created_at": "2023-06-12T15:45:00Z", "updated_at": "2023-06-13T10:15:00Z" } ]`
+
+3. System Administration:
+   - `POST /api-keys`: Generate a new API key.
+     - Request body: `{ "name": "Mobile App", "permissions": ["read", "write"] }`
+     - Response: `{ "id": 1, "name": "Mobile App", "key": "abc123xyz", "permissions": ["read", "write"], "created_at": "2023-06-10T12:00:00Z" }`
+
+   - `GET /api-keys`: Get all API keys.
+     - Response: `[ { "id": 1, "name": "Mobile App", "permissions": ["read", "write"], "created_at": "2023-06-10T12:00:00Z" }, { "id": 2, "name": "Web App", "permissions": ["read"], "created_at": "2023-06-11T09:30:00Z" } ]`
+
+   - `DELETE /api-keys/{api_key_id}`: Revoke an API key.
+     - Response: `{ "message": "API key revoked successfully" }`
+
+   - `GET /logs`: Get system logs.
+     - Query parameters:
+       - `from`: Start date (e.g., `2023-06-01`)
+       - `to`: End date (e.g., `2023-06-30`)
+       - `level`: Log level (e.g., `info`, `error`)
+     - Response: `[ { "timestamp": "2023-06-10T12:00:00Z", "level": "info", "message": "User registered: user@example.com" }, { "timestamp": "2023-06-11T09:30:00Z", "level": "error", "message": "Verification failed for user ID: 1" } ]`
+
+4. CRUD Operations:
+   - Users:
+     - `GET /users`: Get all users.
+       - Query parameters:
+         - `page`: Page number (default: 1)
+         - `per_page`: Number of users per page (default: 10)
+       - Response: `{ "data": [ { "id": 1, "email": "user1@example.com", "full_name": "John Doe", "created_at": "2023-06-10T12:00:00Z" }, { "id": 2, "email": "user2@example.com", "full_name": "Jane Smith", "created_at": "2023-06-11T09:30:00Z" } ], "meta": { "current_page": 1, "per_page": 10, "total_pages": 2, "total_count": 15 } }`
+
+   - Verifications:
+     - `GET /verifications`: Get all verification requests.
+       - Query parameters:
+         - `page`: Page number (default: 1)
+         - `per_page`: Number of verifications per page (default: 10)
+         - `status`: Filter by verification status (e.g., `pending`, `approved`, `rejected`)
+       - Response: `{ "data": [ { "id": 1, "user_id": 1, "status": "approved", "created_at": "2023-06-10T12:00:00Z", "updated_at": "2023-06-11T09:30:00Z" }, { "id": 2, "user_id": 2, "status": "pending", "created_at": "2023-06-12T15:45:00Z" } ], "meta": { "current_page": 1, "per_page": 10, "total_pages": 1, "total_count": 8 } }`
+
+     - `PUT /verifications/{verification_id}`: Update a verification request.
+       - Request body: `{ "status": "approved", "result": { "face_match_score": 0.95, "liveness_score": 0.98, "document_validity": true } }`
+       - Response: `{ "id": 1, "user_id": 1, "status": "approved", "created_at": "2023-06-10T12:00:00Z", "updated_at": "2023-06-11T09:30:00Z", "result": { "face_match_score": 0.95, "liveness_score": 0.98, "document_validity": true } }`
+
+     - `DELETE /verifications/{verification_id}`: Delete a verification request.
+       - Response: `{ "message": "Verification request deleted successfully" }`
+
+   - API Keys:
+     - `GET /api-keys/{api_key_id}`: Get API key details.
+       - Response: `{ "id": 1, "name": "Mobile App", "permissions": ["read", "write"], "created_at": "2023-06-10T12:00:00Z" }`
+
+     - `PUT /api-keys/{api_key_id}`: Update an API key.
+       - Request body: `{ "name": "Updated Name", "permissions": ["read"] }`
+       - Response: `{ "id": 1, "name": "Updated Name", "permissions": ["read"], "created_at": "2023-06-10T12:00:00Z" }`
+
+Error Responses:
+- `400 Bad Request`: Invalid request data or missing required fields.
+- `401 Unauthorized`: Missing or invalid access token.
+- `403 Forbidden`: Insufficient permissions to access the resource.
+- `404 Not Found`: Requested resource not found.
+- `500 Internal Server Error`: Unexpected server error.
+
+Webhooks:
+- The backend can send webhook notifications to a configured URL for important events, such as:
+  - Verification request status changes (e.g., pending, approved, rejected)
+  - Suspicious activity detected (e.g., multiple failed verification attempts)
+- Webhook payload example:
+  ```json
+  {
+    "event": "verification_status_changed",
+    "data": {
+      "id": 1,
+      "user_id": 1,
+      "status": "approved",
+      "created_at": "2023-06-10T12:00:00Z",
+      "updated_at": "2023-06-11T09:30:00Z"
+    }
+  }
+  ```
+
+Real-time Updates:
+- The backend can provide real-time updates using WebSocket or server-sent events (SSE) for:
+  - Verification request progress (e.g., document processing, face matching)
+  - Live notifications (e.g., new verification request, system alerts)
+
+This API specification provides a comprehensive overview of the endpoints, request/response formats, and additional features of the identity verification system backend. It covers user management, identity verification, system administration, CRUD operations, error handling, webhooks, and real-time updates.
+
+Developers can use this specification as a reference to integrate with the backend and build frontend applications or other services that interact with the identity verification system.

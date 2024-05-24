@@ -1,0 +1,5337 @@
+Great!
+
+Now, here's the actual backend. Please write the tech spec on it:
+
+$ tree . -I venv
+.
+├── alembic.ini
+├── app
+│   ├── alembic
+│   │   ├── env.py
+│   │   ├── README
+│   │   ├── script.py.mako
+│   │   └── versions
+│   │       └── e2412789c190_initialize_models.py
+│   ├── algorithms
+│   │   └── face_video_image_match_verification
+│   │       ├── processor.py
+│   │       ├── router.py
+│   │       └── schema.py
+│   ├── api
+│   │   ├── deps.py
+│   │   ├── __init__.py
+│   │   ├── main.py
+│   │   └── routes
+│   │       ├── __init__.py
+│   │       ├── items.py
+│   │       ├── login.py
+│   │       ├── users.py
+│   │       └── utils.py
+│   ├── cli
+│   │   ├── db_cli.py
+│   │   ├── dev_cli.py
+│   │   ├── info_cli.py
+│   │   └── __init__.py
+│   ├── core
+│   │   ├── config.py
+│   │   ├── db.py
+│   │   ├── __init__.py
+│   │   ├── redis.py
+│   │   └── security.py
+│   ├── crud.py
+│   ├── email-templates
+│   │   ├── build
+│   │   │   ├── new_account.html
+│   │   │   ├── reset_password.html
+│   │   │   └── test_email.html
+│   │   └── src
+│   │       ├── new_account.mjml
+│   │       ├── reset_password.mjml
+│   │       └── test_email.mjml
+│   ├── __init__.py
+│   ├── main.py
+│   ├── schema
+│   │   ├── base.py
+│   │   ├── has_redis.py
+│   │   ├── system
+│   │   │   ├── api_key.py
+│   │   │   ├── api_key_use.py
+│   │   │   ├── auth.py
+│   │   │   └── billing.py
+│   │   ├── TODO
+│   │   ├── user
+│   │   │   ├── developer.py
+│   │   │   ├── ghost_identity.py
+│   │   │   ├── identity.py
+│   │   │   └── user.py
+│   │   └── verification
+│   │       ├── credit_bureau_verification.py
+│   │       ├── face_video_anomaly_verification.py
+│   │       ├── hand_sign_verification.py
+│   │       ├── human_speech_verification.py
+│   │       ├── living_pupil_verification.py
+│   │       ├── proof_of_id_verification.py
+│   │       └── verification.py
+│   ├── targets.py
+│   ├── tests
+│   │   ├── api
+│   │   │   ├── __init__.py
+│   │   │   └── routes
+│   │   │       ├── __init__.py
+│   │   │       ├── test_items.py
+│   │   │       ├── test_login.py
+│   │   │       └── test_users.py
+│   │   ├── conftest.py
+│   │   ├── crud
+│   │   │   ├── __init__.py
+│   │   │   └── test_user.py
+│   │   ├── __init__.py
+│   │   ├── scripts
+│   │   │   ├── __init__.py
+│   │   │   ├── test_backend_pre_start.py
+│   │   │   └── test_test_pre_start.py
+│   │   └── utils
+│   │       ├── __init__.py
+│   │       ├── item.py
+│   │       ├── user.py
+│   │       └── utils.py
+│   └── utils
+│       ├── consts.py
+│       ├── crud.py
+│       ├── errors.py
+│       └── __init__.py
+├── build
+│   ├── doctrees
+│   │   ├── environment.pickle
+│   │   └── index.doctree
+│   └── html
+│       ├── genindex.html
+│       ├── index.html
+│       ├── objects.inv
+│       ├── search.html
+│       ├── searchindex.js
+│       ├── _sources
+│       │   └── index.rst.txt
+│       └── _static
+│           ├── alabaster.css
+│           ├── basic.css
+│           ├── custom.css
+│           ├── doctools.js
+│           ├── documentation_options.js
+│           ├── file.png
+│           ├── language_data.js
+│           ├── minus.png
+│           ├── plus.png
+│           ├── pygments.css
+│           ├── searchtools.js
+│           └── sphinx_highlight.js
+├── Dockerfile
+├── make.bat
+├── Makefile
+├── poetry.lock
+├── prestart.sh
+├── pyproject.toml
+├── scripts
+│   ├── format.sh
+│   ├── lint.sh
+│   └── test.sh
+├── source
+│   ├── conf.py
+│   ├── index.rst
+│   ├── _static
+│   └── _templates
+└── tests-start.sh
+
+32 directories, 105 files
+
+$ find app -type f -exec sh -c 'echo "<{}>"; cat {}; echo "</{}>\n"' \; > dump.txt
+
+<app/cli/db_cli.py>
+from sqlmodel import Session
+import typer
+
+# DB group commands
+from app.core import config
+from app.core.db import drop_db, init_db, seed_db, test_connect_db, engine
+
+# Assuming engine is created from a configuration setting
+
+db_cli = typer.Typer()
+
+
+@db_cli.command()
+async def drop(
+    confirm: bool = typer.Option(
+        False, "--confirm", prompt="Are you sure you want to drop the database?"
+    )
+):
+    if confirm:
+        typer.echo("Dropping database...")
+        with Session(engine) as session:
+            await drop_db(session)
+        typer.echo("Database dropped.")
+    else:
+        typer.echo("Database drop cancelled.")
+
+
+@db_cli.command()
+def init():
+    typer.echo("Initializing database...")
+    with Session(engine) as session:
+        init_db(session)
+    typer.echo("Database initialized.")
+
+
+@db_cli.command()
+def seed(test: bool = typer.Option(False, "--test")):
+    typer.echo("Seeding database...")
+    with Session(engine) as session:
+        seed_db(session)
+    typer.echo("Database seeded.")
+
+
+@db_cli.command()
+def alembic(*args):
+    typer.echo("Running alembic command...")
+    import subprocess
+
+    subprocess.run(
+        ["alembic", *args],
+        check=True,
+    )
+    typer.echo("Alembic command completed.")
+
+
+@db_cli.command()
+def test_connect():
+    typer.echo("Testing database connection...")
+    with Session(engine) as session:
+        test_connect_db(session)
+    typer.echo("Database connection tested.")
+
+
+@db_cli.command()
+def backup():
+    typer.echo("Backing up database...")
+    raise NotImplementedError("Not implemented yet")
+
+    db = get_db()
+    import os
+    import shutil
+    from datetime import datetime
+
+    backup_dir = settings.BACKUP_DIR
+    os.makedirs(backup_dir, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    backup_file = os.path.join(backup_dir, f"db_backup_{timestamp}.sql")
+
+    command = f"pg_dump -h {settings.POSTGRES_SERVER} -p {settings.POSTGRES_PORT} -U {settings.POSTGRES_USER} -d {settings.POSTGRES_DB} -f {backup_file}"
+    os.system(command)
+
+    # Optionally, compress the backup file
+    shutil.make_archive(backup_file, "zip", backup_dir, backup_file)
+    typer.echo("Database backed up.")
+
+
+@db_cli.command()
+def restore():
+    typer.echo("Restoring database from backup...")
+    raise NotImplementedError("Not implemented yet")
+
+    import os
+    from datetime import datetime
+    import shutil
+    from sqlmodel import Session
+
+    backup_dir = settings.BACKUP_DIR
+    latest_backup = max(
+        [
+            os.path.join(backup_dir, f)
+            for f in os.listdir(backup_dir)
+            if f.endswith(".sql.zip")
+        ],
+        default=None,
+        key=os.path.getctime,
+    )
+
+    if latest_backup:
+        typer.echo(f"Restoring from {latest_backup}...")
+        # Unzip the backup file
+        with zipfile.ZipFile(latest_backup, "r") as zip_ref:
+            zip_ref.extractall(backup_dir)
+
+        # Get the SQL file name from the zip file
+        sql_file = latest_backup.replace(".zip", "")
+
+        # Restore the database from the SQL file
+        command = f"psql -h {settings.POSTGRES_SERVER} -p {settings.POSTGRES_PORT} -U {settings.POSTGRES_USER} -d {settings.POSTGRES_DB} -f {sql_file}"
+        os.system(command)
+
+        # Clean up extracted files
+        os.remove(sql_file)
+        typer.echo("Database restored from backup.")
+    else:
+        typer.echo("No backup file found.")
+
+
+@db_cli.command()
+def migrate():
+    typer.echo("Migrating database...")
+
+    # TODO: use the alembic scripts
+    raise NotImplementedError("Not implemented yet")
+</app/cli/db_cli.py>
+
+<app/cli/dev_cli.py>
+import os
+import subprocess
+from typing import Annotated
+import typer
+import uvicorn
+
+from app.core.config import Settings, get_settings
+from app.main import fastapi_app
+
+dev_cli = typer.Typer()
+
+SettingsTyperDep = Annotated[Settings, typer.Depends(get_settings)]
+
+
+# Main command: serve
+@dev_cli.command()
+async def serve(host: str = Settings.HOST, port: int = Settings.PORT):
+    uvicorn.run(fastapi_app, host=host, port=port)
+
+
+from app.core.config import get_settings
+
+
+@dev_cli.command()
+async def status():
+    settings = await get_settings()
+    if settings.ENVIRONMENT == "production":
+        typer.echo("Running on production. Checking container health...")
+        # Implement your container health check logic here
+        # This could be a script that checks Docker container statuses, for example:
+        os.system("docker ps --filter 'health=healthy'")
+    else:
+        typer.echo("Not running in production environment.")
+
+
+@dev_cli.command()
+async def logs(days: int = 1):
+    typer.echo(f"Fetching logs for the last {days} days.")
+    typer.echo("Streaming logs (press Ctrl+C to stop)...")
+    settings = await get_settings()
+    try:
+        subprocess.run(["tail", "-f", settings.LOG_FILE])
+    except KeyboardInterrupt:
+        typer.echo("Stopped streaming logs.")
+
+
+@dev_cli.command()
+async def build_docs():
+    code_dir = await get_settings().code_dir
+    subprocess.run(
+        ["poetry", "run", "make", "html"],
+        cwd=code_dir,
+        capture_output=False,
+    )
+
+
+@dev_cli.command()
+async def test():
+    settings = await get_settings()
+    code_dir = settings.code_dir
+    subprocess.run(
+        ["tests_start.sh"],
+        cwd=code_dir,
+        capture_output=False,
+    )
+
+
+@dev_cli.command()
+async def deploy(environment: str):
+    import semver
+    import git
+
+    settings = await get_settings()
+    repo_dir = typer.get_app_dir(
+        settings.app_name
+    )  # Use settings.app_name instead of hardcoded string
+    repo = git.Repo(repo_dir)
+
+    # Ensure we are on the prod branch and it's up to date
+    repo.git.checkout("prod")
+    repo.git.pull("origin", "prod")
+
+    # Merge current branch into prod
+    current_branch = repo.active_branch.name
+    repo.git.merge(current_branch)
+
+    # Increment the patch version
+    new_version = semver.VersionInfo.parse(settings.version).bump_patch()
+    settings.version = str(new_version)  # Update the settings version
+
+    # Commit the version change
+    repo.index.add(["settings.py"])  # Assuming version is stored in settings.py
+    repo.index.commit(f"Bump version to {new_version}")
+
+    # Push changes to prod
+    repo.git.push("origin", "prod")
+
+    # Create a new GitHub release
+    typer.echo(f"Creating a new GitHub release for version {new_version}")
+    subprocess.run(
+        [
+            "gh",
+            "release",
+            "create",
+            str(new_version),
+            "--notes",
+            "Auto-generated release",
+        ],
+        cwd=repo_dir,
+        capture_output=False,
+    )
+
+    typer.echo(f"Deploying to {environment}...")
+    # Assuming a GitHub workflow handles the deployment when changes are pushed to prod    # Assuming a GitHub workflow handles the deployment when changes are pushed to prod    # Assuming a GitHub workflow handles the deployment when changes are pushed to prod
+
+
+@dev_cli.command()
+def build():
+    typer.echo("Building project...")
+    raise NotImplementedError("Not implemented yet")
+</app/cli/dev_cli.py>
+
+<app/cli/__init__.py>
+import os
+import subprocess
+import webbrowser
+from datetime import datetime
+from sqlmodel import Session
+
+import typer
+import uvicorn
+
+from app.core import logger
+from app.core.config import settings
+from app.core.db import engine
+from app.main import fastapi_app
+
+cli = typer.Typer(
+    """\
+    # CLI Commands Documentation
+
+    ## Main Commands
+    - `serve`: Start the server on a specified host and port.
+
+    ## Info Commands
+    - `docs`: Show documentation.
+    - `code`: Show codebase.
+    - `status`: Check the status of the backend systems.
+    - `logs`: Fetch logs for the specified number of days.
+
+    ## Database Commands
+    - `init`: Initialize the database.
+    - `seed`: Seed the database with initial data.
+    - `backup`: Backup the database.
+    - `restore`: Restore the database from a backup.
+    - `migrate`: Migrate the database schema.
+
+    ## Development Commands
+    - `test`: Run tests.
+    - `deploy`: Deploy the application to a specified environment.
+    - `build`: Build the project.
+    """
+)
+
+# Sub-command groups
+from app.cli.db_cli import db_cli
+from app.cli.info_cli import info_cli
+from app.cli.dev_cli import dev_cli
+import app.cli.db_cli as db_cli_endpoints
+import app.cli.info_cli as info_cli_endpoints
+import app.cli.dev_cli as dev_cli_endpoints
+
+
+# Adding sub-command groups to the main CLI
+cli.add_typer(info_cli, name="info")
+cli.add_typer(db_cli, name="db")
+cli.add_typer(dev_cli, name="dev")
+
+
+@cli.command()
+def dev(
+    host: str = typer.Option(
+        default=settings.DEV_HOST,
+        help="Host to run the server on.",
+    ),
+    port: int = typer.Option(
+        default=settings.DEV_PORT,
+        help="Port to run the server on.",
+    ),
+    new_db: bool = typer.Option(
+        default=False,
+        help="Create a new database.",
+    ),
+):
+    with Session(engine) as db_session:
+        with typer.progressbar(
+            length=5, label="Processing database and server operations"
+        ) as progress:
+            dev_cli_endpoints.test()
+            progress.update(1)
+            db_cli_endpoints.test_connect()
+            progress.update(1)
+            if new_db:
+                db_cli_endpoints.drop_db(db_session)
+                progress.update(1)
+                db_cli_endpoints.init_db(db_session)
+                progress.update(1)
+                db_cli_endpoints.seed_db(db_session)
+                progress.update(1)
+            else:
+                progress.update(3)
+            dev_cli_endpoints.serve(host, port)
+
+
+if __name__ == "__main__":
+    cli()
+</app/cli/__init__.py>
+
+<app/cli/info_cli.py>
+import webbrowser
+import typer
+
+info_cli = typer.Typer()
+
+
+# Info group commands
+@info_cli.command()
+def docs():
+    typer.echo("Showing documentation...")
+    webbrowser.open("https://github.com/verifyhumans/gotcha-v2/tree/main/docs")
+
+
+@info_cli.command()
+def code():
+    typer.echo("Showing code...")
+    webbrowser.open("https://github.com/verifyhumans/gotcha-v2")
+</app/cli/info_cli.py>
+
+<app/main.py>
+from contextlib import contextmanager
+import sentry_sdk
+from fastapi import FastAPI
+from fastapi.routing import APIRoute
+from starlette.middleware.cors import CORSMiddleware
+
+from app.api.main import api_router
+from app.core.config import settings
+
+
+def custom_generate_unique_id(route: APIRoute) -> str:
+    return f"{route.tags[0]}-{route.name}"
+
+
+if settings.SENTRY_DSN and settings.ENVIRONMENT != "local":
+    sentry_sdk.init(dsn=str(settings.SENTRY_DSN), enable_tracing=True)
+
+
+@contextmanager
+def lifespan(app: FastAPI):
+    try:
+        yield
+    finally:
+        pass
+
+
+fastapi_app = FastAPI(
+    title=settings.PROJECT_NAME,
+    openapi_url=f"{settings.api_v1_str}/openapi.json",
+    generate_unique_id_function=custom_generate_unique_id,
+    lifespan=lifespan,
+)
+
+# Set all CORS enabled origins
+if settings.BACKEND_CORS_ORIGINS:
+    fastapi_app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[
+            str(origin).strip("/") for origin in settings.BACKEND_CORS_ORIGINS
+        ],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+fastapi_app.include_router(api_router, prefix=settings.api_v1_str)
+</app/main.py>
+
+<app/email-templates/build/test_email.html>
+<!doctype html><html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office"><head><title></title><!--[if !mso]><!-- --><meta http-equiv="X-UA-Compatible" content="IE=edge"><!--<![endif]--><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style type="text/css">#outlook a { padding:0; }
+          .ReadMsgBody { width:100%; }
+          .ExternalClass { width:100%; }
+          .ExternalClass * { line-height:100%; }
+          body { margin:0;padding:0;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%; }
+          table, td { border-collapse:collapse;mso-table-lspace:0pt;mso-table-rspace:0pt; }
+          img { border:0;height:auto;line-height:100%; outline:none;text-decoration:none;-ms-interpolation-mode:bicubic; }
+          p { display:block;margin:13px 0; }</style><!--[if !mso]><!--><style type="text/css">@media only screen and (max-width:480px) {
+            @-ms-viewport { width:320px; }
+            @viewport { width:320px; }
+          }</style><!--<![endif]--><!--[if mso]>
+        <xml>
+        <o:OfficeDocumentSettings>
+          <o:AllowPNG/>
+          <o:PixelsPerInch>96</o:PixelsPerInch>
+        </o:OfficeDocumentSettings>
+        </xml>
+        <![endif]--><!--[if lte mso 11]>
+        <style type="text/css">
+          .outlook-group-fix { width:100% !important; }
+        </style>
+        <![endif]--><style type="text/css">@media only screen and (min-width:480px) {
+        .mj-column-per-100 { width:100% !important; max-width: 100%; }
+      }</style><style type="text/css"></style></head><body style="background-color:#fafbfc;"><div style="background-color:#fafbfc;"><!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" class="" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]--><div style="background:#ffffff;background-color:#ffffff;Margin:0px auto;max-width:600px;"><table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background:#ffffff;background-color:#ffffff;width:100%;"><tbody><tr><td style="direction:ltr;font-size:0px;padding:40px 20px;text-align:center;vertical-align:top;"><!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:middle;width:560px;" ><![endif]--><div class="mj-column-per-100 outlook-group-fix" style="font-size:13px;text-align:left;direction:ltr;display:inline-block;vertical-align:middle;width:100%;"><table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:middle;" width="100%"><tr><td align="center" style="font-size:0px;padding:35px;word-break:break-word;"><div style="font-family:Arial, Helvetica, sans-serif;font-size:20px;line-height:1;text-align:center;color:#333333;">{{ project_name }}</div></td></tr><tr><td align="center" style="font-size:0px;padding:10px 25px;padding-right:25px;padding-left:25px;word-break:break-word;"><div style="font-family:, sans-serif;font-size:16px;line-height:1;text-align:center;color:#555555;"><span>Test email for: {{ email }}</span></div></td></tr><tr><td style="font-size:0px;padding:10px 25px;word-break:break-word;"><p style="border-top:solid 2px #cccccc;font-size:1;margin:0px auto;width:100%;"></p><!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" style="border-top:solid 2px #cccccc;font-size:1;margin:0px auto;width:510px;" role="presentation" width="510px" ><tr><td style="height:0;line-height:0;"> &nbsp;
+</td></tr></table><![endif]--></td></tr></table></div><!--[if mso | IE]></td></tr></table><![endif]--></td></tr></tbody></table></div><!--[if mso | IE]></td></tr></table><![endif]--></div></body></html></app/email-templates/build/test_email.html>
+
+<app/email-templates/build/reset_password.html>
+<!doctype html><html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office"><head><title></title><!--[if !mso]><!-- --><meta http-equiv="X-UA-Compatible" content="IE=edge"><!--<![endif]--><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style type="text/css">#outlook a { padding:0; }
+          .ReadMsgBody { width:100%; }
+          .ExternalClass { width:100%; }
+          .ExternalClass * { line-height:100%; }
+          body { margin:0;padding:0;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%; }
+          table, td { border-collapse:collapse;mso-table-lspace:0pt;mso-table-rspace:0pt; }
+          img { border:0;height:auto;line-height:100%; outline:none;text-decoration:none;-ms-interpolation-mode:bicubic; }
+          p { display:block;margin:13px 0; }</style><!--[if !mso]><!--><style type="text/css">@media only screen and (max-width:480px) {
+            @-ms-viewport { width:320px; }
+            @viewport { width:320px; }
+          }</style><!--<![endif]--><!--[if mso]>
+        <xml>
+        <o:OfficeDocumentSettings>
+          <o:AllowPNG/>
+          <o:PixelsPerInch>96</o:PixelsPerInch>
+        </o:OfficeDocumentSettings>
+        </xml>
+        <![endif]--><!--[if lte mso 11]>
+        <style type="text/css">
+          .outlook-group-fix { width:100% !important; }
+        </style>
+        <![endif]--><!--[if !mso]><!--><link href="https://fonts.googleapis.com/css?family=Ubuntu:300,400,500,700" rel="stylesheet" type="text/css"><style type="text/css">@import url(https://fonts.googleapis.com/css?family=Ubuntu:300,400,500,700);</style><!--<![endif]--><style type="text/css">@media only screen and (min-width:480px) {
+        .mj-column-per-100 { width:100% !important; max-width: 100%; }
+      }</style><style type="text/css"></style></head><body style="background-color:#fafbfc;"><div style="background-color:#fafbfc;"><!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" class="" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]--><div style="background:#ffffff;background-color:#ffffff;Margin:0px auto;max-width:600px;"><table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background:#ffffff;background-color:#ffffff;width:100%;"><tbody><tr><td style="direction:ltr;font-size:0px;padding:40px 20px;text-align:center;vertical-align:top;"><!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:middle;width:560px;" ><![endif]--><div class="mj-column-per-100 outlook-group-fix" style="font-size:13px;text-align:left;direction:ltr;display:inline-block;vertical-align:middle;width:100%;"><table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:middle;" width="100%"><tr><td align="center" style="font-size:0px;padding:35px;word-break:break-word;"><div style="font-family:Arial, Helvetica, sans-serif;font-size:20px;line-height:1;text-align:center;color:#333333;">{{ project_name }} - Password Recovery</div></td></tr><tr><td align="center" style="font-size:0px;padding:10px 25px;padding-right:25px;padding-left:25px;word-break:break-word;"><div style="font-family:Arial, Helvetica, sans-serif;font-size:16px;line-height:1;text-align:center;color:#555555;"><span>Hello {{ username }}</span></div></td></tr><tr><td align="center" style="font-size:0px;padding:10px 25px;padding-right:25px;padding-left:25px;word-break:break-word;"><div style="font-family:Arial, Helvetica, sans-serif;font-size:16px;line-height:1;text-align:center;color:#555555;">We've received a request to reset your password. You can do it by clicking the button below:</div></td></tr><tr><td align="center" vertical-align="middle" style="font-size:0px;padding:15px 30px;word-break:break-word;"><table border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:separate;line-height:100%;"><tr><td align="center" bgcolor="#009688" role="presentation" style="border:none;border-radius:8px;cursor:auto;padding:10px 25px;background:#009688;" valign="middle"><a href="{{ link }}" style="background:#009688;color:#ffffff;font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:18px;font-weight:normal;line-height:120%;Margin:0;text-decoration:none;text-transform:none;" target="_blank">Reset password</a></td></tr></table></td></tr><tr><td align="center" style="font-size:0px;padding:10px 25px;padding-right:25px;padding-left:25px;word-break:break-word;"><div style="font-family:Arial, Helvetica, sans-serif;font-size:16px;line-height:1;text-align:center;color:#555555;">Or copy and paste the following link into your browser:</div></td></tr><tr><td align="center" style="font-size:0px;padding:10px 25px;padding-right:25px;padding-left:25px;word-break:break-word;"><div style="font-family:Arial, Helvetica, sans-serif;font-size:16px;line-height:1;text-align:center;color:#555555;"><a href="{{ link }}">{{ link }}</a></div></td></tr><tr><td align="center" style="font-size:0px;padding:10px 25px;padding-right:25px;padding-left:25px;word-break:break-word;"><div style="font-family:Arial, Helvetica, sans-serif;font-size:16px;line-height:1;text-align:center;color:#555555;">This password will expire in {{ valid_hours }} hours.</div></td></tr><tr><td style="font-size:0px;padding:10px 25px;word-break:break-word;"><p style="border-top:solid 2px #cccccc;font-size:1;margin:0px auto;width:100%;"></p><!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" style="border-top:solid 2px #cccccc;font-size:1;margin:0px auto;width:510px;" role="presentation" width="510px" ><tr><td style="height:0;line-height:0;"> &nbsp;
+</td></tr></table><![endif]--></td></tr><tr><td align="center" style="font-size:0px;padding:10px 25px;padding-right:25px;padding-left:25px;word-break:break-word;"><div style="font-family:Arial, Helvetica, sans-serif;font-size:14px;line-height:1;text-align:center;color:#555555;">If you didn't request a password recovery you can disregard this email.</div></td></tr></table></div><!--[if mso | IE]></td></tr></table><![endif]--></td></tr></tbody></table></div><!--[if mso | IE]></td></tr></table><![endif]--></div></body></html></app/email-templates/build/reset_password.html>
+
+<app/email-templates/build/new_account.html>
+<!doctype html><html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office"><head><title></title><!--[if !mso]><!-- --><meta http-equiv="X-UA-Compatible" content="IE=edge"><!--<![endif]--><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style type="text/css">#outlook a { padding:0; }
+          .ReadMsgBody { width:100%; }
+          .ExternalClass { width:100%; }
+          .ExternalClass * { line-height:100%; }
+          body { margin:0;padding:0;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%; }
+          table, td { border-collapse:collapse;mso-table-lspace:0pt;mso-table-rspace:0pt; }
+          img { border:0;height:auto;line-height:100%; outline:none;text-decoration:none;-ms-interpolation-mode:bicubic; }
+          p { display:block;margin:13px 0; }</style><!--[if !mso]><!--><style type="text/css">@media only screen and (max-width:480px) {
+            @-ms-viewport { width:320px; }
+            @viewport { width:320px; }
+          }</style><!--<![endif]--><!--[if mso]>
+        <xml>
+        <o:OfficeDocumentSettings>
+          <o:AllowPNG/>
+          <o:PixelsPerInch>96</o:PixelsPerInch>
+        </o:OfficeDocumentSettings>
+        </xml>
+        <![endif]--><!--[if lte mso 11]>
+        <style type="text/css">
+          .outlook-group-fix { width:100% !important; }
+        </style>
+        <![endif]--><!--[if !mso]><!--><link href="https://fonts.googleapis.com/css?family=Ubuntu:300,400,500,700" rel="stylesheet" type="text/css"><style type="text/css">@import url(https://fonts.googleapis.com/css?family=Ubuntu:300,400,500,700);</style><!--<![endif]--><style type="text/css">@media only screen and (min-width:480px) {
+        .mj-column-per-100 { width:100% !important; max-width: 100%; }
+      }</style><style type="text/css"></style></head><body style="background-color:#fafbfc;"><div style="background-color:#fafbfc;"><!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" class="" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]--><div style="background:#ffffff;background-color:#ffffff;Margin:0px auto;max-width:600px;"><table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background:#ffffff;background-color:#ffffff;width:100%;"><tbody><tr><td style="direction:ltr;font-size:0px;padding:40px 20px;text-align:center;vertical-align:top;"><!--[if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:middle;width:560px;" ><![endif]--><div class="mj-column-per-100 outlook-group-fix" style="font-size:13px;text-align:left;direction:ltr;display:inline-block;vertical-align:middle;width:100%;"><table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:middle;" width="100%"><tr><td align="center" style="font-size:0px;padding:35px;word-break:break-word;"><div style="font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:20px;line-height:1;text-align:center;color:#333333;">{{ project_name }} - New Account</div></td></tr><tr><td align="center" style="font-size:0px;padding:10px 25px;padding-right:25px;padding-left:25px;word-break:break-word;"><div style="font-family:Arial, Helvetica, sans-serif;font-size:16px;line-height:1;text-align:center;color:#555555;"><span>Welcome to your new account!</span></div></td></tr><tr><td align="center" style="font-size:0px;padding:10px 25px;padding-right:25px;padding-left:25px;word-break:break-word;"><div style="font-family:Arial, Helvetica, sans-serif;font-size:16px;line-height:1;text-align:center;color:#555555;">Here are your account details:</div></td></tr><tr><td align="center" style="font-size:0px;padding:10px 25px;padding-right:25px;padding-left:25px;word-break:break-word;"><div style="font-family:Arial, Helvetica, sans-serif;font-size:16px;line-height:1;text-align:center;color:#555555;">Username: {{ username }}</div></td></tr><tr><td align="center" style="font-size:0px;padding:10px 25px;padding-right:25px;padding-left:25px;word-break:break-word;"><div style="font-family:Arial, Helvetica, sans-serif;font-size:16px;line-height:1;text-align:center;color:#555555;">Password: {{ password }}</div></td></tr><tr><td align="center" vertical-align="middle" style="font-size:0px;padding:15px 30px;word-break:break-word;"><table border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:separate;line-height:100%;"><tr><td align="center" bgcolor="#009688" role="presentation" style="border:none;border-radius:8px;cursor:auto;padding:10px 25px;background:#009688;" valign="middle"><a href="{{ link }}" style="background:#009688;color:#ffffff;font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:18px;font-weight:normal;line-height:120%;Margin:0;text-decoration:none;text-transform:none;" target="_blank">Go to Dashboard</a></td></tr></table></td></tr><tr><td style="font-size:0px;padding:10px 25px;word-break:break-word;"><p style="border-top:solid 2px #cccccc;font-size:1;margin:0px auto;width:100%;"></p><!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" style="border-top:solid 2px #cccccc;font-size:1;margin:0px auto;width:510px;" role="presentation" width="510px" ><tr><td style="height:0;line-height:0;"> &nbsp;
+</td></tr></table><![endif]--></td></tr></table></div><!--[if mso | IE]></td></tr></table><![endif]--></td></tr></tbody></table></div><!--[if mso | IE]></td></tr></table><![endif]--></div></body></html></app/email-templates/build/new_account.html>
+
+<app/email-templates/src/new_account.mjml>
+<mjml>
+  <mj-body background-color="#fafbfc">
+    <mj-section background-color="#fff" padding="40px 20px">
+      <mj-column vertical-align="middle" width="100%">
+        <mj-text align="center" padding="35px" font-size="20px" color="#333">{{ project_name }} - New Account</mj-text>
+        <mj-text align="center" font-size="16px" padding-left="25px" padding-right="25px" font-family="Arial, Helvetica, sans-serif" color="#555"><span>Welcome to your new account!</span></mj-text>
+        <mj-text align="center" font-size="16px" padding-left="25px" padding-right="25px" font-family="Arial, Helvetica, sans-serif" color="#555">Here are your account details:</mj-text>
+        <mj-text align="center" font-size="16px" padding-left="25px" padding-right="25px" font-family="Arial, Helvetica, sans-serif" color="#555">Username: {{ username }}</mj-text>
+        <mj-text align="center" font-size="16px" padding-left="25px" padding-right="25px" font-family="Arial, Helvetica, sans-serif" color="#555">Password: {{ password }}</mj-text>
+        <mj-button align="center" font-size="18px" background-color="#009688" border-radius="8px" color="#fff" href="{{ link }}" padding="15px 30px">Go to Dashboard</mj-button>
+        <mj-divider border-color="#ccc" border-width="2px"></mj-divider>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>
+</app/email-templates/src/new_account.mjml>
+
+<app/email-templates/src/reset_password.mjml>
+<mjml>
+  <mj-body background-color="#fafbfc">
+    <mj-section background-color="#fff" padding="40px 20px">
+      <mj-column vertical-align="middle" width="100%">
+        <mj-text align="center" padding="35px" font-size="20px" font-family="Arial, Helvetica, sans-serif" color="#333">{{ project_name }} - Password Recovery</mj-text>
+        <mj-text align="center" font-size="16px" padding-left="25px" padding-right="25px" font-family="Arial, Helvetica, sans-serif" color="#555"><span>Hello {{ username }}</span></mj-text>
+        <mj-text align="center" font-size="16px" padding-left="25px" padding-right="25px" font-family="Arial, Helvetica, sans-serif" color="#555">We've received a request to reset your password. You can do it by clicking the button below:</mj-text>
+        <mj-button align="center" font-size="18px" background-color="#009688" border-radius="8px" color="#fff" href="{{ link }}" padding="15px 30px">Reset password</mj-button>
+        <mj-text align="center" font-size="16px" padding-left="25px" padding-right="25px" font-family="Arial, Helvetica, sans-serif" color="#555">Or copy and paste the following link into your browser:</mj-text>
+        <mj-text align="center" font-size="16px" padding-left="25px" padding-right="25px" font-family="Arial, Helvetica, sans-serif" color="#555"><a href="{{ link }}">{{ link }}</a></mj-text>
+        <mj-text align="center" font-size="16px" padding-left="25px" padding-right="25px" font-family="Arial, Helvetica, sans-serif" color="#555">This password will expire in {{ valid_hours }} hours.</mj-text>
+        <mj-divider border-color="#ccc" border-width="2px"></mj-divider>
+        <mj-text align="center" font-size="14px" padding-left="25px" padding-right="25px" font-family="Arial, Helvetica, sans-serif" color="#555">If you didn't request a password recovery you can disregard this email.</mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>
+</app/email-templates/src/reset_password.mjml>
+
+<app/email-templates/src/test_email.mjml>
+<mjml>
+  <mj-body background-color="#fafbfc">
+    <mj-section background-color="#fff" padding="40px 20px">
+      <mj-column vertical-align="middle" width="100%">
+        <mj-text align="center" padding="35px" font-size="20px" font-family="Arial, Helvetica, sans-serif" color="#333">{{ project_name }}</mj-text>
+        <mj-text align="center" font-size="16px" padding-left="25px" padding-right="25px" font-family=", sans-serif" color="#555"><span>Test email for: {{ email }}</span></mj-text>
+        <mj-divider border-color="#ccc" border-width="2px"></mj-divider>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>
+</app/email-templates/src/test_email.mjml>
+
+<app/core/security.py>
+from datetime import datetime, timedelta
+from typing import Any
+
+import jwt
+from passlib.context import CryptContext
+
+from app.core.config import settings
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+ALGORITHM = "HS256"
+
+
+def create_access_token(subject: str | Any, expires_delta: timedelta) -> str:
+    expire = datetime.utcnow() + expires_delta
+    to_encode = {"exp": expire, "sub": str(subject)}
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
+
+
+def get_password_hash(password: str) -> str:
+    return pwd_context.hash(password)
+</app/core/security.py>
+
+<app/core/redis.py>
+from redis import Redis
+from app.core.config import settings
+
+
+def get_redis_connection() -> Redis:
+    return Redis.from_url(settings.REDIS_URL)
+</app/core/redis.py>
+
+<app/core/__init__.py>
+</app/core/__init__.py>
+
+<app/core/db.py>
+import logging
+
+from sqlmodel import SQLModel, Session, create_engine, select
+from sqlalchemy import Engine
+from tenacity import after_log, before_log, retry, stop_after_attempt, wait_fixed
+
+from app.core.config import get_settings, settings
+from app import crud
+from app.schema.proof_of_id_verification import User, UserCreate
+
+
+connect_args = {"check_same_thread": False}
+engine = create_engine(
+    str(settings.SQLALCHEMY_DATABASE_URI),
+    echo=True,
+    connect_args=connect_args,
+)
+
+
+# make sure all SQLModel models are imported (app.models) before initializing DB
+# otherwise, SQLModel might fail to initialize relationships properly
+# for more details: https://github.com/tiangolo/full-stack-fastapi-template/issues/28
+
+
+async def init_db(session: Session, seed_if_new=False) -> None:
+    # Tables should be created with Alembic migrations
+    # But if you don't want to use migrations, create
+    # the tables un-commenting the next lines
+    # from sqlmodel import SQLModel
+    # We are using Alembic to create the tables
+    # # This works because the models are already imported and registered from app.models
+    # SQLModel.metadata.create_all(engine)
+
+    if seed_if_new:
+        settings = await get_settings()
+        if not settings.seeded_on:
+            await seed_db(session)
+
+
+async def seed_db(session: Session) -> None:
+
+    crud.create_user(
+        session=session,
+        user_create=UserCreate(
+            email=settings.FIRST_SUPERUSER,
+            password=settings.FIRST_SUPERUSER_PASSWORD,
+            is_superuser=True,
+        ),
+    )
+
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+max_tries = 60 * 5  # 5 minutes
+wait_seconds = 1
+
+
+@retry(
+    stop=stop_after_attempt(max_tries),
+    wait=wait_fixed(wait_seconds),
+    before=before_log(logger, logging.INFO),
+    after=after_log(logger, logging.WARN),
+)
+def test_connect_db() -> None:
+    try:
+        with Session(db_engine) as session:
+            # Try to create session to check if DB is awake
+            session.exec(select(1))
+    except Exception as e:
+        logger.error(e)
+        raise e
+
+
+async def drop_db(db_engine: Engine) -> None:
+    settings = await get_settings()
+    db_engine.execute(f"DROP DATABASE IF EXISTS {settings.POSTGRES_DB}")
+</app/core/db.py>
+
+<app/core/config.py>
+from datetime import datetime
+import functools
+from pathlib import Path
+import secrets
+import warnings
+from typing import Annotated, Any, Literal
+
+import semver
+from pydantic import (
+    AnyUrl,
+    BeforeValidator,
+    Field,
+    HttpUrl,
+    PostgresDsn,
+    computed_field,
+    model_validator,
+    AliasChoices,
+    AmqpDsn,
+    BaseModel,
+    ImportString,
+    RedisDsn,
+)
+from pydantic_core import MultiHostUrl
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing_extensions import Self
+
+
+def parse_cors(v: Any) -> list[str] | str:
+    if isinstance(v, str) and not v.startswith("["):
+        return [i.strip() for i in v.split(",")]
+    elif isinstance(v, list | str):
+        return v
+    raise ValueError(v)
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env", env_ignore_empty=True, extra="ignore"
+    )
+
+    version_major: int
+    version_minor: int
+    version_patch: int
+
+    @property
+    def version(self) -> str:
+        return f"{self.version_major}.{self.version_minor}.{self.version_patch}"
+
+    @version.setter
+    def version(self, value: str) -> None:
+        try:
+            version_info = semver.VersionInfo.parse(value)
+            self.version_major = version_info.major
+            self.version_minor = version_info.minor
+            self.version_patch = version_info.patch
+        except ValueError:
+            raise ValueError(
+                f"Invalid version format: {value}. Must be in the format '<major>.<minor>.<patch>'"
+            )
+
+    seeded_on: datetime | None = Field(env=False)
+    start_time: datetime = Field(default_factory=datetime.utcnow, env=False)
+    maintenance_mode: bool = Field(default=False)
+
+    @property
+    def duration_since_seed(self):
+        return datetime.utcnow() - self.seeded_on
+
+    @property
+    def uptime(self):
+        return datetime.utcnow() - self.start_time
+
+    API_V1_STR: str = "/api/v1"
+    SECRET_KEY: str = secrets.token_urlsafe(32)
+    # 60 minutes * 24 hours * 8 days = 8 days
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
+    DOMAIN: str = "localhost"
+    ENVIRONMENT: Literal["local", "staging", "production"] = "local"
+
+    REDIS_DSN: RedisDsn = Field(
+        "redis://user:pass@localhost:6379/1",
+        validation_alias=AliasChoices("SERVICE_REDIS_DSN", "REDIS_URL"),
+    )
+
+    code_dir_override: str | None = Field(
+        default=None, validation_alias=AliasChoices("CODE_DIR_OVERRIDE")
+    )
+
+    @computed_field  # type: ignore[misc]
+    @property
+    def code_dir(self) -> Path:
+        import typer
+
+        return typer.get_app_dir(app_name=self.app_name)
+
+    app_name: str = Field("Gotcha", validation_alias=AliasChoices("APP_NAME"))
+
+    LOG_FILE = "./logs/debug.log"
+    LOG_FORMAT = "{time} {level} {message}"
+    LOG_LEVEL = "DEBUG"
+    LOG_ROTATION = "10 MB"
+    LOG_COMPRESSION = "zip"
+
+    @computed_field  # type: ignore[misc]
+    @property
+    def server_host(self) -> str:
+        # Use HTTPS for anything other than local development
+        if self.ENVIRONMENT == "local":
+            return f"http://{self.DOMAIN}"
+        return f"https://{self.DOMAIN}"
+
+    BACKEND_CORS_ORIGINS: Annotated[list[AnyUrl] | str, BeforeValidator(parse_cors)] = (
+        []
+    )
+
+    PROJECT_NAME: str = "targets"
+    SENTRY_DSN: HttpUrl | None = None
+    POSTGRES_SERVER: str = "localhost"
+    POSTGRES_PORT: int = 5432
+    POSTGRES_USER: str = "postgres"
+    POSTGRES_PASSWORD: str = "postgres"
+    POSTGRES_DB: str = "postgres"
+
+    @computed_field  # type: ignore[misc]
+    @property
+    def SQLALCHEMY_DATABASE_URI(self) -> PostgresDsn:
+        return MultiHostUrl.build(
+            scheme="postgresql+psycopg",
+            username=self.POSTGRES_USER,
+            password=self.POSTGRES_PASSWORD,
+            host=self.POSTGRES_SERVER,
+            port=self.POSTGRES_PORT,
+            path=self.POSTGRES_DB,
+        )
+
+    SMTP_TLS: bool = True
+    SMTP_SSL: bool = False
+    SMTP_PORT: int = 587
+    SMTP_HOST: str | None = None
+    SMTP_USER: str | None = None
+    SMTP_PASSWORD: str | None = None
+    # TODO: update type to EmailStr when sqlmodel supports it
+    EMAILS_FROM_EMAIL: str | None = None
+    EMAILS_FROM_NAME: str | None = None
+
+    @model_validator(mode="after")
+    def _set_default_emails_from(self) -> Self:
+        if not self.EMAILS_FROM_NAME:
+            self.EMAILS_FROM_NAME = self.PROJECT_NAME
+        return self
+
+    EMAIL_RESET_TOKEN_EXPIRE_HOURS: int = 48
+
+    @computed_field  # type: ignore[misc]
+    @property
+    def emails_enabled(self) -> bool:
+        return bool(self.SMTP_HOST and self.EMAILS_FROM_EMAIL)
+
+    # TODO: update type to EmailStr when sqlmodel supports it
+    EMAIL_TEST_USER: str = "test@example.com"
+    # TODO: update type to EmailStr when sqlmodel supports it
+    FIRST_SUPERUSER: str
+    FIRST_SUPERUSER_PASSWORD: str
+    USERS_OPEN_REGISTRATION: bool = False
+
+    def _check_default_secret(self, var_name: str, value: str | None) -> None:
+        if value == "changethis":
+            message = (
+                f'The value of {var_name} is "changethis", '
+                "for security, please change it, at least for deployments."
+            )
+            if self.ENVIRONMENT == "local":
+                warnings.warn(message, stacklevel=1)
+            else:
+                raise ValueError(message)
+
+    @model_validator(mode="after")
+    def _enforce_non_default_secrets(self) -> Self:
+        self._check_default_secret("SECRET_KEY", self.SECRET_KEY)
+        self._check_default_secret("POSTGRES_PASSWORD", self.POSTGRES_PASSWORD)
+        self._check_default_secret(
+            "FIRST_SUPERUSER_PASSWORD", self.FIRST_SUPERUSER_PASSWORD
+        )
+
+        return self
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        @functools.wraps(super().__setattr__)
+        def new_setattr_fn(self, name: str, value: Any) -> None:
+            super().__setattr__(name, value)
+            store_settings(self)
+
+        self.__setattr__ = new_setattr_fn
+
+
+from app.core.redis import get_redis_connection
+
+settings: Settings | None = None  # Global settings variable
+
+
+async def store_settings(settings: Settings):
+    redis = await get_redis_connection()
+    await redis.set("app_settings", settings.to_json())
+    await redis.publish("settings_channel", "updated")
+
+
+async def get_settings() -> Settings:
+    redis = await get_redis_connection()
+    settings_json = await redis.get("app_settings")
+    if settings_json:
+        return Settings.from_json(settings_json)
+    return Settings()  # Return default settings if not found in Redis
+
+
+async def listen_for_settings_changes():
+    redis = await get_redis_connection()
+    pubsub = redis.pubsub()
+    await pubsub.subscribe("settings_channel")
+    while True:
+        message = await pubsub.get_message(ignore_subscribe_messages=True)
+        if message and message["data"] == "updated":
+            global settings  # Reference to the global settings object
+            settings = await get_settings()
+
+
+import asyncio
+
+
+# Called start of application
+async def init_settings():
+    global settings
+    settings = await get_settings()
+    asyncio.create_task(listen_for_settings_changes())
+</app/core/config.py>
+
+<app/utils/consts.py>
+</app/utils/consts.py>
+
+<app/utils/crud.py>
+from typing import Any, Optional
+from app.api.deps import SessionDep, get_db, MaybeCurrentUserDep
+from app.schema.proof_of_id_verification import (
+    ModelBase,
+    ModelCreate,
+    ModelInDB,
+    ModelRead,
+    ModelUpdate,
+)
+from fastapi import APIRouter, Depends, HTTPException
+from sqlmodel import Session
+
+
+def build_crud_endpoints(
+    t_model_base: type[ModelBase],
+    t_model_create: type[ModelCreate] = None,
+    t_model_read: type[ModelRead] = None,
+    t_model_update: type[ModelUpdate] = None,
+    t_model_in_db: type[ModelInDB] = None,
+    implement_create=True,
+    implement_read=True,
+    implement_update=True,
+    implement_delete=True,
+    router: APIRouter = None,
+):
+    if router is None:
+        router = APIRouter()
+
+    t_model_base.ModelCreate = t_model_create
+    t_model_base.ModelUpdate = t_model_update
+    t_model_base.ModelRead = t_model_read
+    t_model_base.ModelInDB = t_model_in_db
+
+    if implement_create and not t_model_create is not None:
+
+        @router.post(
+            "/",
+            response_model=t_model_read,
+            response_description=f"The created {t_model_base.__name__}",
+            status_code=201,
+            tags=[t_model_base.__name__],
+            responses={
+                201: {
+                    "description": f"The created {t_model_base.__name__}",
+                    "model": t_model_read,
+                },
+                401: {
+                    "description": "Unauthorized",
+                    "model": HTTPException,
+                },
+                403: {
+                    "description": "Forbidden",
+                    "model": HTTPException,
+                },
+            },
+        )
+        async def create_one(
+            item: t_model_create, session: SessionDep, user: MaybeCurrentUserDep
+        ):
+            item_in_db = t_model_in_db.from_create(item, session=session, user=user)
+            return item_in_db.to_read(user=user)
+
+        @router.post(
+            "/multiple",
+            response_model=list[t_model_read],
+            response_description=f"The created {t_model_base.__name__}s",
+            status_code=201,
+            tags=[t_model_base.__name__],
+            responses={
+                201: {
+                    "description": f"The created {t_model_base.__name__}s",
+                    "model": list[t_model_read],
+                },
+                401: {
+                    "description": "Unauthorized",
+                    "model": HTTPException,
+                },
+                403: {
+                    "description": "Forbidden",
+                    "model": HTTPException,
+                },
+            },
+        )
+        async def create_multiple(
+            items: list[t_model_create],
+            session: SessionDep,
+            user: MaybeCurrentUserDep,
+        ):
+            return [
+                t_model_in_db.from_create(item, session=session, user=user).to_read(
+                    user=user
+                )
+                for item in items
+            ]
+
+    if implement_read and not t_model_read is not None:
+
+        @router.get(
+            "/{id}",
+            response_model=t_model_read,
+            response_description=f"The {t_model_base.__name__}",
+            status_code=200,
+            tags=[t_model_base.__name__],
+            responses={
+                200: {
+                    "description": f"The {t_model_base.__name__}",
+                    "model": t_model_read,
+                },
+                401: {
+                    "description": "Unauthorized",
+                    "model": HTTPException,
+                },
+                403: {
+                    "description": "Forbidden",
+                    "model": HTTPException,
+                },
+                404: {
+                    "description": "Not found",
+                    "model": HTTPException,
+                },
+            },
+        )
+        async def read_one(id: int, session: SessionDep, user: MaybeCurrentUserDep):
+            item_in_db = t_model_in_db.find_by_id(id, session=session)
+            if not item_in_db:
+                raise HTTPException(status_code=404, detail="Item not found")
+            return item_in_db.to_read(user=user)
+
+        @router.get(
+            "/{id}/{field}",
+            response_model=t_model_read,
+            response_description=f"The {t_model_base.__name__}",
+            status_code=200,
+            tags=[t_model_base.__name__],
+            responses={
+                200: {
+                    "description": f"The {t_model_base.__name__}",
+                    "model": t_model_read,
+                },
+                401: {
+                    "description": "Unauthorized",
+                    "model": HTTPException,
+                },
+                403: {
+                    "description": "Forbidden",
+                    "model": HTTPException,
+                },
+                404: {
+                    "description": "Not found",
+                    "model": HTTPException,
+                },
+            },
+        )
+        async def read_one_field(
+            id: int, field: str, session: SessionDep, user: MaybeCurrentUserDep
+        ):
+            read_model = implement_read(id, session=session, user=user)
+            if not hasattr(read_model, field):
+                raise HTTPException(status_code=404, detail="Field not found")
+            return getattr(read_model, field)
+
+        @router.get(
+            "/multiple",
+            response_model=list[t_model_read],
+            response_description=f"The {t_model_base.__name__}s",
+            status_code=200,
+            tags=[t_model_base.__name__],
+            responses={
+                200: {
+                    "description": f"The {t_model_base.__name__}s",
+                    "model": list[t_model_read],
+                },
+                401: {
+                    "description": "Unauthorized",
+                    "model": HTTPException,
+                },
+                403: {
+                    "description": "Forbidden",
+                    "model": HTTPException,
+                },
+                404: {
+                    "description": "Not found",
+                    "model": HTTPException,
+                },
+            },
+        )
+        async def read_multiple(
+            ids: list[int], session: SessionDep, user: MaybeCurrentUserDep
+        ):
+            items_in_db = t_model_in_db.find_by_ids(ids, session=session)
+            return [item.to_read(user=user) for item in items_in_db]
+
+        @router.get(
+            "/",
+            response_model=list[t_model_read],
+            response_description=f"The {t_model_base.__name__}s",
+            status_code=200,
+            tags=[t_model_base.__name__],
+            responses={
+                200: {
+                    "description": f"The {t_model_base.__name__}s",
+                    "model": list[t_model_read],
+                },
+                401: {
+                    "description": "Unauthorized",
+                    "model": HTTPException,
+                },
+                403: {
+                    "description": "Forbidden",
+                    "model": HTTPException,
+                },
+                404: {
+                    "description": "Not found",
+                    "model": HTTPException,
+                },
+            },
+        )
+        async def read_all(session: SessionDep, user: MaybeCurrentUserDep):
+            all_items_in_db = t_model_in_db.find_all(session=session)
+            return [item.to_read(user=user) for item in all_items_in_db]
+
+    if implement_update and not t_model_update is not None:
+
+        @router.put(
+            "/{id}",
+            response_model=t_model_read,
+            response_description=f"Updated {t_model_base.__name__}",
+            status_code=200,
+            tags=[t_model_base.__name__],
+            responses={
+                200: {
+                    "description": f"Updated {t_model_base.__name__}",
+                    "model": t_model_read,
+                },
+                400: {
+                    "description": "Bad Request",
+                    "model": HTTPException,
+                },
+                401: {
+                    "description": "Unauthorized",
+                    "model": HTTPException,
+                },
+                403: {
+                    "description": "Forbidden",
+                    "model": HTTPException,
+                },
+                404: {
+                    "description": "Not found",
+                    "model": HTTPException,
+                },
+            },
+        )
+        async def update_one(
+            id: int,
+            update_data: t_model_update,
+            session: SessionDep,
+            user: MaybeCurrentUserDep,
+        ):
+            item_in_db = t_model_in_db.find_by_id_or_raise(id, session)
+            item_in_db.update_from(update_data, session, user)
+            return item_in_db.to_read(user=user)
+
+        @router.patch(
+            "/{id}/{field_name}",
+            response_model=t_model_read,
+            response_description=f"Partially updated {t_model_base.__name__}",
+            status_code=200,
+            tags=[t_model_base.__name__],
+            responses={
+                200: {
+                    "description": f"Partially updated {t_model_base.__name__}",
+                    "model": t_model_read,
+                },
+                400: {
+                    "description": "Bad Request",
+                    "model": HTTPException,
+                },
+                401: {
+                    "description": "Unauthorized",
+                    "model": HTTPException,
+                },
+                403: {
+                    "description": "Forbidden",
+                    "model": HTTPException,
+                },
+                404: {
+                    "description": "Not found",
+                    "model": HTTPException,
+                },
+            },
+        )
+        async def update_one_field(
+            id: int,
+            field_name: str,
+            field_value: Any,
+            session: SessionDep,
+            user: MaybeCurrentUserDep,
+        ):
+            update_one(
+                id,
+                update_data={field_name: field_value},
+                session=session,
+                user=user,
+            )
+
+        @router.put(
+            "/",
+            response_model=list[t_model_read],
+            response_description=f"Updated multiple {t_model_base.__name__}s",
+            status_code=200,
+            tags=[t_model_base.__name__],
+            responses={
+                200: {
+                    "description": f"Updated multiple {t_model_base.__name__}s",
+                    "model": list[t_model_read],
+                },
+                400: {
+                    "description": "Bad Request",
+                    "model": HTTPException,
+                },
+                401: {
+                    "description": "Unauthorized",
+                    "model": HTTPException,
+                },
+                403: {
+                    "description": "Forbidden",
+                    "model": HTTPException,
+                },
+                404: {
+                    "description": "Not found",
+                    "model": HTTPException,
+                },
+            },
+        )
+        async def update_multiple(
+            ids: list[int],
+            update_data: t_model_update,
+            session: SessionDep,
+            user: MaybeCurrentUserDep,
+        ):
+            items_in_db = t_model_in_db.find_by_ids(ids, session)
+            for item in items_in_db:
+                item.update_from(update_data, session, user)
+            return [item.to_read(user=user) for item in items_in_db]
+
+    if implement_delete:
+
+        @router.delete(
+            "/{id}",
+            response_model=t_model_read,
+            response_description=f"Deleted {t_model_base.__name__}",
+            status_code=200,
+            tags=[t_model_base.__name__],
+            responses={
+                200: {
+                    "description": f"Deleted {t_model_base.__name__}",
+                    "model": t_model_read,
+                },
+                400: {
+                    "description": "Bad Request",
+                    "model": HTTPException,
+                },
+                401: {
+                    "description": "Unauthorized",
+                    "model": HTTPException,
+                },
+                403: {
+                    "description": "Forbidden",
+                    "model": HTTPException,
+                },
+                404: {
+                    "description": "Not found",
+                    "model": HTTPException,
+                },
+            },
+        )
+        async def delete_one(id: int, session: SessionDep, user: MaybeCurrentUserDep):
+            item_in_db = t_model_in_db.find_by_id_or_raise(id, session)
+            item_in_db.delete(session)
+            return item_in_db.to_read(user=user)
+
+        @router.delete(
+            "/",
+            response_model=list[t_model_read],
+            response_description=f"Deleted multiple {t_model_base.__name__}s",
+            status_code=200,
+            tags=[t_model_base.__name__],
+            responses={
+                200: {
+                    "description": f"Deleted multiple {t_model_base.__name__}s",
+                    "model": list[t_model_read],
+                },
+                400: {
+                    "description": "Bad Request",
+                    "model": HTTPException,
+                },
+                401: {
+                    "description": "Unauthorized",
+                    "model": HTTPException,
+                },
+                403: {
+                    "description": "Forbidden",
+                    "model": HTTPException,
+                },
+                404: {
+                    "description": "Not found",
+                    "model": HTTPException,
+                },
+            },
+        )
+        async def delete_multiple(
+            ids: list[int], session: SessionDep, user: MaybeCurrentUserDep
+        ):
+            items_in_db = t_model_in_db.find_by_ids(ids, session)
+            for item in items_in_db:
+                item.delete(session)
+            return [item.to_read(user=user) for item in items_in_db]
+
+    return router
+</app/utils/crud.py>
+
+<app/utils/errors.py>
+class UnauthorizedUpdateError(Exception):
+    pass
+</app/utils/errors.py>
+
+<app/utils/__init__.py>
+import logging
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Any
+
+import emails  # type: ignore
+import jwt
+from jinja2 import Template
+from jwt.exceptions import InvalidTokenError
+
+from app.core.config import settings
+
+
+@dataclass
+class EmailData:
+    html_content: str
+    subject: str
+
+
+def render_email_template(*, template_name: str, context: dict[str, Any]) -> str:
+    template_str = (
+        Path(__file__).parent / "email-templates" / "build" / template_name
+    ).read_text()
+    html_content = Template(template_str).render(context)
+    return html_content
+
+
+def send_email(
+    *,
+    email_to: str,
+    subject: str = "",
+    html_content: str = "",
+) -> None:
+    assert settings.emails_enabled, "no provided configuration for email variables"
+    message = emails.Message(
+        subject=subject,
+        html=html_content,
+        mail_from=(settings.EMAILS_FROM_NAME, settings.EMAILS_FROM_EMAIL),
+    )
+    smtp_options = {"host": settings.SMTP_HOST, "port": settings.SMTP_PORT}
+    if settings.SMTP_TLS:
+        smtp_options["tls"] = True
+    elif settings.SMTP_SSL:
+        smtp_options["ssl"] = True
+    if settings.SMTP_USER:
+        smtp_options["user"] = settings.SMTP_USER
+    if settings.SMTP_PASSWORD:
+        smtp_options["password"] = settings.SMTP_PASSWORD
+    response = message.send(to=email_to, smtp=smtp_options)
+    logging.info(f"send email result: {response}")
+
+
+def generate_test_email(email_to: str) -> EmailData:
+    project_name = settings.PROJECT_NAME
+    subject = f"{project_name} - Test email"
+    html_content = render_email_template(
+        template_name="test_email.html",
+        context={"project_name": settings.PROJECT_NAME, "email": email_to},
+    )
+    return EmailData(html_content=html_content, subject=subject)
+
+
+def generate_reset_password_email(email_to: str, email: str, token: str) -> EmailData:
+    project_name = settings.PROJECT_NAME
+    subject = f"{project_name} - Password recovery for user {email}"
+    link = f"{settings.server_host}/reset-password?token={token}"
+    html_content = render_email_template(
+        template_name="reset_password.html",
+        context={
+            "project_name": settings.PROJECT_NAME,
+            "username": email,
+            "email": email_to,
+            "valid_hours": settings.EMAIL_RESET_TOKEN_EXPIRE_HOURS,
+            "link": link,
+        },
+    )
+    return EmailData(html_content=html_content, subject=subject)
+
+
+def generate_new_account_email(
+    email_to: str, username: str, password: str
+) -> EmailData:
+    project_name = settings.PROJECT_NAME
+    subject = f"{project_name} - New account for user {username}"
+    html_content = render_email_template(
+        template_name="new_account.html",
+        context={
+            "project_name": settings.PROJECT_NAME,
+            "username": username,
+            "password": password,
+            "email": email_to,
+            "link": settings.server_host,
+        },
+    )
+    return EmailData(html_content=html_content, subject=subject)
+
+
+def generate_password_reset_token(email: str) -> str:
+    delta = timedelta(hours=settings.EMAIL_RESET_TOKEN_EXPIRE_HOURS)
+    now = datetime.utcnow()
+    expires = now + delta
+    exp = expires.timestamp()
+    encoded_jwt = jwt.encode(
+        {"exp": exp, "nbf": now, "sub": email},
+        settings.SECRET_KEY,
+        algorithm="HS256",
+    )
+    return encoded_jwt
+
+
+def verify_password_reset_token(token: str) -> str | None:
+    try:
+        decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        return str(decoded_token["sub"])
+    except InvalidTokenError:
+        return None
+</app/utils/__init__.py>
+
+<app/api/main.py>
+from fastapi import APIRouter
+
+from app.api.routes import items, login, users, utils
+
+api_router = APIRouter()
+api_router.include_router(login.router, tags=["login"])
+api_router.include_router(users.router, prefix="/users", tags=["users"])
+api_router.include_router(utils.router, prefix="/utils", tags=["utils"])
+api_router.include_router(items.router, prefix="/items", tags=["items"])
+</app/api/main.py>
+
+<app/api/routes/users.py>
+from typing import Any
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlmodel import col, delete, func, select
+
+from app import crud
+from app.api.deps import (
+    CurrentUserDep,
+    SessionDep,
+    get_current_active_superuser,
+)
+from app.core.config import settings
+from app.core.security import get_password_hash, verify_password
+from app.schema.proof_of_id_verification import (
+    Item,
+    Message,
+    UpdatePassword,
+    User,
+    UserCreate,
+    UserPublic,
+    UserRegister,
+    UsersPublic,
+    UserUpdate,
+    UserUpdateMe,
+)
+from app.utils import generate_new_account_email, send_email
+
+router = APIRouter()
+
+
+@router.get(
+    "/",
+    dependencies=[Depends(get_current_active_superuser)],
+    response_model=UsersPublic,
+)
+def read_users(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
+    """
+    Retrieve users.
+    """
+
+    count_statement = select(func.count()).select_from(User)
+    count = session.exec(count_statement).one()
+
+    statement = select(User).offset(skip).limit(limit)
+    users = session.exec(statement).all()
+
+    return UsersPublic(data=users, count=count)
+
+
+@router.post(
+    "/", dependencies=[Depends(get_current_active_superuser)], response_model=UserPublic
+)
+def create_user(*, session: SessionDep, user_in: UserCreate) -> Any:
+    """
+    Create new user.
+    """
+    user = crud.get_user_by_email(session=session, email=user_in.email)
+    if user:
+        raise HTTPException(
+            status_code=400,
+            detail="The user with this email already exists in the system.",
+        )
+
+    user = crud.create_user(session=session, user_create=user_in)
+    if settings.emails_enabled and user_in.email:
+        email_data = generate_new_account_email(
+            email_to=user_in.email, username=user_in.email, password=user_in.password
+        )
+        send_email(
+            email_to=user_in.email,
+            subject=email_data.subject,
+            html_content=email_data.html_content,
+        )
+    return user
+
+
+@router.patch("/me", response_model=UserPublic)
+def update_user_me(
+    *, session: SessionDep, user_in: UserUpdateMe, current_user: CurrentUserDep
+) -> Any:
+    """
+    Update own user.
+    """
+
+    if user_in.email:
+        existing_user = crud.get_user_by_email(session=session, email=user_in.email)
+        if existing_user and existing_user.id != current_user.id:
+            raise HTTPException(
+                status_code=409, detail="User with this email already exists"
+            )
+    user_data = user_in.model_dump(exclude_unset=True)
+    current_user.sqlmodel_update(user_data)
+    session.add(current_user)
+    session.commit()
+    session.refresh(current_user)
+    return current_user
+
+
+@router.patch("/me/password", response_model=Message)
+def update_password_me(
+    *, session: SessionDep, body: UpdatePassword, current_user: CurrentUserDep
+) -> Any:
+    """
+    Update own password.
+    """
+    if not verify_password(body.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Incorrect password")
+    if body.current_password == body.new_password:
+        raise HTTPException(
+            status_code=400, detail="New password cannot be the same as the current one"
+        )
+    hashed_password = get_password_hash(body.new_password)
+    current_user.hashed_password = hashed_password
+    session.add(current_user)
+    session.commit()
+    return Message(message="Password updated successfully")
+
+
+@router.get("/me", response_model=UserPublic)
+def read_user_me(current_user: CurrentUserDep) -> Any:
+    """
+    Get current user.
+    """
+    return current_user
+
+
+@router.delete("/me", response_model=Message)
+def delete_user_me(session: SessionDep, current_user: CurrentUserDep) -> Any:
+    """
+    Delete own user.
+    """
+    if current_user.is_superuser:
+        raise HTTPException(
+            status_code=403, detail="Super users are not allowed to delete themselves"
+        )
+    statement = delete(Item).where(col(Item.owner_id) == current_user.id)
+    session.exec(statement)  # type: ignore
+    session.delete(current_user)
+    session.commit()
+    return Message(message="User deleted successfully")
+
+
+@router.post("/signup", response_model=UserPublic)
+def register_user(session: SessionDep, user_in: UserRegister) -> Any:
+    """
+    Create new user without the need to be logged in.
+    """
+    if not settings.USERS_OPEN_REGISTRATION:
+        raise HTTPException(
+            status_code=403,
+            detail="Open user registration is forbidden on this server",
+        )
+    user = crud.get_user_by_email(session=session, email=user_in.email)
+    if user:
+        raise HTTPException(
+            status_code=400,
+            detail="The user with this email already exists in the system",
+        )
+    user_create = UserCreate.model_validate(user_in)
+    user = crud.create_user(session=session, user_create=user_create)
+    return user
+
+
+@router.get("/{user_id}", response_model=UserPublic)
+def read_user_by_id(
+    user_id: int, session: SessionDep, current_user: CurrentUserDep
+) -> Any:
+    """
+    Get a specific user by id.
+    """
+    user = session.get(User, user_id)
+    if user == current_user:
+        return user
+    if not current_user.is_superuser:
+        raise HTTPException(
+            status_code=403,
+            detail="The user doesn't have enough privileges",
+        )
+    return user
+
+
+@router.patch(
+    "/{user_id}",
+    dependencies=[Depends(get_current_active_superuser)],
+    response_model=UserPublic,
+)
+def update_user(
+    *,
+    session: SessionDep,
+    user_id: int,
+    user_in: UserUpdate,
+) -> Any:
+    """
+    Update a user.
+    """
+
+    db_user = session.get(User, user_id)
+    if not db_user:
+        raise HTTPException(
+            status_code=404,
+            detail="The user with this id does not exist in the system",
+        )
+    if user_in.email:
+        existing_user = crud.get_user_by_email(session=session, email=user_in.email)
+        if existing_user and existing_user.id != user_id:
+            raise HTTPException(
+                status_code=409, detail="User with this email already exists"
+            )
+
+    db_user = crud.update_user(session=session, db_user=db_user, user_in=user_in)
+    return db_user
+
+
+@router.delete("/{user_id}", dependencies=[Depends(get_current_active_superuser)])
+def delete_user(
+    session: SessionDep, current_user: CurrentUserDep, user_id: int
+) -> Message:
+    """
+    Delete a user.
+    """
+    user = session.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user == current_user:
+        raise HTTPException(
+            status_code=403, detail="Super users are not allowed to delete themselves"
+        )
+    statement = delete(Item).where(col(Item.owner_id) == user_id)
+    session.exec(statement)  # type: ignore
+    session.delete(user)
+    session.commit()
+    return Message(message="User deleted successfully")
+</app/api/routes/users.py>
+
+<app/api/routes/items.py>
+from typing import Any
+
+from fastapi import APIRouter, HTTPException
+from sqlmodel import func, select
+
+from app.api.deps import CurrentUserDep, SessionDep
+from app.schema.proof_of_id_verification import (
+    Item,
+    ItemCreate,
+    ItemPublic,
+    ItemsPublic,
+    ItemUpdate,
+    Message,
+)
+
+router = APIRouter()
+
+
+@router.get("/", response_model=ItemsPublic)
+def read_items(
+    session: SessionDep, current_user: CurrentUserDep, skip: int = 0, limit: int = 100
+) -> Any:
+    """
+    Retrieve items.
+    """
+
+    if current_user.is_superuser:
+        count_statement = select(func.count()).select_from(Item)
+        count = session.exec(count_statement).one()
+        statement = select(Item).offset(skip).limit(limit)
+        items = session.exec(statement).all()
+    else:
+        count_statement = (
+            select(func.count())
+            .select_from(Item)
+            .where(Item.owner_id == current_user.id)
+        )
+        count = session.exec(count_statement).one()
+        statement = (
+            select(Item)
+            .where(Item.owner_id == current_user.id)
+            .offset(skip)
+            .limit(limit)
+        )
+        items = session.exec(statement).all()
+
+    return ItemsPublic(data=items, count=count)
+
+
+@router.get("/{id}", response_model=ItemPublic)
+def read_item(session: SessionDep, current_user: CurrentUserDep, id: int) -> Any:
+    """
+    Get item by ID.
+    """
+    item = session.get(Item, id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    if not current_user.is_superuser and (item.owner_id != current_user.id):
+        raise HTTPException(status_code=400, detail="Not enough permissions")
+    return item
+
+
+@router.post("/", response_model=ItemPublic)
+def create_item(
+    *, session: SessionDep, current_user: CurrentUserDep, item_in: ItemCreate
+) -> Any:
+    """
+    Create new item.
+    """
+    item = Item.model_validate(item_in, update={"owner_id": current_user.id})
+    session.add(item)
+    session.commit()
+    session.refresh(item)
+    return item
+
+
+@router.put("/{id}", response_model=ItemPublic)
+def update_item(
+    *, session: SessionDep, current_user: CurrentUserDep, id: int, item_in: ItemUpdate
+) -> Any:
+    """
+    Update an item.
+    """
+    item = session.get(Item, id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    if not current_user.is_superuser and (item.owner_id != current_user.id):
+        raise HTTPException(status_code=400, detail="Not enough permissions")
+    update_dict = item_in.model_dump(exclude_unset=True)
+    item.sqlmodel_update(update_dict)
+    session.add(item)
+    session.commit()
+    session.refresh(item)
+    return item
+
+
+@router.delete("/{id}")
+def delete_item(session: SessionDep, current_user: CurrentUserDep, id: int) -> Message:
+    """
+    Delete an item.
+    """
+    item = session.get(Item, id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    if not current_user.is_superuser and (item.owner_id != current_user.id):
+        raise HTTPException(status_code=400, detail="Not enough permissions")
+    session.delete(item)
+    session.commit()
+    return Message(message="Item deleted successfully")
+</app/api/routes/items.py>
+
+<app/api/routes/login.py>
+from datetime import timedelta
+from typing import Annotated, Any
+
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import HTMLResponse
+from fastapi.security import OAuth2PasswordRequestForm
+
+from app import crud
+from app.api.deps import CurrentUserDep, SessionDep, get_current_active_superuser
+from app.core import security
+from app.core.config import settings
+from app.core.security import get_password_hash
+from app.schema.proof_of_id_verification import Message, NewPassword, Token, UserPublic
+from app.utils import (
+    generate_password_reset_token,
+    generate_reset_password_email,
+    send_email,
+    verify_password_reset_token,
+)
+
+router = APIRouter()
+
+
+@router.post("/login/access-token")
+def login_access_token(
+    session: SessionDep, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
+) -> Token:
+    """
+    OAuth2 compatible token login, get an access token for future requests
+    """
+    user = crud.authenticate(
+        session=session, email=form_data.username, password=form_data.password
+    )
+    if not user:
+        raise HTTPException(status_code=400, detail="Incorrect email or password")
+    elif not user.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    return Token(
+        access_token=security.create_access_token(
+            user.id, expires_delta=access_token_expires
+        )
+    )
+
+
+@router.post("/login/test-token", response_model=UserPublic)
+def test_token(current_user: CurrentUserDep) -> Any:
+    """
+    Test access token
+    """
+    return current_user
+
+
+@router.post("/password-recovery/{email}")
+def recover_password(email: str, session: SessionDep) -> Message:
+    """
+    Password Recovery
+    """
+    user = crud.get_user_by_email(session=session, email=email)
+
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="The user with this email does not exist in the system.",
+        )
+    password_reset_token = generate_password_reset_token(email=email)
+    email_data = generate_reset_password_email(
+        email_to=user.email, email=email, token=password_reset_token
+    )
+    send_email(
+        email_to=user.email,
+        subject=email_data.subject,
+        html_content=email_data.html_content,
+    )
+    return Message(message="Password recovery email sent")
+
+
+@router.post("/reset-password/")
+def reset_password(session: SessionDep, body: NewPassword) -> Message:
+    """
+    Reset password
+    """
+    email = verify_password_reset_token(token=body.token)
+    if not email:
+        raise HTTPException(status_code=400, detail="Invalid token")
+    user = crud.get_user_by_email(session=session, email=email)
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="The user with this email does not exist in the system.",
+        )
+    elif not user.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    hashed_password = get_password_hash(password=body.new_password)
+    user.hashed_password = hashed_password
+    session.add(user)
+    session.commit()
+    return Message(message="Password updated successfully")
+
+
+@router.post(
+    "/password-recovery-html-content/{email}",
+    dependencies=[Depends(get_current_active_superuser)],
+    response_class=HTMLResponse,
+)
+def recover_password_html_content(email: str, session: SessionDep) -> Any:
+    """
+    HTML Content for Password Recovery
+    """
+    user = crud.get_user_by_email(session=session, email=email)
+
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="The user with this username does not exist in the system.",
+        )
+    password_reset_token = generate_password_reset_token(email=email)
+    email_data = generate_reset_password_email(
+        email_to=user.email, email=email, token=password_reset_token
+    )
+
+    return HTMLResponse(
+        content=email_data.html_content, headers={"subject:": email_data.subject}
+    )
+</app/api/routes/login.py>
+
+<app/api/routes/utils.py>
+from fastapi import APIRouter, Depends
+from pydantic.networks import EmailStr
+
+from app.api.deps import get_current_active_superuser
+from app.schema.proof_of_id_verification import Message
+from app.utils import generate_test_email, send_email
+
+router = APIRouter()
+
+
+@router.post(
+    "/test-email/",
+    dependencies=[Depends(get_current_active_superuser)],
+    status_code=201,
+)
+def test_email(email_to: EmailStr) -> Message:
+    """
+    Test emails.
+    """
+    email_data = generate_test_email(email_to=email_to)
+    send_email(
+        email_to=email_to,
+        subject=email_data.subject,
+        html_content=email_data.html_content,
+    )
+    return Message(message="Test email sent")
+</app/api/routes/utils.py>
+
+<app/api/routes/__init__.py>
+</app/api/routes/__init__.py>
+
+<app/api/__init__.py>
+</app/api/__init__.py>
+
+<app/api/deps.py>
+from collections.abc import Generator
+from typing import Annotated
+
+import jwt
+from fastapi import Depends, HTTPException, Request, status
+from fastapi.security import OAuth2PasswordBearer
+from jwt.exceptions import InvalidTokenError
+from pydantic import ValidationError
+from sqlmodel import Session, select
+
+from app.core import security
+from app.core.config import settings
+from app.core.db import engine
+from app.schema.proof_of_id_verification import TokenPayload, User, VerifiableIdentity
+
+reusable_oauth2 = OAuth2PasswordBearer(
+    tokenUrl=f"{settings.API_V1_STR}/login/access-token"
+)
+
+
+def get_db() -> Generator[Session, None, None]:
+    with Session(engine) as session:
+        yield session
+
+
+SessionDep = Annotated[Session, Depends(get_db)]
+TokenDep = Annotated[str, Depends(reusable_oauth2)]
+
+
+def get_current_verifiable_identity(
+    request: Request, session: SessionDep, token: TokenDep
+) -> VerifiableIdentity:
+    identity = _get_current_user(session, token, raise_on_not_found=False)
+    if not identity:
+        ghost_identity = request.headers.get("ghost_identity")
+        identity = session.exec(select(User).where(User.id == ghost_identity)).first()
+    return identity
+
+
+def get_current_user(session: SessionDep, token: TokenDep) -> User:
+    return _get_current_user(session, token)
+
+
+def maybe_get_current_user(session: SessionDep, token: TokenDep) -> User | None:
+    return _get_current_user(session, token, raise_on_not_found=False)
+
+
+def _get_current_user(
+    session: SessionDep, token: TokenDep, raise_on_not_found: bool = True
+) -> User:
+    try:
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[security.ALGORITHM]
+        )
+        token_data = TokenPayload(**payload)
+    except (InvalidTokenError, ValidationError):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Could not validate credentials",
+        )
+    user = session.get(User, token_data.sub)
+    if not user:
+        if raise_on_not_found:
+            raise HTTPException(status_code=404, detail="User not found")
+        else:
+            return None
+    if not user.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    return user
+
+
+CurrentUserDep = Annotated[User, Depends(get_current_user)]
+MaybeCurrentUserDep = Annotated[User | None, Depends(maybe_get_current_user)]
+
+
+def get_current_active_superuser(current_user: CurrentUserDep) -> User:
+    if not current_user.is_superuser:
+        raise HTTPException(
+            status_code=403, detail="The user doesn't have enough privileges"
+        )
+    return current_user
+</app/api/deps.py>
+
+<app/crud.py>
+from typing import Any
+
+from sqlmodel import Session, select
+
+from app.core.security import get_password_hash, verify_password
+from app.schema.proof_of_id_verification import (
+    Item,
+    ItemCreate,
+    User,
+    UserCreate,
+    UserUpdate,
+)
+
+
+def create_user(*, session: Session, user_create: UserCreate) -> User:
+    db_obj = User.model_validate(
+        user_create, update={"hashed_password": get_password_hash(user_create.password)}
+    )
+    session.add(db_obj)
+    session.commit()
+    session.refresh(db_obj)
+    return db_obj
+
+
+def update_user(*, session: Session, db_user: User, user_in: UserUpdate) -> Any:
+    user_data = user_in.model_dump(exclude_unset=True)
+    extra_data = {}
+    if "password" in user_data:
+        password = user_data["password"]
+        hashed_password = get_password_hash(password)
+        extra_data["hashed_password"] = hashed_password
+    db_user.sqlmodel_update(user_data, update=extra_data)
+    session.add(db_user)
+    session.commit()
+    session.refresh(db_user)
+    return db_user
+
+
+def get_user_by_email(*, session: Session, email: str) -> User | None:
+    statement = select(User).where(User.email == email)
+    session_user = session.exec(statement).first()
+    return session_user
+
+
+def authenticate(*, session: Session, email: str, password: str) -> User | None:
+    db_user = get_user_by_email(session=session, email=email)
+    if not db_user:
+        return None
+    if not verify_password(password, db_user.hashed_password):
+        return None
+    return db_user
+
+
+def create_item(*, session: Session, item_in: ItemCreate, owner_id: int) -> Item:
+    db_item = Item.model_validate(item_in, update={"owner_id": owner_id})
+    session.add(db_item)
+    session.commit()
+    session.refresh(db_item)
+    return db_item
+</app/crud.py>
+
+<app/algorithms/face_video_image_match_verification/processor.py>
+from datetime import datetime
+import face_recognition
+import cv2
+import aio_pika
+
+from app.schema.proof_of_id_verification import (
+    OneTimeVerifiableIdentity,
+    UserThatRequestsVerification,
+    Verification,
+)
+
+
+class FaceRecognitionHandler:
+    def __init__(self, verification_request: Verification):
+        self.video_capture = None
+        self.face_locations = []
+        self.frame_count = 0  # Initialize frame count
+        self.verification_request = verification_request
+        # hook up the handler for new amqp messages
+        self.verification_request.listen_for_messages(self.consumer)
+
+    async def consumer(self, data: str):
+        print(data)
+
+    def process_frame(self, frame):
+        # Resize frame of video to 1/4 size for faster face recognition processing
+        small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
+
+        # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
+        rgb_small_frame = small_frame[:, :, ::-1]
+
+        # Only process every other frame of video to save time
+        if self.frame_count % 2 == 0:  # Check if the frame count is even
+            # Find all the faces and face locations in the current frame of video
+            new_face_locations = face_recognition.face_locations(rgb_small_frame)
+            self.face_locations.extend(
+                new_face_locations
+            )  # Append new detections to existing locations
+
+        # Draw a box around the faces
+        for top, right, bottom, left in self.face_locations:
+            cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
+        self.verification_request.publish_message("we're processing the frame")
+
+        # Let's suppose you detected a face
+        if True:  # say, you detected a face
+            # send a message to the queue
+            self.verification_request.publish_message("face detected")
+
+        self.frame_count += 1  # Increment the frame count
+        return True
+
+
+def test_local_face_detection():
+    handler = FaceRecognitionHandler(
+        verification_request=Verification(
+            id=1,
+            who_to_verify=OneTimeVerifiableIdentity(id=1, image=b""),
+            on_completion_redirect_url="",
+            on_completion_webhook_url="",
+            verification_requested_by=UserThatRequestsVerification(
+                id=2,
+                name="Test Developer",
+                image=b"",
+                email="test@example.com",
+                is_verified=True,
+                is_active=True,
+                full_name="Test Developer",
+                hashed_password="",
+                is_superuser=True,
+                stripe_user_access_token="",
+            ),
+            verification_requested_at=datetime.now(),
+            verification_requested_by_id=2,
+            check_anomaly_in_face_video=False,
+            ask_to_make_hand_signs=False,
+            hand_letters=None,
+            check_match_against_provided_face_images=False,
+            additional_provided_face_images=[],
+            check_fingerprint=False,
+        )
+    )
+
+    cap = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        print("Cannot open video source")
+        exit()
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            print("Can't receive frame (stream end?). Exiting...")
+            break
+        face = handler.process_frame(frame)
+        if not face:
+            break
+    cap.release()
+
+
+if __name__ == "__main__":
+    test_local_face_detection()
+</app/algorithms/face_video_image_match_verification/processor.py>
+
+<app/algorithms/face_video_image_match_verification/schema.py>
+from __future__ import annotations
+
+from abc import abstractmethod
+from datetime import datetime
+from enum import Enum
+from functools import cached_property
+from typing import ClassVar, Optional
+
+from pydantic.config import ConfigDict
+from sqlalchemy import Column, String, func
+from sqlalchemy.ext.hybrid import hybrid_column
+from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
+from typing_extensions import Unpack
+
+from app.core.redis import get_redis_connection
+from app.schema.verification.verification import (
+    Verification,
+    VerificationBase,
+    VerificationRead,
+)
+
+
+class FaceImageMatchVerificationBase(VerificationBase):
+    algorithm_name: str = "face_image_match_verification-001"
+
+
+class FaceImageMatchVerification(FaceImageMatchVerificationBase, Verification):
+    additional_provided_face_images: list[bytes] | None = None
+
+    @hybrid_property
+    def all_provided_face_images(self):
+        return self.additional_provided_face_images + [self.who_to_verify.image]
+
+    @all_provided_face_images.expression
+    def all_provided_face_images(cls):
+        return func.array_cat(
+            cls.additional_provided_face_images, func.array([cls.who_to_verify.image])
+        )
+
+
+class FaceImageMatchVerificationRead(FaceImageMatchVerificationBase, VerificationRead):
+    pass
+</app/algorithms/face_video_image_match_verification/schema.py>
+
+<app/algorithms/face_video_image_match_verification/router.py>
+from typing import Annotated
+from app.api.deps import (
+    get_current_active_superuser,
+    get_current_user,
+    get_current_user_or_none,
+    get_current_verifiable_identity,
+    get_db,
+)
+from app.ml.face_detection import FaceRecognitionHandler
+from app.schema.proof_of_id_verification import (
+    User,
+    UserThatRequestsVerification,
+    VerifiableIdentity,
+    VerificationBase,
+    VerificationRequestCreate,
+    VerificationRequestUpdate,
+    VerificationPublic,
+    Verification,
+    VerificationStatus,
+)
+from fastapi import APIRouter, Depends, HTTPException, WebSocket, Request
+from sqlalchemy.orm import Session
+from sqlmodel import select
+import aio_pika
+import os
+
+# I think we need this import and need to add the frames function in the video route
+from app.ml.face_detection import process_frame
+
+router = APIRouter()
+
+
+@router.get("/", response_model=list[VerificationPublic])
+def get_my_verification_requests(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return db.query(Verification).filter(Verification.user_id == current_user.id).all()
+
+
+def get_verification_request_assigned_to_meby_id(
+    verification_request_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Verification | None:
+    try:
+        verf_request = db.exec(
+            select(Verification)
+            .filter(
+                Verification.id == verification_request_id,
+                Verification.who_to_verify_id == current_user.id,
+            )
+            .first()
+        )
+        return verf_request
+    except Exception as e:
+        raise HTTPException(status_code=404, detail="Verification request not found")
+
+
+GetVerificationRequestDep = Annotated[
+    Verification, Depends(get_verification_request_assigned_to_meby_id)
+]
+
+
+@router.post("/", response_model=VerificationPublic)
+def create_verification_request(
+    verification_request_in: VerificationRequestCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not isinstance(current_user, UserThatRequestsVerification):
+        raise HTTPException(
+            status_code=403,
+            detail="User must face for an other user that requests verification",
+        )
+    verification_request = Verification(**verification_request_in.dict())
+    db.add(verification_request)
+    db.commit()
+    return verification_request
+
+
+@router.put("/{verification_request_id}", response_model=VerificationPublic)
+def update_verification_request(
+    verification_request_in: VerificationRequestUpdate,
+    current_verification_request: GetVerificationRequestDep = Depends(
+        GetVerificationRequestDep
+    ),
+    db: Session = Depends(get_db),
+):
+    if not current_verification_request:
+        raise HTTPException(status_code=404, detail="Verification request not found")
+    current_verification_request.update(
+        verification_request_in.dict(exclude_unset=True)
+    )
+    db.commit()
+    return current_verification_request
+
+
+@router.get("/{verification_request_id}", response_model=VerificationStatus)
+def check_verification_request_status(
+    verification_request_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    verification_request = (
+        db.query(Verification)
+        .filter(Verification.id == verification_request_id)
+        .first()
+    )
+    if not verification_request:
+        raise HTTPException(status_code=404, detail="Verification request not found")
+    return verification_request
+
+
+@router.websocket("/ws/{verification_request_id}")
+async def verify_me_websocket_endpoint(
+    websocket: WebSocket,
+    verification_request_id: int,
+    db: Session = Depends(get_db),
+    current_identity: VerifiableIdentity = Depends(get_current_verifiable_identity),
+):
+    await websocket.accept()
+
+    verification_request = (
+        db.query(Verification)
+        .filter(Verification.id == verification_request_id)
+        .first()
+    )
+    if not verification_request:
+        raise HTTPException(status_code=404, detail="Verification request not found")
+
+    async def consumer(message: aio_pika.IncomingMessage):
+        async with message.process():
+            # Echo message back to WebSocket
+            await websocket.send_text(f"Message received: {message.body.decode()}")
+
+    # Start consuming messages
+    await verification_request.amqp_queue().consume(consumer)
+
+    try:
+        while True:
+            text_data = await websocket.receive_text()
+            # Publish messages to the queue
+            await verification_request.amqp_queue().default_exchange.publish(
+                aio_pika.Message(body=text_data.encode()),
+                routing_key=verification_request.queue_name,
+            )
+
+    except Exception as e:
+        await websocket.close()
+        print(f"WebSocket connection closed with exception: {e}")
+    finally:
+        pass
+
+
+@router.post("/video/{verification_request_id}")
+async def stream_video(
+    request: Request, verification_request: GetVerificationRequestDep
+):
+    face_recognition_handler = FaceRecognitionHandler(
+        verification_request=verification_request
+    )
+    async for chunk in request.stream():
+        # Process each chunk of video data
+        face_recognition_handler.process_frame(chunk)
+</app/algorithms/face_video_image_match_verification/router.py>
+
+<app/schema/user/user.py>
+from __future__ import annotations
+
+from abc import abstractmethod
+from datetime import datetime
+from enum import Enum
+from functools import cached_property
+from typing import ClassVar, Optional
+
+from pydantic.config import ConfigDict
+from sqlalchemy import Column, String, func
+from sqlalchemy.ext.hybrid import hybrid_column
+from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
+from typing_extensions import Unpack
+
+from app.core.redis import get_redis_connection
+from app.schema.base import ModelBase
+from app.schema.user.identity import (
+    Identity,
+    IdentityBase,
+    IdentityCreate,
+    IdentityRead,
+    VerifiableIdentityPublicMe,
+    IdentityUpdate,
+    VerifiableIdentityUpdateMe,
+)
+from app.utils.crud import build_crud_endpoints
+
+
+# Shared properties
+# TODO replace email str with EmailStr when sqlmodel supports it
+class UserBase(IdentityBase):
+    email: str = Field(unique=True, index=True)
+    is_active: bool = True
+    is_superuser: bool = False
+    full_name: str | None = None
+
+
+# Properties to receive via API on creation
+class UserCreate(IdentityCreate, UserBase):
+    password: str
+
+
+# TODO replace email str with EmailStr when sqlmodel supports it
+class UserRegister(ModelBase):
+    email: str
+    password: str
+    full_name: str | None = None
+
+
+# Properties to receive via API on update, all are optional
+# TODO replace email str with EmailStr when sqlmodel supports it
+class UserUpdate(IdentityUpdate, UserBase):
+    email: str | None = None  # type: ignore
+    password: str | None = None
+    full_name: str | None = None
+
+
+# Properties to return via API, id is always required
+class UserRead(IdentityRead, UserBase):
+    id: int
+
+
+# Database model, database table inferred from class name
+class User(Identity, UserBase):
+    id: int | None = Field(default=None, primary_key=True)
+    hashed_password: str
+
+
+# other API models
+class UpdatePassword(ModelBase):
+    current_password: str
+    new_password: str
+
+
+crud_router = build_crud_endpoints(
+    t_model_base=UserBase,
+    t_model_create=UserCreate,
+    t_model_read=UserRead,
+    t_model_update=UserUpdate,
+    t_model_in_db=User,
+)
+</app/schema/user/user.py>
+
+<app/schema/user/developer.py>
+from __future__ import annotations
+
+from abc import abstractmethod
+from datetime import datetime
+from enum import Enum
+from functools import cached_property
+from typing import ClassVar, Optional
+
+from pydantic.config import ConfigDict
+from sqlalchemy import Column, String, func
+from sqlalchemy.ext.hybrid import hybrid_column
+from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
+from typing_extensions import Unpack
+
+from app.core.redis import get_redis_connection
+from app.schema.system.api_key import APIKey, APIKeyRead
+from app.schema.user.user import (
+    User,
+    UserBase,
+    UserCreate,
+    UserRead,
+    UserPublicMe,
+    UserUpdate,
+    UserUpdateMe,
+)
+from app.schema.verification.verification import Verification
+from app.utils.crud import build_crud_endpoints
+
+
+# Verifier
+class DeveloperBase(UserBase):
+    pass
+
+
+class DeveloperCreate(DeveloperBase, UserCreate):
+    stripe_user_access_token: str | None = None
+
+
+class DeveloperRead(DeveloperBase, UserRead):
+    verification_requests: list[Verification] = Field(
+        schema_extra={"permission": "self"}  # TODO: implement auth in a base class
+    )
+    api_keys: list[APIKeyRead] = Field(schema_extra={"view_privileges": "self"})
+
+
+class DeveloperUpdate(DeveloperBase, UserUpdate):
+    stripe_user_access_token: str | None = None
+
+
+class Developer(DeveloperBase, User, table=True):
+    verification_requests: list[Verification] = Relationship(
+        back_populates="verification_requested_by"
+    )
+    stripe_user_access_token: str | None = None
+    api_keys: list[APIKey]
+
+
+crud_router = build_crud_endpoints(
+    t_model_base=DeveloperBase,
+    t_model_create=DeveloperCreate,
+    t_model_read=DeveloperRead,
+    t_model_update=DeveloperUpdate,
+    t_model_in_db=Developer,
+)
+</app/schema/user/developer.py>
+
+<app/schema/user/identity.py>
+from __future__ import annotations
+
+from abc import abstractmethod
+from datetime import datetime
+from enum import Enum
+from functools import cached_property
+from typing import ClassVar, Optional
+
+from pydantic.config import ConfigDict
+from sqlalchemy import Column, String, func
+from sqlalchemy.ext.hybrid import hybrid_column
+from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
+from typing_extensions import Unpack
+
+from app.core.redis import get_redis_connection
+from app.schema.base import (
+    ModelBase,
+    ModelCreate,
+    ModelInDB,
+    ModelRead,
+    ModelUpdate,
+)
+from app.utils.crud import build_crud_endpoints
+
+
+class IdentityBase(ModelBase):
+    pass
+
+
+class IdentityCreate(IdentityBase, ModelCreate):
+    image: Optional[bytes]
+
+
+class IdentityRead(IdentityBase, ModelRead):
+    id: int
+    image: Optional[bytes]
+
+
+class IdentityUpdate(IdentityBase, ModelUpdate):
+    pass
+
+
+class Identity(IdentityBase, ModelInDB, table=True):
+    id: int | None = Field(default=None, primary_key=True, autoincrement=True)
+    image: Optional[bytes]
+
+
+crud_router = build_crud_endpoints(
+    t_model_base=IdentityBase,
+    t_model_create=IdentityCreate,
+    t_model_read=IdentityRead,
+    t_model_update=IdentityUpdate,
+    t_model_in_db=Identity,
+)
+</app/schema/user/identity.py>
+
+<app/schema/user/ghost_identity.py>
+from __future__ import annotations
+
+from abc import abstractmethod
+from datetime import datetime
+from enum import Enum
+from functools import cached_property
+from typing import ClassVar, Optional
+
+from pydantic.config import ConfigDict
+from sqlalchemy import Column, String, func
+from sqlalchemy.ext.hybrid import hybrid_column
+from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
+from typing_extensions import Unpack
+
+from app.core.redis import get_redis_connection
+from app.schema.user.identity import (
+    IdentityBase,
+    IdentityCreate,
+    IdentityRead,
+    IdentityUpdate,
+    Identity,
+)
+from app.utils.crud import build_crud_endpoints
+
+
+class GhostIdentityBase(IdentityBase):
+    pass
+
+
+class GhostIdentityCreate(GhostIdentityBase, IdentityCreate):
+    pass
+
+
+class GhostIdentityRead(IdentityRead):
+    pass
+
+
+class GhostIdentityUpdate(GhostIdentityBase, IdentityUpdate):
+    pass
+
+
+class GhostIdentity(GhostIdentityBase, Identity):
+    pass
+
+
+crud_router = build_crud_endpoints(
+    t_model_base=GhostIdentityBase,
+    t_model_create=GhostIdentityCreate,
+    t_model_read=GhostIdentityRead,
+    t_model_update=GhostIdentityUpdate,
+    t_model_in_db=GhostIdentity,
+)
+</app/schema/user/ghost_identity.py>
+
+<app/schema/base.py>
+from __future__ import annotations
+
+from abc import abstractmethod
+from datetime import datetime
+from enum import Enum
+from functools import cached_property
+from typing import ClassVar, Literal, Optional
+
+from pydantic.config import ConfigDict
+from sqlalchemy import Column, String, func
+from sqlalchemy.ext.hybrid import hybrid_column
+from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
+from typing_extensions import Unpack
+
+from app.core.redis import get_redis_connection
+from app.utils.errors import UnauthorizedUpdateError
+
+
+class ModelBase(SQLModel):
+
+    ModelCreate: ClassVar[type[ModelCreate]]
+    ModelUpdate: ClassVar[type[ModelUpdate]]
+    ModelRead: ClassVar[type[ModelRead]]
+    ModelInDB: ClassVar[type[ModelInDB]]
+
+
+class ModelCreate(ModelBase):
+    pass
+
+
+class ModelUpdate(ModelBase):
+    class UpdatePrivileges(Enum):
+        owner = "owner"
+        authenticated = "authenticated"
+        public = "public"
+
+        def apply_privileges(
+            self,
+            model: ModelUpdate,
+            model_owner_id: int,
+            user_id: int,
+            unauthorized_update_response: Literal["raise", "none"] = "raise",
+        ):
+            is_owner = model_owner_id == user_id
+            is_authenticated = user_id is not None
+            is_public = True
+
+            for k in model.model_fields:
+                match getattr(k, "update_privileges", None):
+                    case ModelUpdate.UpdatePrivileges.owner:
+                        if not is_owner:
+                            match unauthorized_update_response:
+                                case "raise":
+                                    raise UnauthorizedUpdateError(
+                                        f"User {user_id} is not authorized to update {k} for {model_owner_id}"
+                                    )
+                                case "none":
+                                    setattr(model, k, None)
+                                case _:
+                                    raise ValueError(
+                                        f"Unauthorized update response {unauthorized_update_response} not supported"
+                                    )
+                    case ModelUpdate.UpdatePrivileges.authenticated:
+                        if not is_authenticated:
+                            match unauthorized_update_response:
+                                case "raise":
+                                    raise UnauthorizedUpdateError(
+                                        f"User {user_id} is not authenticated"
+                                    )
+                                case "none":
+                                    setattr(model, k, None)
+                                case _:
+                                    raise ValueError(
+                                        f"Unauthorized update response {unauthorized_update_response} not supported"
+                                    )
+                    case ModelUpdate.UpdatePrivileges.public:
+                        if not is_public:
+                            match unauthorized_update_response:
+                                case "raise":
+                                    raise UnauthorizedUpdateError(
+                                        f"User {user_id} is not authorized to update {k} for {model_owner_id}"
+                                    )
+                                case "none":
+                                    setattr(model, k, None)
+                                case _:
+                                    raise ValueError(
+                                        f"Unauthorized update response {unauthorized_update_response} not supported"
+                                    )
+                    case _:
+                        pass
+
+            return model
+
+    pass
+
+
+class ModelRead(ModelBase):
+    class ViewPrivileges(Enum):
+        owner = "owner"
+        authenticated = "authenticated"
+        public = "public"
+
+        def apply_privileges(self, model: ModelRead, model_owner_id: int, user_id: int):
+            is_owner = model_owner_id == user_id
+            is_authenticated = user_id is not None
+            is_public = True
+
+            for k in model.model_fields:
+                match getattr(k, "view_privileges", None):
+                    case ModelRead.ViewPrivileges.owner:
+                        if not is_owner:
+                            setattr(model, k, None)
+                    case ModelRead.ViewPrivileges.authenticated:
+                        if not is_authenticated:
+                            setattr(model, k, None)
+                    case ModelRead.ViewPrivileges.public:
+                        if not is_public:
+                            setattr(model, k, None)
+                    case _:
+                        pass
+
+    pass
+
+
+class ModelInDB(ModelBase, table=True):
+    __tablename__ = "entity"
+    __mapper_args__ = {
+        "polymorphic_identity": "entity",  # base class identity
+        "polymorphic_on": type,  # specifying which field is the discriminator
+    }
+    type: str = Field(sa_column=Column(String), index=True, nullable=False)
+
+    def __init_subclass__(cls, **kwargs):
+        tablename = cls.__tablename__ or cls.__name__.lower()
+        mapper_args = getattr(cls, "__mapper_args__", {})
+        mapper_args.update({"polymorphic_identity": tablename})
+        setattr(cls, "__mapper_args__", mapper_args)
+        return super().__init_subclass__(**kwargs)
+
+    @classmethod
+    @abstractmethod
+    def get_ddl(cls) -> str:
+        # TODO: add constraints and security if applicable to all classes
+        pass
+
+    @staticmethod
+    def manually_run_all_ddl(session: Session):
+        for subclass in ModelInDB.__subclasses__():
+            session.execute(subclass.get_ddl())
+
+    @classmethod
+    def from_create(
+        cls,
+        model_create: ModelCreate,
+        session: Session,
+        user: "User" | None = None,
+        extra_keys: Optional[dict] = None,
+    ) -> ModelInDB:
+        db_entity = cls(**model_create.model_dump(), **(extra_keys or {}))
+        # subclasses wrap this and pass in extra keys needed for the indb model that are absent in the create model
+        session.add(db_entity)
+        session.commit()
+        return db_entity
+
+    def update_from(
+        self,
+        model_update: ModelUpdate,
+        session: Session,
+        user: "User" | None = None,
+    ) -> None:
+        model_update = ModelUpdate.UpdatePrivileges.apply_privileges(
+            model_update, self.id, user.id if user else None
+        )
+        self.sqlmodel_update(model_update.model_dump(exclude_unset=True))
+        session.commit()
+
+    def to_read(self, user: User | None = None) -> ModelRead:
+        model_read = self.ModelRead.model_validate(self)
+        model_read = ModelRead.ViewPrivileges.apply_privileges(
+            model_read, self.id, user.id if user else None
+        )
+        return model_read
+
+    # active record methods
+    def save(self, session: Session):
+        session.add(self)
+        session.commit()
+
+    def delete(self, session: Session):
+        session.delete(self)
+        session.commit()
+
+    @classmethod
+    def find_by_id(cls, id: int, session: Session):
+        sql = select(cls).where(cls.id == id)
+        return session.exec(sql).first()
+
+    @classmethod
+    def find_all(cls, session: Session):
+        sql = select(cls)
+        return session.exec(sql).all()
+
+    @classmethod
+    def find_by_ids(cls, ids: list[int], session: Session):
+        sql = select(cls).where(cls.id.in_(ids))
+        return session.exec(sql).all()
+
+    @classmethod
+    def find_by_id_or_raise(cls, id: int, session: Session):
+        entity = cls.find_by_id(id, session)
+        if not entity:
+            raise ValueError(f"Entity {id} not found")
+        return entity
+
+    @classmethod
+    def update_by_id(
+        cls,
+        id: int,
+        update_model: ModelUpdate,
+        session: Session,
+        commit=True,
+    ):
+        entity = cls.find_by_id_or_raise(id, session)
+        entity.sqlmodel_update(update_model.model_dump(exclude_unset=True))
+        if commit:
+            session.commit()
+        return entity
+
+    @classmethod
+    def update_by_ids(
+        cls,
+        ids: list[int],
+        update_model: ModelUpdate,
+        session: Session,
+        commit=True,
+    ):
+        entities = cls.find_by_ids(ids, session)
+        for entity in entities:
+            updated_entity = entity.update(
+                update_model.model_dump(exclude_unset=True), commit=False
+            )
+            session.add(updated_entity)
+        if commit:
+            session.commit()
+
+    @classmethod
+    def delete_by_id(cls, id: int, session: Session, commit=True):
+        entity = cls.find_by_id_or_raise(id, session)
+        entity.delete(session)
+        if commit:
+            session.commit()
+
+    @classmethod
+    def delete_by_ids(cls, ids: list[int], session: Session, commit=True):
+        for id in ids:
+            cls.delete_by_id(id, session, commit=False)
+        if commit:
+            session.commit()
+
+    @classmethod
+    def delete_all(cls, session: Session, commit=True):
+        sql = delete(cls)
+        session.exec(sql)
+        if commit:
+            session.commit()
+
+    @classmethod
+    def count(cls, session: Session):
+        sql = select(func.count()).select_from(cls)
+        return session.exec(sql).scalar()
+
+    @classmethod
+    def exists(cls, id: int, session: Session):
+        return cls.find_by_id(id, session) is not None
+
+    @classmethod
+    def exists_by_ids(cls, ids: list[int], session: Session):
+        return len(cls.find_by_ids(ids, session)) == len(ids)
+
+    @classmethod
+    def exists_all(cls, ids: list[int], session: Session):
+        return cls.exists_by_ids(ids, session)
+
+    @classmethod
+    def exists_any(cls, ids: list[int], session: Session):
+        return cls.exists_by_ids(ids, session)
+
+    @classmethod
+    def exists_none(cls, ids: list[int], session: Session):
+        return not cls.exists_by_ids(ids, session)
+</app/schema/base.py>
+
+<app/schema/verification/human_speech_verification.py>
+from __future__ import annotations
+
+from abc import abstractmethod
+from datetime import datetime
+from enum import Enum
+from functools import cached_property
+from typing import ClassVar, Optional
+
+from pydantic.config import ConfigDict
+from sqlalchemy import Column, String, func
+from sqlalchemy.ext.hybrid import hybrid_column
+from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
+from typing_extensions import Unpack
+
+from app.core.redis import get_redis_connection
+from app.schema.verification.verification import (
+    Verification,
+    VerificationBase,
+    VerificationRead,
+    VerificationRequestBase,
+    VerificationUpdate,
+)
+from app.utils.crud import build_crud_endpoints
+
+
+class HumanSpeechVerificationBase(VerificationBase):
+    model_name: str = "human_speech_verification-001"
+
+
+class HumanSpeechVerificationRequest(
+    HumanSpeechVerificationBase, VerificationRequestBase
+):
+    pass
+
+
+class HumanSpeechVerificationRead(HumanSpeechVerificationBase, VerificationRead):
+    model_name = Field(
+        "human_speech_verification-001",
+        schema_extra={"view_privileges": ModelRead.ViewPrivileges.owner},
+    )
+
+
+class HumanSpeechVerificationUpdate(HumanSpeechVerificationBase, VerificationUpdate):
+    pass
+
+
+class HumanSpeechVerification(HumanSpeechVerificationBase, Verification):
+    pass
+
+
+crud_router = build_crud_endpoints(
+    t_model_base=HumanSpeechVerificationBase,
+    t_model_create=HumanSpeechVerificationRequest,
+    t_model_read=HumanSpeechVerificationRead,
+    t_model_update=HumanSpeechVerificationUpdate,
+    t_model_in_db=HumanSpeechVerification,
+)
+</app/schema/verification/human_speech_verification.py>
+
+<app/schema/verification/verification.py>
+from __future__ import annotations
+
+from abc import abstractmethod
+from datetime import datetime
+from enum import Enum
+from functools import cached_property
+from typing import ClassVar, Optional
+
+from pydantic.config import ConfigDict
+from sqlalchemy import Column, String, func
+from sqlalchemy.ext.hybrid import hybrid_column
+from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
+from typing_extensions import Unpack
+
+from app.core.redis import get_redis_connection
+from app.schema.base import (
+    ModelBase,
+    ModelCreate,
+    ModelInDB,
+    ModelRead,
+    ModelUpdate,
+)
+from app.schema.has_redis import HasReddisChannel
+from app.schema.user.user import User
+from app.schema.user.developer import Developer, DeveloperRead
+from app.utils.crud import build_crud_endpoints
+
+
+class VerificationStatus(Enum):
+    REQUESTED = "requested"
+    IN_PROGRESS = "in_progress"
+    VERIFIED = "verified"
+    FAILED = "failed"
+
+
+class VerificationBase(ModelBase):
+    pass
+
+
+# TODO: change on_completion_webhook_url and on_completion_redirect_url to URLStr when sqlmodel supports it
+class VerificationRequestBase(VerificationBase, ModelCreate):
+    who_to_verify_id: int
+    on_completion_webhook_url: str
+    on_completion_redirect_url: str | None = None
+
+
+class VerificationRead(VerificationBase, ModelRead):
+    verification_requested_by_id: int
+    verification_requested_by: DeveloperRead
+    who_to_verify_id: int
+    who_to_verify: User
+    verf_status: VerificationStatus
+    on_completion_webhook_url: str
+    on_completion_redirect_url: str | None = None
+
+
+class VerificationUpdate(VerificationBase, ModelUpdate):
+    on_completion_webhook_url: str
+    on_completion_redirect_url: str | None = None
+
+
+class Verification(HasReddisChannel, VerificationBase, ModelInDB, table=True):
+    verification_requested_by_id: int
+    verification_requested_by: Developer
+    who_to_verify_id: int
+    who_to_verify: User
+    verf_status: VerificationStatus
+    on_completion_webhook_url: str
+    on_completion_redirect_url: str | None = None
+
+
+crud_router = build_crud_endpoints(
+    t_model_base=VerificationBase,
+    t_model_create=VerificationRequestBase,
+    t_model_read=VerificationRead,
+    t_model_in_db=Verification,
+)
+</app/schema/verification/verification.py>
+
+<app/schema/verification/hand_sign_verification.py>
+from __future__ import annotations
+
+from abc import abstractmethod
+from datetime import datetime
+from enum import Enum
+from functools import cached_property
+from typing import ClassVar, Optional
+
+from pydantic.config import ConfigDict
+from sqlalchemy import Column, String, func
+from sqlalchemy.ext.hybrid import hybrid_column
+from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
+from typing_extensions import Unpack
+
+from app.core.redis import get_redis_connection
+from app.schema.verification.verification import (
+    Verification,
+    VerificationBase,
+    VerificationRead,
+    VerificationUpdate,
+)
+from app.utils.crud import build_crud_endpoints
+from backend.app.schema.base import ModelRead
+
+
+class HandSignVerificationBase(VerificationBase):
+    model_name: str = "hand_sign_verification-001"
+
+
+class HandSignVerificationRequest(HandSignVerificationBase, VerificationRequestBase):
+    pass
+
+
+class HandSignVerificationRead(HandSignVerificationBase, VerificationRead):
+    model_name = Field(
+        "hand_sign_verification-001",
+        schema_extra={"view_privileges": ModelRead.ViewPrivileges.owner},
+    )
+
+
+class HandSignVerificationUpdate(HandSignVerificationBase, VerificationUpdate):
+    pass
+
+
+class HandSignVerification(HandSignVerificationBase, Verification):
+    hand_letters: list[str]
+
+
+crud_router = build_crud_endpoints(
+    t_model_base=HandSignVerificationBase,
+    t_model_create=HandSignVerificationRequest,
+    t_model_read=HandSignVerificationRead,
+    t_model_in_db=HandSignVerification,
+)
+</app/schema/verification/hand_sign_verification.py>
+
+<app/schema/verification/proof_of_id_verification.py>
+from __future__ import annotations
+
+from abc import abstractmethod
+from datetime import datetime
+from enum import Enum
+from functools import cached_property
+from typing import ClassVar, Optional
+
+from pydantic.config import ConfigDict
+from sqlalchemy import Column, String, func
+from sqlalchemy.ext.hybrid import hybrid_column
+from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
+from typing_extensions import Unpack
+
+from app.core.redis import get_redis_connection
+from app.schema.verification.verification import (
+    Verification,
+    VerificationBase,
+    VerificationRead,
+    VerificationRequestBase,
+    VerificationUpdate,
+)
+from app.utils.crud import build_crud_endpoints
+
+
+class ProofOfIDVerificationBase(VerificationBase):
+    pass
+
+
+class ProofOfIDVerificationRequest(ProofOfIDVerificationBase, VerificationRequestBase):
+    pass
+
+
+class ProofOfIDVerificationRead(ProofOfIDVerificationBase, VerificationRead):
+    pass
+
+
+class ProofOfIDVerificationUpdate(ProofOfIDVerificationBase, VerificationUpdate):
+    pass
+
+
+class ProofOfIDVerification(ProofOfIDVerificationBase, Verification):
+    pass
+
+
+crud_router = build_crud_endpoints(
+    t_model_base=ProofOfIDVerificationBase,
+    t_model_create=ProofOfIDVerificationRequest,
+    t_model_read=ProofOfIDVerificationRead,
+    t_model_update=ProofOfIDVerificationUpdate,
+    t_model_in_db=ProofOfIDVerification,
+)
+</app/schema/verification/proof_of_id_verification.py>
+
+<app/schema/verification/credit_bureau_verification.py>
+from __future__ import annotations
+
+from abc import abstractmethod
+from datetime import datetime
+from enum import Enum
+from functools import cached_property
+from typing import ClassVar, Optional
+
+from pydantic.config import ConfigDict
+from sqlalchemy import Column, String, func
+from sqlalchemy.ext.hybrid import hybrid_column
+from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
+from typing_extensions import Unpack
+
+from app.core.redis import get_redis_connection
+from app.schema.verification.verification import (
+    Verification,
+    VerificationBase,
+    VerificationRead,
+    VerificationUpdate,
+)
+from app.utils.crud import build_crud_endpoints
+
+
+class CreditBureauVerificationBase(VerificationBase):
+    pass
+
+
+class CreditBureauVerificationRequest(
+    CreditBureauVerificationBase, VerificationRequestBase
+):
+    pass
+
+
+class CreditBureauVerificationRead(CreditBureauVerificationBase, VerificationRead):
+    pass
+
+
+class CreditBureauVerificationUpdate(CreditBureauVerificationBase, VerificationUpdate):
+    pass
+
+
+class CreditBureauVerification(CreditBureauVerificationBase, Verification):
+    pass
+
+
+crud_router = build_crud_endpoints(
+    t_model_base=CreditBureauVerificationBase,
+    t_model_create=CreditBureauVerificationRequest,
+    t_model_read=CreditBureauVerificationRead,
+    t_model_update=CreditBureauVerificationUpdate,
+    t_model_in_db=CreditBureauVerification,
+)
+</app/schema/verification/credit_bureau_verification.py>
+
+<app/schema/verification/living_pupil_verification.py>
+from __future__ import annotations
+
+from abc import abstractmethod
+from datetime import datetime
+from enum import Enum
+from functools import cached_property
+from typing import ClassVar, Optional
+
+from pydantic.config import ConfigDict
+from sqlalchemy import Column, String, func
+from sqlalchemy.ext.hybrid import hybrid_column
+from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
+from typing_extensions import Unpack
+
+from app.core.redis import get_redis_connection
+from app.schema.verification.verification import (
+    Verification,
+    VerificationBase,
+    VerificationRead,
+    VerificationRequestBase,
+    VerificationUpdate,
+)
+from app.utils.crud import build_crud_endpoints
+
+
+class LivingPupilVerificationBase(VerificationBase):
+    model_name: str = "living_pupil_verification-001"
+
+
+class LivingPupilVerificationRequest(
+    LivingPupilVerificationBase, VerificationRequestBase
+):
+    pass
+
+
+class LivingPupilVerificationRead(LivingPupilVerificationBase, VerificationRead):
+    model_name = Field(
+        "living_pupil_verification-001",
+        schema_extra={"view_privileges": ModelRead.ViewPrivileges.owner},
+    )
+
+
+class LivingPupilVerificationUpdate(LivingPupilVerificationBase, VerificationUpdate):
+    pass
+
+
+class LivingPupilVerification(LivingPupilVerificationBase, Verification):
+    pass
+
+
+crud_router = build_crud_endpoints(
+    router=router,
+    t_model_base=LivingPupilVerificationBase,
+    t_model_create=LivingPupilVerificationRequest,
+    t_model_read=LivingPupilVerificationRead,
+    t_model_update=LivingPupilVerificationUpdate,
+    t_model_in_db=LivingPupilVerification,
+)
+</app/schema/verification/living_pupil_verification.py>
+
+<app/schema/verification/face_video_anomaly_verification.py>
+from __future__ import annotations
+
+from abc import abstractmethod
+from datetime import datetime
+from enum import Enum
+from functools import cached_property
+from typing import ClassVar, Optional
+
+from pydantic.config import ConfigDict
+from sqlalchemy import Column, String, func
+from sqlalchemy.ext.hybrid import hybrid_column
+from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
+from typing_extensions import Unpack
+
+from app.core.redis import get_redis_connection
+from app.schema.verification.verification import (
+    Verification,
+    VerificationBase,
+    VerificationRead,
+    VerificationUpdate,
+)
+from app.utils.crud import build_crud_endpoints
+from backend.app.schema.base import ModelRead
+
+
+class FaceVideoAnomalyVerificationBase(VerificationBase):
+    model_name: str = "face_video_anomaly_verification-001"
+
+
+class FaceVideoAnomalyVerificationRequest(
+    FaceVideoAnomalyVerificationBase, VerificationRequestBase
+):
+    pass
+
+
+class FaceVideoAnomalyVerificationRead(
+    FaceVideoAnomalyVerificationBase, VerificationRead
+):
+    model_name: str = Field(
+        "face_video_anomaly_verification-001",
+        schema_extra={"view_privileges": ModelRead.ViewPrivileges.owner},
+    )
+
+
+class FaceVideoAnomalyVerificationUpdate(
+    FaceVideoAnomalyVerificationBase, VerificationUpdate
+):
+    pass
+
+
+class FaceVideoAnomalyVerification(Verification):
+    pass
+
+
+crud_router = build_crud_endpoints(
+    t_model_base=FaceVideoAnomalyVerificationBase,
+    t_model_create=FaceVideoAnomalyVerificationRequest,
+    t_model_read=FaceVideoAnomalyVerificationRead,
+    t_model_update=FaceVideoAnomalyVerificationUpdate,
+    t_model_in_db=FaceVideoAnomalyVerification,
+)
+</app/schema/verification/face_video_anomaly_verification.py>
+
+<app/schema/system/api_key.py>
+from __future__ import annotations
+
+from datetime import datetime
+
+from sqlmodel import Field
+from app.schema.base import (
+    ModelBase,
+    ModelCreate,
+    ModelRead,
+    ModelUpdate,
+    ModelInDB,
+)
+from app.schema.system.api_key_use import APIKeyUseRead, APIKeyUse
+from app.schema.system.billing import Money
+from app.schema.user.developer import Developer, DeveloperRead
+from app.utils.crud import build_crud_endpoints
+
+
+class APIKeyBase(ModelBase):
+    pass
+
+
+class APIKeyCreate(APIKeyBase, ModelCreate):
+    name: str
+    description: str
+    spend_limit: Money.T
+    scopes: list[str]
+    expires_at: datetime
+
+
+class APIKeyRead(APIKeyBase, ModelRead):
+    name: str
+    description: str
+    owner_id: int
+    owner: DeveloperRead
+    spend_limit: Money.T
+    scopes: list[str]
+    expires_at: datetime
+    truncated_secret: str
+    uses: list[APIKeyUseRead]
+
+
+class APIKeyUpdate(APIKeyBase, ModelUpdate):
+    description: str
+    spend_limit: Money.T
+
+
+class APIKey(APIKeyBase, ModelInDB):
+    name: str
+    description: str
+    created_at: datetime
+    expires_at: datetime
+    owner_id: int
+    owner: Developer
+    scopes: list[str]
+    uses: list["APIKeyUse"]
+    spend_limit: Money.T
+    secret: str = Field(private=True)
+
+
+crud_router = build_crud_endpoints(
+    t_model_base=APIKeyBase,
+    t_model_create=APIKeyCreate,
+    t_model_read=APIKeyRead,
+    t_model_update=APIKeyUpdate,
+    t_model_in_db=APIKey,
+)
+</app/schema/system/api_key.py>
+
+<app/schema/system/api_key_use.py>
+from __future__ import annotations
+
+from datetime import datetime
+
+from sqlmodel import Field
+from app.schema.base import (
+    ModelBase,
+    ModelCreate,
+    ModelRead,
+    ModelUpdate,
+    ModelInDB,
+)
+from app.schema.system.billing import Money
+from app.schema.user.developer import Developer, DeveloperRead
+from app.schema.system.api_key import APIKey, APIKeyRead
+from app.utils.crud import build_crud_endpoints
+
+
+class APIKeyUseBase(ModelBase):
+    pass
+
+
+class APIKeyUseRead(APIKeyUseBase, ModelRead):
+    api_key_id: int
+    api_key: APIKeyRead
+    timestamp: datetime
+    ip_address: str
+    user_agent: str
+    headers: dict[str, str]
+    path: str
+    method: str
+
+
+class APIKeyUse(APIKeyUseBase, ModelInDB):
+    api_key_id: int
+    api_key: APIKey
+    timestamp: datetime
+    ip_address: str
+    user_agent: str
+    headers: dict[str, str]
+    path: str
+    method: str
+
+
+crud_router = build_crud_endpoints(
+    t_model_base=APIKeyUseBase,
+    t_model_read=APIKeyUseRead,
+    t_model_in_db=APIKeyUse,
+)
+</app/schema/system/api_key_use.py>
+
+<app/schema/system/billing.py>
+from typing import ClassVar, Generic, TypeVar
+from attrs import define
+
+T = TypeVar("T")
+
+
+@define
+class Money(Generic[T]):
+    T: ClassVar[type] = int
+    currency: str = "USD cents"
+    amount: T
+
+
+# class Invoice(BaseModel):
+#     pass
+</app/schema/system/billing.py>
+
+<app/schema/system/auth.py>
+from __future__ import annotations
+
+from abc import abstractmethod
+from datetime import datetime
+from enum import Enum
+from functools import cached_property
+from typing import ClassVar, Optional
+
+from pydantic.config import ConfigDict
+from sqlalchemy import Column, String, func
+from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
+from typing_extensions import Unpack
+
+from app.core.redis import get_redis_connection
+from app.schema.base import ModelBase
+
+
+# JSON payload containing access token
+class Token(ModelBase):
+    access_token: str
+    token_type: str = "bearer"
+
+
+# Contents of JWT token
+class TokenPayload(ModelBase):
+    sub: int | None = None
+
+
+class NewPassword(ModelBase):
+    token: str
+    new_password: str
+</app/schema/system/auth.py>
+
+<app/schema/has_redis.py>
+from __future__ import annotations
+
+from abc import abstractmethod
+from datetime import datetime
+from enum import Enum
+from functools import cached_property
+from typing import ClassVar, Optional
+
+from pydantic.config import ConfigDict
+from sqlalchemy import Column, String, func
+from sqlalchemy.ext.hybrid import hybrid_column
+from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
+from typing_extensions import Unpack
+
+from app.core.redis import get_redis_connection
+from app.schema.base import ModelInDB
+
+
+class HasReddisChannel(ModelInDB):
+
+    @hybrid_column
+    def redis_channel_name(self):
+        return f"redis_{self.__class__.__name__.lower()}_{self.id}"
+
+    @redis_channel_name.expression
+    def redis_channel_name(cls):
+        from sqlalchemy import func
+
+        return func.concat("redis_", func.lower(cls.__name__), "_", cls.id)
+
+    async def publish_message(self, message: str):
+        connection = await get_redis_connection()
+        await connection.publish(self.redis_channel_name, message)
+
+    @cached_property
+    async def redis_channel_listener(self):
+        connection = await get_redis_connection()
+        pubsub = connection.pubsub()
+        await pubsub.subscribe(self.redis_channel_name)
+        return pubsub
+
+    async def listen_for_messages(self, message_handler):
+        async for message in self.redis_channel_listener.listen():
+            if message["type"] == "message":
+                await message_handler(message["data"])
+</app/schema/has_redis.py>
+
+<app/schema/TODO>
+for each file
+
+- put the other schema deps in a type checking enclosure so everyone felt comfortable
+- set view_privileges and update_privileges on all relevant fields
+- make sure we are only returning the minimum connected nested field values on read, otherwise we could end up with cyclic deps during quiery JSONification</app/schema/TODO>
+
+<app/__init__.py>
+</app/__init__.py>
+
+<app/tests/scripts/test_backend_pre_start.py>
+from unittest.mock import MagicMock, patch
+
+from sqlmodel import select
+
+from app.backend_pre_start import init, logger
+
+
+def test_init_successful_connection() -> None:
+    engine_mock = MagicMock()
+
+    session_mock = MagicMock()
+    exec_mock = MagicMock(return_value=True)
+    session_mock.configure_mock(**{"exec.return_value": exec_mock})
+
+    with (
+        patch("sqlmodel.Session", return_value=session_mock),
+        patch.object(logger, "info"),
+        patch.object(logger, "error"),
+        patch.object(logger, "warn"),
+    ):
+        try:
+            init(engine_mock)
+            connection_successful = True
+        except Exception:
+            connection_successful = False
+
+        assert (
+            connection_successful
+        ), "The database connection should be successful and not raise an exception."
+
+        assert session_mock.exec.called_once_with(
+            select(1)
+        ), "The session should execute a select statement once."
+</app/tests/scripts/test_backend_pre_start.py>
+
+<app/tests/scripts/test_test_pre_start.py>
+from unittest.mock import MagicMock, patch
+
+from sqlmodel import select
+
+from app.tests_pre_start import init, logger
+
+
+def test_init_successful_connection() -> None:
+    engine_mock = MagicMock()
+
+    session_mock = MagicMock()
+    exec_mock = MagicMock(return_value=True)
+    session_mock.configure_mock(**{"exec.return_value": exec_mock})
+
+    with (
+        patch("sqlmodel.Session", return_value=session_mock),
+        patch.object(logger, "info"),
+        patch.object(logger, "error"),
+        patch.object(logger, "warn"),
+    ):
+        try:
+            init(engine_mock)
+            connection_successful = True
+        except Exception:
+            connection_successful = False
+
+        assert (
+            connection_successful
+        ), "The database connection should be successful and not raise an exception."
+
+        assert session_mock.exec.called_once_with(
+            select(1)
+        ), "The session should execute a select statement once."
+</app/tests/scripts/test_test_pre_start.py>
+
+<app/tests/scripts/__init__.py>
+</app/tests/scripts/__init__.py>
+
+<app/tests/conftest.py>
+from collections.abc import Generator
+
+import pytest
+from fastapi.testclient import TestClient
+from sqlmodel import Session, delete
+
+from app.core.config import settings
+from app.core.db import engine, init_db
+from app.main import fastapi_app
+from app.schema.proof_of_id_verification import Item, User
+from app.tests.utils.user import authentication_token_from_email
+from app.tests.utils.utils import get_superuser_token_headers
+
+
+@pytest.fixture(scope="session", autouse=True)
+def db() -> Generator[Session, None, None]:
+    with Session(engine) as session:
+        init_db(session)
+        yield session
+        statement = delete(Item)
+        session.execute(statement)
+        statement = delete(User)
+        session.execute(statement)
+        session.commit()
+
+
+@pytest.fixture(scope="module")
+def client() -> Generator[TestClient, None, None]:
+    with TestClient(fastapi_app) as c:
+        yield c
+
+
+@pytest.fixture(scope="module")
+def superuser_token_headers(client: TestClient) -> dict[str, str]:
+    return get_superuser_token_headers(client)
+
+
+@pytest.fixture(scope="module")
+def normal_user_token_headers(client: TestClient, db: Session) -> dict[str, str]:
+    return authentication_token_from_email(
+        client=client, email=settings.EMAIL_TEST_USER, db=db
+    )
+</app/tests/conftest.py>
+
+<app/tests/utils/item.py>
+from sqlmodel import Session
+
+from app import crud
+from app.schema.proof_of_id_verification import Item, ItemCreate
+from app.tests.utils.user import create_random_user
+from app.tests.utils.utils import random_lower_string
+
+
+def create_random_item(db: Session) -> Item:
+    user = create_random_user(db)
+    owner_id = user.id
+    assert owner_id is not None
+    title = random_lower_string()
+    description = random_lower_string()
+    item_in = ItemCreate(title=title, description=description)
+    return crud.create_item(session=db, item_in=item_in, owner_id=owner_id)
+</app/tests/utils/item.py>
+
+<app/tests/utils/user.py>
+from fastapi.testclient import TestClient
+from sqlmodel import Session
+
+from app import crud
+from app.core.config import settings
+from app.schema.proof_of_id_verification import User, UserCreate, UserUpdate
+from app.tests.utils.utils import random_email, random_lower_string
+
+
+def user_authentication_headers(
+    *, client: TestClient, email: str, password: str
+) -> dict[str, str]:
+    data = {"username": email, "password": password}
+
+    r = client.post(f"{settings.API_V1_STR}/login/access-token", data=data)
+    response = r.json()
+    auth_token = response["access_token"]
+    headers = {"Authorization": f"Bearer {auth_token}"}
+    return headers
+
+
+def create_random_user(db: Session) -> User:
+    email = random_email()
+    password = random_lower_string()
+    user_in = UserCreate(email=email, password=password)
+    user = crud.create_user(session=db, user_create=user_in)
+    return user
+
+
+def authentication_token_from_email(
+    *, client: TestClient, email: str, db: Session
+) -> dict[str, str]:
+    """
+    Return a valid token for the user with given email.
+
+    If the user doesn't exist it is created first.
+    """
+    password = random_lower_string()
+    user = crud.get_user_by_email(session=db, email=email)
+    if not user:
+        user_in_create = UserCreate(email=email, password=password)
+        user = crud.create_user(session=db, user_create=user_in_create)
+    else:
+        user_in_update = UserUpdate(password=password)
+        if not user.id:
+            raise Exception("User id not set")
+        user = crud.update_user(session=db, db_user=user, user_in=user_in_update)
+
+    return user_authentication_headers(client=client, email=email, password=password)
+</app/tests/utils/user.py>
+
+<app/tests/utils/utils.py>
+import random
+import string
+
+from fastapi.testclient import TestClient
+
+from app.core.config import settings
+
+
+def random_lower_string() -> str:
+    return "".join(random.choices(string.ascii_lowercase, k=32))
+
+
+def random_email() -> str:
+    return f"{random_lower_string()}@{random_lower_string()}.com"
+
+
+def get_superuser_token_headers(client: TestClient) -> dict[str, str]:
+    login_data = {
+        "username": settings.FIRST_SUPERUSER,
+        "password": settings.FIRST_SUPERUSER_PASSWORD,
+    }
+    r = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)
+    tokens = r.json()
+    a_token = tokens["access_token"]
+    headers = {"Authorization": f"Bearer {a_token}"}
+    return headers
+</app/tests/utils/utils.py>
+
+<app/tests/utils/__init__.py>
+</app/tests/utils/__init__.py>
+
+<app/tests/api/routes/test_users.py>
+from unittest.mock import patch
+
+from fastapi.testclient import TestClient
+from sqlmodel import Session, select
+
+from app import crud
+from app.core.config import settings
+from app.core.security import verify_password
+from app.schema.proof_of_id_verification import User, UserCreate
+from app.tests.utils.utils import random_email, random_lower_string
+
+
+def test_get_users_superuser_me(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    r = client.get(f"{settings.API_V1_STR}/users/me", headers=superuser_token_headers)
+    current_user = r.json()
+    assert current_user
+    assert current_user["is_active"] is True
+    assert current_user["is_superuser"]
+    assert current_user["email"] == settings.FIRST_SUPERUSER
+
+
+def test_get_users_normal_user_me(
+    client: TestClient, normal_user_token_headers: dict[str, str]
+) -> None:
+    r = client.get(f"{settings.API_V1_STR}/users/me", headers=normal_user_token_headers)
+    current_user = r.json()
+    assert current_user
+    assert current_user["is_active"] is True
+    assert current_user["is_superuser"] is False
+    assert current_user["email"] == settings.EMAIL_TEST_USER
+
+
+def test_create_user_new_email(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    with (
+        patch("app.utils.send_email", return_value=None),
+        patch("app.core.config.settings.SMTP_HOST", "smtp.example.com"),
+        patch("app.core.config.settings.SMTP_USER", "admin@example.com"),
+    ):
+        username = random_email()
+        password = random_lower_string()
+        data = {"email": username, "password": password}
+        r = client.post(
+            f"{settings.API_V1_STR}/users/",
+            headers=superuser_token_headers,
+            json=data,
+        )
+        assert 200 <= r.status_code < 300
+        created_user = r.json()
+        user = crud.get_user_by_email(session=db, email=username)
+        assert user
+        assert user.email == created_user["email"]
+
+
+def test_get_existing_user(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    username = random_email()
+    password = random_lower_string()
+    user_in = UserCreate(email=username, password=password)
+    user = crud.create_user(session=db, user_create=user_in)
+    user_id = user.id
+    r = client.get(
+        f"{settings.API_V1_STR}/users/{user_id}",
+        headers=superuser_token_headers,
+    )
+    assert 200 <= r.status_code < 300
+    api_user = r.json()
+    existing_user = crud.get_user_by_email(session=db, email=username)
+    assert existing_user
+    assert existing_user.email == api_user["email"]
+
+
+def test_get_existing_user_current_user(client: TestClient, db: Session) -> None:
+    username = random_email()
+    password = random_lower_string()
+    user_in = UserCreate(email=username, password=password)
+    user = crud.create_user(session=db, user_create=user_in)
+    user_id = user.id
+
+    login_data = {
+        "username": username,
+        "password": password,
+    }
+    r = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)
+    tokens = r.json()
+    a_token = tokens["access_token"]
+    headers = {"Authorization": f"Bearer {a_token}"}
+
+    r = client.get(
+        f"{settings.API_V1_STR}/users/{user_id}",
+        headers=headers,
+    )
+    assert 200 <= r.status_code < 300
+    api_user = r.json()
+    existing_user = crud.get_user_by_email(session=db, email=username)
+    assert existing_user
+    assert existing_user.email == api_user["email"]
+
+
+def test_get_existing_user_permissions_error(
+    client: TestClient, normal_user_token_headers: dict[str, str]
+) -> None:
+    r = client.get(
+        f"{settings.API_V1_STR}/users/999999",
+        headers=normal_user_token_headers,
+    )
+    assert r.status_code == 403
+    assert r.json() == {"detail": "The user doesn't have enough privileges"}
+
+
+def test_create_user_existing_username(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    username = random_email()
+    # username = email
+    password = random_lower_string()
+    user_in = UserCreate(email=username, password=password)
+    crud.create_user(session=db, user_create=user_in)
+    data = {"email": username, "password": password}
+    r = client.post(
+        f"{settings.API_V1_STR}/users/",
+        headers=superuser_token_headers,
+        json=data,
+    )
+    created_user = r.json()
+    assert r.status_code == 400
+    assert "_id" not in created_user
+
+
+def test_create_user_by_normal_user(
+    client: TestClient, normal_user_token_headers: dict[str, str]
+) -> None:
+    username = random_email()
+    password = random_lower_string()
+    data = {"email": username, "password": password}
+    r = client.post(
+        f"{settings.API_V1_STR}/users/",
+        headers=normal_user_token_headers,
+        json=data,
+    )
+    assert r.status_code == 403
+
+
+def test_retrieve_users(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    username = random_email()
+    password = random_lower_string()
+    user_in = UserCreate(email=username, password=password)
+    crud.create_user(session=db, user_create=user_in)
+
+    username2 = random_email()
+    password2 = random_lower_string()
+    user_in2 = UserCreate(email=username2, password=password2)
+    crud.create_user(session=db, user_create=user_in2)
+
+    r = client.get(f"{settings.API_V1_STR}/users/", headers=superuser_token_headers)
+    all_users = r.json()
+
+    assert len(all_users["data"]) > 1
+    assert "count" in all_users
+    for item in all_users["data"]:
+        assert "email" in item
+
+
+def test_update_user_me(
+    client: TestClient, normal_user_token_headers: dict[str, str], db: Session
+) -> None:
+    full_name = "Updated Name"
+    email = random_email()
+    data = {"full_name": full_name, "email": email}
+    r = client.patch(
+        f"{settings.API_V1_STR}/users/me",
+        headers=normal_user_token_headers,
+        json=data,
+    )
+    assert r.status_code == 200
+    updated_user = r.json()
+    assert updated_user["email"] == email
+    assert updated_user["full_name"] == full_name
+
+    user_query = select(User).where(User.email == email)
+    user_db = db.exec(user_query).first()
+    assert user_db
+    assert user_db.email == email
+    assert user_db.full_name == full_name
+
+
+def test_update_password_me(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    new_password = random_lower_string()
+    data = {
+        "current_password": settings.FIRST_SUPERUSER_PASSWORD,
+        "new_password": new_password,
+    }
+    r = client.patch(
+        f"{settings.API_V1_STR}/users/me/password",
+        headers=superuser_token_headers,
+        json=data,
+    )
+    assert r.status_code == 200
+    updated_user = r.json()
+    assert updated_user["message"] == "Password updated successfully"
+
+    user_query = select(User).where(User.email == settings.FIRST_SUPERUSER)
+    user_db = db.exec(user_query).first()
+    assert user_db
+    assert user_db.email == settings.FIRST_SUPERUSER
+    assert verify_password(new_password, user_db.hashed_password)
+
+    # Revert to the old password to keep consistency in test
+    old_data = {
+        "current_password": new_password,
+        "new_password": settings.FIRST_SUPERUSER_PASSWORD,
+    }
+    r = client.patch(
+        f"{settings.API_V1_STR}/users/me/password",
+        headers=superuser_token_headers,
+        json=old_data,
+    )
+    db.refresh(user_db)
+
+    assert r.status_code == 200
+    assert verify_password(settings.FIRST_SUPERUSER_PASSWORD, user_db.hashed_password)
+
+
+def test_update_password_me_incorrect_password(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    new_password = random_lower_string()
+    data = {"current_password": new_password, "new_password": new_password}
+    r = client.patch(
+        f"{settings.API_V1_STR}/users/me/password",
+        headers=superuser_token_headers,
+        json=data,
+    )
+    assert r.status_code == 400
+    updated_user = r.json()
+    assert updated_user["detail"] == "Incorrect password"
+
+
+def test_update_user_me_email_exists(
+    client: TestClient, normal_user_token_headers: dict[str, str], db: Session
+) -> None:
+    username = random_email()
+    password = random_lower_string()
+    user_in = UserCreate(email=username, password=password)
+    user = crud.create_user(session=db, user_create=user_in)
+
+    data = {"email": user.email}
+    r = client.patch(
+        f"{settings.API_V1_STR}/users/me",
+        headers=normal_user_token_headers,
+        json=data,
+    )
+    assert r.status_code == 409
+    assert r.json()["detail"] == "User with this email already exists"
+
+
+def test_update_password_me_same_password_error(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    data = {
+        "current_password": settings.FIRST_SUPERUSER_PASSWORD,
+        "new_password": settings.FIRST_SUPERUSER_PASSWORD,
+    }
+    r = client.patch(
+        f"{settings.API_V1_STR}/users/me/password",
+        headers=superuser_token_headers,
+        json=data,
+    )
+    assert r.status_code == 400
+    updated_user = r.json()
+    assert (
+        updated_user["detail"] == "New password cannot be the same as the current one"
+    )
+
+
+def test_register_user(client: TestClient, db: Session) -> None:
+    with patch("app.core.config.settings.USERS_OPEN_REGISTRATION", True):
+        username = random_email()
+        password = random_lower_string()
+        full_name = random_lower_string()
+        data = {"email": username, "password": password, "full_name": full_name}
+        r = client.post(
+            f"{settings.API_V1_STR}/users/signup",
+            json=data,
+        )
+        assert r.status_code == 200
+        created_user = r.json()
+        assert created_user["email"] == username
+        assert created_user["full_name"] == full_name
+
+        user_query = select(User).where(User.email == username)
+        user_db = db.exec(user_query).first()
+        assert user_db
+        assert user_db.email == username
+        assert user_db.full_name == full_name
+        assert verify_password(password, user_db.hashed_password)
+
+
+def test_register_user_forbidden_error(client: TestClient) -> None:
+    with patch("app.core.config.settings.USERS_OPEN_REGISTRATION", False):
+        username = random_email()
+        password = random_lower_string()
+        full_name = random_lower_string()
+        data = {"email": username, "password": password, "full_name": full_name}
+        r = client.post(
+            f"{settings.API_V1_STR}/users/signup",
+            json=data,
+        )
+        assert r.status_code == 403
+        assert (
+            r.json()["detail"] == "Open user registration is forbidden on this server"
+        )
+
+
+def test_register_user_already_exists_error(client: TestClient) -> None:
+    with patch("app.core.config.settings.USERS_OPEN_REGISTRATION", True):
+        password = random_lower_string()
+        full_name = random_lower_string()
+        data = {
+            "email": settings.FIRST_SUPERUSER,
+            "password": password,
+            "full_name": full_name,
+        }
+        r = client.post(
+            f"{settings.API_V1_STR}/users/signup",
+            json=data,
+        )
+        assert r.status_code == 400
+        assert (
+            r.json()["detail"]
+            == "The user with this email already exists in the system"
+        )
+
+
+def test_update_user(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    username = random_email()
+    password = random_lower_string()
+    user_in = UserCreate(email=username, password=password)
+    user = crud.create_user(session=db, user_create=user_in)
+
+    data = {"full_name": "Updated_full_name"}
+    r = client.patch(
+        f"{settings.API_V1_STR}/users/{user.id}",
+        headers=superuser_token_headers,
+        json=data,
+    )
+    assert r.status_code == 200
+    updated_user = r.json()
+
+    assert updated_user["full_name"] == "Updated_full_name"
+
+    user_query = select(User).where(User.email == username)
+    user_db = db.exec(user_query).first()
+    db.refresh(user_db)
+    assert user_db
+    assert user_db.full_name == "Updated_full_name"
+
+
+def test_update_user_not_exists(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    data = {"full_name": "Updated_full_name"}
+    r = client.patch(
+        f"{settings.API_V1_STR}/users/99999999",
+        headers=superuser_token_headers,
+        json=data,
+    )
+    assert r.status_code == 404
+    assert r.json()["detail"] == "The user with this id does not exist in the system"
+
+
+def test_update_user_email_exists(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    username = random_email()
+    password = random_lower_string()
+    user_in = UserCreate(email=username, password=password)
+    user = crud.create_user(session=db, user_create=user_in)
+
+    username2 = random_email()
+    password2 = random_lower_string()
+    user_in2 = UserCreate(email=username2, password=password2)
+    user2 = crud.create_user(session=db, user_create=user_in2)
+
+    data = {"email": user2.email}
+    r = client.patch(
+        f"{settings.API_V1_STR}/users/{user.id}",
+        headers=superuser_token_headers,
+        json=data,
+    )
+    assert r.status_code == 409
+    assert r.json()["detail"] == "User with this email already exists"
+
+
+def test_delete_user_me(client: TestClient, db: Session) -> None:
+    username = random_email()
+    password = random_lower_string()
+    user_in = UserCreate(email=username, password=password)
+    user = crud.create_user(session=db, user_create=user_in)
+    user_id = user.id
+
+    login_data = {
+        "username": username,
+        "password": password,
+    }
+    r = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)
+    tokens = r.json()
+    a_token = tokens["access_token"]
+    headers = {"Authorization": f"Bearer {a_token}"}
+
+    r = client.delete(
+        f"{settings.API_V1_STR}/users/me",
+        headers=headers,
+    )
+    assert r.status_code == 200
+    deleted_user = r.json()
+    assert deleted_user["message"] == "User deleted successfully"
+    result = db.exec(select(User).where(User.id == user_id)).first()
+    assert result is None
+
+    user_query = select(User).where(User.id == user_id)
+    user_db = db.execute(user_query).first()
+    assert user_db is None
+
+
+def test_delete_user_me_as_superuser(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    r = client.delete(
+        f"{settings.API_V1_STR}/users/me",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 403
+    response = r.json()
+    assert response["detail"] == "Super users are not allowed to delete themselves"
+
+
+def test_delete_user_super_user(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    username = random_email()
+    password = random_lower_string()
+    user_in = UserCreate(email=username, password=password)
+    user = crud.create_user(session=db, user_create=user_in)
+    user_id = user.id
+    r = client.delete(
+        f"{settings.API_V1_STR}/users/{user_id}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 200
+    deleted_user = r.json()
+    assert deleted_user["message"] == "User deleted successfully"
+    result = db.exec(select(User).where(User.id == user_id)).first()
+    assert result is None
+
+
+def test_delete_user_not_found(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    r = client.delete(
+        f"{settings.API_V1_STR}/users/99999999",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 404
+    assert r.json()["detail"] == "User not found"
+
+
+def test_delete_user_current_super_user_error(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    super_user = crud.get_user_by_email(session=db, email=settings.FIRST_SUPERUSER)
+    assert super_user
+    user_id = super_user.id
+
+    r = client.delete(
+        f"{settings.API_V1_STR}/users/{user_id}",
+        headers=superuser_token_headers,
+    )
+    assert r.status_code == 403
+    assert r.json()["detail"] == "Super users are not allowed to delete themselves"
+
+
+def test_delete_user_without_privileges(
+    client: TestClient, normal_user_token_headers: dict[str, str], db: Session
+) -> None:
+    username = random_email()
+    password = random_lower_string()
+    user_in = UserCreate(email=username, password=password)
+    user = crud.create_user(session=db, user_create=user_in)
+
+    r = client.delete(
+        f"{settings.API_V1_STR}/users/{user.id}",
+        headers=normal_user_token_headers,
+    )
+    assert r.status_code == 403
+    assert r.json()["detail"] == "The user doesn't have enough privileges"
+</app/tests/api/routes/test_users.py>
+
+<app/tests/api/routes/test_items.py>
+from fastapi.testclient import TestClient
+from sqlmodel import Session
+
+from app.core.config import settings
+from app.tests.utils.item import create_random_item
+
+
+def test_create_item(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    data = {"title": "Foo", "description": "Fighters"}
+    response = client.post(
+        f"{settings.API_V1_STR}/items/",
+        headers=superuser_token_headers,
+        json=data,
+    )
+    assert response.status_code == 200
+    content = response.json()
+    assert content["title"] == data["title"]
+    assert content["description"] == data["description"]
+    assert "id" in content
+    assert "owner_id" in content
+
+
+def test_read_item(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    item = create_random_item(db)
+    response = client.get(
+        f"{settings.API_V1_STR}/items/{item.id}",
+        headers=superuser_token_headers,
+    )
+    assert response.status_code == 200
+    content = response.json()
+    assert content["title"] == item.title
+    assert content["description"] == item.description
+    assert content["id"] == item.id
+    assert content["owner_id"] == item.owner_id
+
+
+def test_read_item_not_found(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    response = client.get(
+        f"{settings.API_V1_STR}/items/999",
+        headers=superuser_token_headers,
+    )
+    assert response.status_code == 404
+    content = response.json()
+    assert content["detail"] == "Item not found"
+
+
+def test_read_item_not_enough_permissions(
+    client: TestClient, normal_user_token_headers: dict[str, str], db: Session
+) -> None:
+    item = create_random_item(db)
+    response = client.get(
+        f"{settings.API_V1_STR}/items/{item.id}",
+        headers=normal_user_token_headers,
+    )
+    assert response.status_code == 400
+    content = response.json()
+    assert content["detail"] == "Not enough permissions"
+
+
+def test_read_items(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    create_random_item(db)
+    create_random_item(db)
+    response = client.get(
+        f"{settings.API_V1_STR}/items/",
+        headers=superuser_token_headers,
+    )
+    assert response.status_code == 200
+    content = response.json()
+    assert len(content["data"]) >= 2
+
+
+def test_update_item(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    item = create_random_item(db)
+    data = {"title": "Updated title", "description": "Updated description"}
+    response = client.put(
+        f"{settings.API_V1_STR}/items/{item.id}",
+        headers=superuser_token_headers,
+        json=data,
+    )
+    assert response.status_code == 200
+    content = response.json()
+    assert content["title"] == data["title"]
+    assert content["description"] == data["description"]
+    assert content["id"] == item.id
+    assert content["owner_id"] == item.owner_id
+
+
+def test_update_item_not_found(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    data = {"title": "Updated title", "description": "Updated description"}
+    response = client.put(
+        f"{settings.API_V1_STR}/items/999",
+        headers=superuser_token_headers,
+        json=data,
+    )
+    assert response.status_code == 404
+    content = response.json()
+    assert content["detail"] == "Item not found"
+
+
+def test_update_item_not_enough_permissions(
+    client: TestClient, normal_user_token_headers: dict[str, str], db: Session
+) -> None:
+    item = create_random_item(db)
+    data = {"title": "Updated title", "description": "Updated description"}
+    response = client.put(
+        f"{settings.API_V1_STR}/items/{item.id}",
+        headers=normal_user_token_headers,
+        json=data,
+    )
+    assert response.status_code == 400
+    content = response.json()
+    assert content["detail"] == "Not enough permissions"
+
+
+def test_delete_item(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    item = create_random_item(db)
+    response = client.delete(
+        f"{settings.API_V1_STR}/items/{item.id}",
+        headers=superuser_token_headers,
+    )
+    assert response.status_code == 200
+    content = response.json()
+    assert content["message"] == "Item deleted successfully"
+
+
+def test_delete_item_not_found(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    response = client.delete(
+        f"{settings.API_V1_STR}/items/999",
+        headers=superuser_token_headers,
+    )
+    assert response.status_code == 404
+    content = response.json()
+    assert content["detail"] == "Item not found"
+
+
+def test_delete_item_not_enough_permissions(
+    client: TestClient, normal_user_token_headers: dict[str, str], db: Session
+) -> None:
+    item = create_random_item(db)
+    response = client.delete(
+        f"{settings.API_V1_STR}/items/{item.id}",
+        headers=normal_user_token_headers,
+    )
+    assert response.status_code == 400
+    content = response.json()
+    assert content["detail"] == "Not enough permissions"
+</app/tests/api/routes/test_items.py>
+
+<app/tests/api/routes/__init__.py>
+</app/tests/api/routes/__init__.py>
+
+<app/tests/api/routes/test_login.py>
+from unittest.mock import patch
+
+from fastapi.testclient import TestClient
+from sqlmodel import Session, select
+
+from app.core.config import settings
+from app.core.security import verify_password
+from app.schema.proof_of_id_verification import User
+from app.utils import generate_password_reset_token
+
+
+def test_get_access_token(client: TestClient) -> None:
+    login_data = {
+        "username": settings.FIRST_SUPERUSER,
+        "password": settings.FIRST_SUPERUSER_PASSWORD,
+    }
+    r = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)
+    tokens = r.json()
+    assert r.status_code == 200
+    assert "access_token" in tokens
+    assert tokens["access_token"]
+
+
+def test_get_access_token_incorrect_password(client: TestClient) -> None:
+    login_data = {
+        "username": settings.FIRST_SUPERUSER,
+        "password": "incorrect",
+    }
+    r = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)
+    assert r.status_code == 400
+
+
+def test_use_access_token(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    r = client.post(
+        f"{settings.API_V1_STR}/login/test-token",
+        headers=superuser_token_headers,
+    )
+    result = r.json()
+    assert r.status_code == 200
+    assert "email" in result
+
+
+def test_recovery_password(
+    client: TestClient, normal_user_token_headers: dict[str, str]
+) -> None:
+    with (
+        patch("app.core.config.settings.SMTP_HOST", "smtp.example.com"),
+        patch("app.core.config.settings.SMTP_USER", "admin@example.com"),
+    ):
+        email = "test@example.com"
+        r = client.post(
+            f"{settings.API_V1_STR}/password-recovery/{email}",
+            headers=normal_user_token_headers,
+        )
+        assert r.status_code == 200
+        assert r.json() == {"message": "Password recovery email sent"}
+
+
+def test_recovery_password_user_not_exits(
+    client: TestClient, normal_user_token_headers: dict[str, str]
+) -> None:
+    email = "jVgQr@example.com"
+    r = client.post(
+        f"{settings.API_V1_STR}/password-recovery/{email}",
+        headers=normal_user_token_headers,
+    )
+    assert r.status_code == 404
+
+
+def test_reset_password(
+    client: TestClient, superuser_token_headers: dict[str, str], db: Session
+) -> None:
+    token = generate_password_reset_token(email=settings.FIRST_SUPERUSER)
+    data = {"new_password": "changethis", "token": token}
+    r = client.post(
+        f"{settings.API_V1_STR}/reset-password/",
+        headers=superuser_token_headers,
+        json=data,
+    )
+    assert r.status_code == 200
+    assert r.json() == {"message": "Password updated successfully"}
+
+    user_query = select(User).where(User.email == settings.FIRST_SUPERUSER)
+    user = db.exec(user_query).first()
+    assert user
+    assert verify_password(data["new_password"], user.hashed_password)
+
+
+def test_reset_password_invalid_token(
+    client: TestClient, superuser_token_headers: dict[str, str]
+) -> None:
+    data = {"new_password": "changethis", "token": "invalid"}
+    r = client.post(
+        f"{settings.API_V1_STR}/reset-password/",
+        headers=superuser_token_headers,
+        json=data,
+    )
+    response = r.json()
+
+    assert "detail" in response
+    assert r.status_code == 400
+    assert response["detail"] == "Invalid token"
+</app/tests/api/routes/test_login.py>
+
+<app/tests/api/__init__.py>
+</app/tests/api/__init__.py>
+
+<app/tests/__init__.py>
+</app/tests/__init__.py>
+
+<app/tests/crud/test_user.py>
+from fastapi.encoders import jsonable_encoder
+from sqlmodel import Session
+
+from app import crud
+from app.core.security import verify_password
+from app.schema.proof_of_id_verification import User, UserCreate, UserUpdate
+from app.tests.utils.utils import random_email, random_lower_string
+
+
+def test_create_user(db: Session) -> None:
+    email = random_email()
+    password = random_lower_string()
+    user_in = UserCreate(email=email, password=password)
+    user = crud.create_user(session=db, user_create=user_in)
+    assert user.email == email
+    assert hasattr(user, "hashed_password")
+
+
+def test_authenticate_user(db: Session) -> None:
+    email = random_email()
+    password = random_lower_string()
+    user_in = UserCreate(email=email, password=password)
+    user = crud.create_user(session=db, user_create=user_in)
+    authenticated_user = crud.authenticate(session=db, email=email, password=password)
+    assert authenticated_user
+    assert user.email == authenticated_user.email
+
+
+def test_not_authenticate_user(db: Session) -> None:
+    email = random_email()
+    password = random_lower_string()
+    user = crud.authenticate(session=db, email=email, password=password)
+    assert user is None
+
+
+def test_check_if_user_is_active(db: Session) -> None:
+    email = random_email()
+    password = random_lower_string()
+    user_in = UserCreate(email=email, password=password)
+    user = crud.create_user(session=db, user_create=user_in)
+    assert user.is_active is True
+
+
+def test_check_if_user_is_active_inactive(db: Session) -> None:
+    email = random_email()
+    password = random_lower_string()
+    user_in = UserCreate(email=email, password=password, disabled=True)
+    user = crud.create_user(session=db, user_create=user_in)
+    assert user.is_active
+
+
+def test_check_if_user_is_superuser(db: Session) -> None:
+    email = random_email()
+    password = random_lower_string()
+    user_in = UserCreate(email=email, password=password, is_superuser=True)
+    user = crud.create_user(session=db, user_create=user_in)
+    assert user.is_superuser is True
+
+
+def test_check_if_user_is_superuser_normal_user(db: Session) -> None:
+    username = random_email()
+    password = random_lower_string()
+    user_in = UserCreate(email=username, password=password)
+    user = crud.create_user(session=db, user_create=user_in)
+    assert user.is_superuser is False
+
+
+def test_get_user(db: Session) -> None:
+    password = random_lower_string()
+    username = random_email()
+    user_in = UserCreate(email=username, password=password, is_superuser=True)
+    user = crud.create_user(session=db, user_create=user_in)
+    user_2 = db.get(User, user.id)
+    assert user_2
+    assert user.email == user_2.email
+    assert jsonable_encoder(user) == jsonable_encoder(user_2)
+
+
+def test_update_user(db: Session) -> None:
+    password = random_lower_string()
+    email = random_email()
+    user_in = UserCreate(email=email, password=password, is_superuser=True)
+    user = crud.create_user(session=db, user_create=user_in)
+    new_password = random_lower_string()
+    user_in_update = UserUpdate(password=new_password, is_superuser=True)
+    if user.id is not None:
+        crud.update_user(session=db, db_user=user, user_in=user_in_update)
+    user_2 = db.get(User, user.id)
+    assert user_2
+    assert user.email == user_2.email
+    assert verify_password(new_password, user_2.hashed_password)
+</app/tests/crud/test_user.py>
+
+<app/tests/crud/__init__.py>
+</app/tests/crud/__init__.py>
+
+<app/alembic/versions/.keep>
+</app/alembic/versions/.keep>
+
+<app/alembic/versions/e2412789c190_initialize_models.py>
+"""Initialize models
+
+Revision ID: e2412789c190
+Revises:
+Create Date: 2023-11-24 22:55:43.195942
+
+"""
+
+import sqlalchemy as sa
+import sqlmodel.sql.sqltypes
+from alembic import op
+
+# revision identifiers, used by Alembic.
+revision = "e2412789c190"
+down_revision = None
+branch_labels = None
+depends_on = None
+
+
+def upgrade():
+    # ### commands auto generated by Alembic - please adjust! ###
+    op.create_table(
+        "user",
+        sa.Column("email", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+        sa.Column("is_active", sa.Boolean(), nullable=False),
+        sa.Column("is_superuser", sa.Boolean(), nullable=False),
+        sa.Column("full_name", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column(
+            "hashed_password", sqlmodel.sql.sqltypes.AutoString(), nullable=False
+        ),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_index(op.f("ix_user_email"), "user", ["email"], unique=True)
+    op.create_table(
+        "item",
+        sa.Column("description", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("title", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+        sa.Column("owner_id", sa.Integer(), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["owner_id"],
+            ["user.id"],
+        ),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    # ### end Alembic commands ###
+
+
+def downgrade():
+    # ### commands auto generated by Alembic - please adjust! ###
+    op.drop_table("item")
+    op.drop_index(op.f("ix_user_email"), table_name="user")
+    op.drop_table("user")
+    # ### end Alembic commands ###
+</app/alembic/versions/e2412789c190_initialize_models.py>
+
+<app/alembic/env.py>
+import os
+from logging.config import fileConfig
+
+from alembic import context
+from sqlalchemy import engine_from_config, pool
+
+# this is the Alembic Config object, which provides
+# access to the values within the .ini file in use.
+config = context.config
+
+# Interpret the config file for Python logging.
+# This line sets up loggers basically.
+fileConfig(config.config_file_name)
+
+# add your model's MetaData object here
+# for 'autogenerate' support
+# from myapp import mymodel
+# target_metadata = mymodel.Base.metadata
+# target_metadata = None
+
+from app.schema.proof_of_id_verification import SQLModel  # noqa
+
+target_metadata = SQLModel.metadata
+
+# other values from the config, defined by the needs of env.py,
+# can be acquired:
+# my_important_option = config.get_main_option("my_important_option")
+# ... etc.
+
+
+def get_url():
+    user = os.getenv("POSTGRES_USER", "postgres")
+    password = os.getenv("POSTGRES_PASSWORD", "")
+    server = os.getenv("POSTGRES_SERVER", "db")
+    port = os.getenv("POSTGRES_PORT", "5432")
+    db = os.getenv("POSTGRES_DB", "app")
+    return f"postgresql+psycopg://{user}:{password}@{server}:{port}/{db}"
+
+
+def run_migrations_offline():
+    """Run migrations in 'offline' mode.
+
+    This configures the context with just a URL
+    and not an Engine, though an Engine is acceptable
+    here as well.  By skipping the Engine creation
+    we don't even need a DBAPI to be available.
+
+    Calls to context.execute() here emit the given string to the
+    script output.
+
+    """
+    url = get_url()
+    context.configure(
+        url=url, target_metadata=target_metadata, literal_binds=True, compare_type=True
+    )
+
+    with context.begin_transaction():
+        context.run_migrations()
+
+
+def run_migrations_online():
+    """Run migrations in 'online' mode.
+
+    In this scenario we need to create an Engine
+    and associate a connection with the context.
+
+    """
+    configuration = config.get_section(config.config_ini_section)
+    configuration["sqlalchemy.url"] = get_url()
+    connectable = engine_from_config(
+        configuration,
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool,
+    )
+
+    with connectable.connect() as connection:
+        context.configure(
+            connection=connection, target_metadata=target_metadata, compare_type=True
+        )
+
+        with context.begin_transaction():
+            context.run_migrations()
+
+
+if context.is_offline_mode():
+    run_migrations_offline()
+else:
+    run_migrations_online()
+</app/alembic/env.py>
+
+<app/alembic/script.py.mako>
+"""${message}
+
+Revision ID: ${up_revision}
+Revises: ${down_revision | comma,n}
+Create Date: ${create_date}
+
+"""
+from alembic import op
+import sqlalchemy as sa
+import sqlmodel.sql.sqltypes
+${imports if imports else ""}
+
+# revision identifiers, used by Alembic.
+revision = ${repr(up_revision)}
+down_revision = ${repr(down_revision)}
+branch_labels = ${repr(branch_labels)}
+depends_on = ${repr(depends_on)}
+
+
+def upgrade():
+    ${upgrades if upgrades else "pass"}
+
+
+def downgrade():
+    ${downgrades if downgrades else "pass"}
+</app/alembic/script.py.mako>
+
+<app/alembic/README>
+Generic single-database configuration.
+</app/alembic/README>
+
+<app/targets.py>
+import os
+import subprocess
+import webbrowser
+from datetime import datetime
+
+import typer
+import uvicorn
+
+from app.core import logger
+from app.core.config import settings
+from app.core.db import create_db_and_tables, get_db, init_db, seed_db
+from app.main import fastapi_app
+
+cli = typer.Typer(
+    """\
+    # CLI Commands Documentation
+
+    ## Main Commands
+    - `serve`: Start the server on a specified host and port.
+
+    ## Info Commands
+    - `docs`: Show documentation.
+    - `code`: Show codebase.
+    - `status`: Check the status of the backend systems.
+    - `logs`: Fetch logs for the specified number of days.
+
+    ## Database Commands
+    - `init`: Initialize the database.
+    - `seed`: Seed the database with initial data.
+    - `backup`: Backup the database.
+    - `restore`: Restore the database from a backup.
+    - `migrate`: Migrate the database schema.
+
+    ## Development Commands
+    - `test`: Run tests.
+    - `deploy`: Deploy the application to a specified environment.
+    - `build`: Build the project.
+    """
+)
+
+# Sub-command groups
+info_cli = typer.Typer()
+db_cli = typer.Typer()
+dev_cli = typer.Typer()
+
+# Adding sub-command groups to the main CLI
+cli.add_typer(info_cli, name="info")
+cli.add_typer(db_cli, name="db")
+cli.add_typer(dev_cli, name="dev")
+
+
+# Main command: serve
+@cli.command()
+def serve(host: str = settings.HOST, port: int = settings.PORT):
+    uvicorn.run(fastapi_app, host=host, port=port)
+
+
+# Info group commands
+@info_cli.command()
+def docs():
+    typer.echo("Showing documentation...")
+    webbrowser.open("https://github.com/verifyhumans/gotcha-v2/tree/main/docs")
+
+
+@info_cli.command()
+def code():
+    typer.echo("Showing code...")
+    webbrowser.open("https://github.com/verifyhumans/gotcha-v2")
+
+
+@info_cli.command()
+def status():
+    if settings.ENVIRONMENT == "production":
+        typer.echo("Running on production. Checking container health...")
+        # Implement your container health check logic here
+        # This could be a script that checks Docker container statuses, for example:
+        os.system("docker ps --filter 'health=healthy'")
+    else:
+        typer.echo("Not running in production environment.")
+
+
+@info_cli.command()
+def logs(days: int = 1):
+    typer.echo(f"Fetching logs for the last {days} days.")
+    typer.echo("Streaming logs (press Ctrl+C to stop)...")
+    try:
+        subprocess.run(["tail", "-f", settings.LOG_FILE])
+    except KeyboardInterrupt:
+        typer.echo("Stopped streaming logs.")
+
+
+# DB group commands
+@db_cli.command()
+def drop(
+    confirm: bool = typer.Option(
+        False, "--confirm", prompt="Are you sure you want to drop the database?"
+    )
+):
+    if confirm:
+        typer.echo("Dropping database...")
+        with get_db() as db:
+            db.execute(f"DROP DATABASE IF EXISTS {settings.POSTGRES_DB}")
+        typer.echo("Database dropped.")
+    else:
+        typer.echo("Database drop cancelled.")
+
+
+@db_cli.command()
+def init(session=typer.Depends(get_db)):
+    typer.echo("Initializing database...")
+    init_db(session)
+    typer.echo("Database initialized.")
+
+
+@db_cli.command()
+def seed(session=typer.Depends(get_db)):
+    typer.echo("Seeding database...")
+    seed_db(session)
+
+
+@db_cli.command()
+def backup():
+    typer.echo("Backing up database...")
+    raise NotImplementedError("Not implemented yet")
+
+    db = get_db()
+    import os
+    import shutil
+    from datetime import datetime
+
+    backup_dir = settings.BACKUP_DIR
+    os.makedirs(backup_dir, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    backup_file = os.path.join(backup_dir, f"db_backup_{timestamp}.sql")
+
+    command = f"pg_dump -h {settings.POSTGRES_SERVER} -p {settings.POSTGRES_PORT} -U {settings.POSTGRES_USER} -d {settings.POSTGRES_DB} -f {backup_file}"
+    os.system(command)
+
+    # Optionally, compress the backup file
+    shutil.make_archive(backup_file, "zip", backup_dir, backup_file)
+    typer.echo("Database backed up.")
+
+
+@db_cli.command()
+def restore():
+    typer.echo("Restoring database from backup...")
+    raise NotImplementedError("Not implemented yet")
+
+    import os
+    from datetime import datetime
+    import shutil
+    from sqlmodel import Session
+
+    backup_dir = settings.BACKUP_DIR
+    latest_backup = max(
+        [
+            os.path.join(backup_dir, f)
+            for f in os.listdir(backup_dir)
+            if f.endswith(".sql.zip")
+        ],
+        default=None,
+        key=os.path.getctime,
+    )
+
+    if latest_backup:
+        typer.echo(f"Restoring from {latest_backup}...")
+        # Unzip the backup file
+        with zipfile.ZipFile(latest_backup, "r") as zip_ref:
+            zip_ref.extractall(backup_dir)
+
+        # Get the SQL file name from the zip file
+        sql_file = latest_backup.replace(".zip", "")
+
+        # Restore the database from the SQL file
+        command = f"psql -h {settings.POSTGRES_SERVER} -p {settings.POSTGRES_PORT} -U {settings.POSTGRES_USER} -d {settings.POSTGRES_DB} -f {sql_file}"
+        os.system(command)
+
+        # Clean up extracted files
+        os.remove(sql_file)
+        typer.echo("Database restored from backup.")
+    else:
+        typer.echo("No backup file found.")
+
+
+@db_cli.command()
+def migrate():
+    typer.echo("Migrating database...")
+
+    # TODO: use the alembic scripts
+    raise NotImplementedError("Not implemented yet")
+
+
+# Dev group commands
+@dev_cli.command()
+def test():
+    typer.echo("Running tests...")
+    raise NotImplementedError("Not implemented yet")
+
+
+@dev_cli.command()
+def generate_docs():
+    typer.echo("Generating docs...")
+    raise NotImplementedError("Not implemented yet")
+
+
+@dev_cli.command()
+def deploy(environment: str):
+    typer.echo(f"Deploying to {environment}...")
+    raise NotImplementedError("Not implemented yet")
+
+
+@dev_cli.command()
+def build():
+    typer.echo("Building project...")
+    raise NotImplementedError("Not implemented yet")
+
+
+if __name__ == "__main__":
+    cli()
+</app/targets.py>
+
+Now, write the etech spec on our backend, keeping in mind how important your spec will be for implementing the actual frontend
