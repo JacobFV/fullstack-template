@@ -8,7 +8,7 @@ from typing import ClassVar, Optional
 
 from pydantic.config import ConfigDict
 from sqlalchemy import Column, String, func
-from sqlalchemy.ext.hybrid import hybrid_column
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
 from typing_extensions import Unpack
 
@@ -18,7 +18,7 @@ from app.schema.base import ModelInDB
 
 class HasReddisChannel(ModelInDB):
 
-    @hybrid_column
+    @hybrid_property
     def redis_channel_name(self):
         return f"redis_{self.__class__.__name__.lower()}_{self.id}"
 

@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from contextlib import contextmanager
 import sentry_sdk
 from fastapi import FastAPI
@@ -44,3 +46,6 @@ if settings.BACKEND_CORS_ORIGINS:
     )
 
 fastapi_app.include_router(api_router, prefix=settings.api_v1_str)
+
+if __name__ == "__main__":
+    cli()

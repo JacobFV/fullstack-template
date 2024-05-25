@@ -9,7 +9,7 @@ import uvicorn
 from app.core import logger
 from app.core.config import settings
 from app.core.db import create_db_and_tables, get_db, init_db, seed_db
-from app.main import fastapi_app
+from app.__main__ import fastapi_app
 
 cli = typer.Typer(
     """\

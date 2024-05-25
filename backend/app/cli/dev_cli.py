@@ -5,7 +5,7 @@ import typer
 import uvicorn
 
 from app.core.config import Settings, get_settings
-from app.main import fastapi_app
+from app.__main__ import fastapi_app
 
 dev_cli = typer.Typer()
 

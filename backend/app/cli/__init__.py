@@ -10,7 +10,7 @@ import uvicorn
 from app.core import logger
 from app.core.config import settings
 from app.core.db import engine
-from app.main import fastapi_app
+from app.__main__ import fastapi_app
 
 cli = typer.Typer(
     """\
@@ -87,7 +87,3 @@ def dev(
             else:
                 progress.update(3)
             dev_cli_endpoints.serve(host, port)
-
-
-if __name__ == "__main__":
-    cli()
