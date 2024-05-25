@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '../utils/test-utils';
-import APIKeys from '../../pages/APIKeys';
+import APIKeys from '../../routes/_layout/api-keys';
 
 describe('APIKeys', () => {
   it('renders the API keys page with user API keys', async () => {

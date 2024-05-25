@@ -2,30 +2,50 @@ import React, { useState } from 'react';
 import { Box, Button, FormControl, FormLabel, Heading, Input, Text } from '@chakra-ui/react';
 import { Link as RouterLink, useNavigate } from '@tanstack/react-router';
 import { useMutation } from '@tanstack/react-query';
-import { login } from '../services/api';
+import { register } from '../../services/api';
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
+import { createFileRoute } from "@tanstack/react-router"
 
-const Login: React.FC = () => {
+import { Suspense } from "react"
+import { type UserPublic, UsersService } from "../../client"
+import ActionsMenu from "../../components/Common/ActionsMenu"
+import Navbar from "../../components/Common/Navbar"
+
+export const Route = createFileRoute("/_layout/register")({
+  component: Register,
+})
+function Register() {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
-  const { mutate: loginMutation, isLoading, error } = useMutation(login, {
+  const { mutate: registerMutation, isLoading, error } = useMutation(register, {
     onSuccess: () => {
-      navigate('/account');
+      navigate('/login');
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    loginMutation({ email, password });
+    registerMutation({ name, email, password });
   };
 
   return (
     <Box maxW="container.sm" mx="auto" py={8}>
       <Heading as="h1" size="xl" mb={8}>
-        Login
+        Register
       </Heading>
       <form onSubmit={handleSubmit}>
+        <FormControl id="name" mb={4}>
+          <FormLabel>Name</FormLabel>
+          <Input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
+        </FormControl>
         <FormControl id="email" mb={4}>
           <FormLabel>Email address</FormLabel>
           <Input
@@ -50,17 +70,14 @@ const Login: React.FC = () => {
           </Text>
         )}
         <Button type="submit" colorScheme="blue" size="lg" width="full" isLoading={isLoading}>
-          Login
+          Register
         </Button>
       </form>
       <Box mt={8}>
-        <RouterLink to="/forgot-password">Forgot password?</RouterLink>
-      </Box>
-      <Box mt={4}>
-        Don't have an account? <RouterLink to="/register">Register</RouterLink>
+        Already have an account? <RouterLink to="/login">Login</RouterLink>
       </Box>
     </Box>
   );
 };
 
-export default Login;
+export default Register;

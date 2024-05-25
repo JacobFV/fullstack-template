@@ -1,5 +1,5 @@
 import { render, screen } from '../utils/test-utils';
-import Home from '../../pages/Home';
+import Home from '../../routes/_layout/home';
 
 describe('Home', () => {
   it('renders the home page content', () => {

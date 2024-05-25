@@ -1,7 +1,17 @@
 import React from 'react';
 import { Box, Heading, Text } from '@chakra-ui/react';
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
+import { createFileRoute } from "@tanstack/react-router"
 
-const PrivacyPolicy: React.FC = () => {
+import { Suspense } from "react"
+import { type UserPublic, UsersService } from "../../client"
+import ActionsMenu from "../../components/Common/ActionsMenu"
+import Navbar from "../../components/Common/Navbar"
+
+export const Route = createFileRoute("/_layout/privacy-policy")({
+  component: PrivacyPolicy,
+})
+function PrivacyPolicy() {
   return (
     <Box maxW="container.lg" mx="auto" py={8}>
       <Heading as="h1" size="xl" mb={8}>

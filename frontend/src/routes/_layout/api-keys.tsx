@@ -1,9 +1,19 @@
 import React from 'react';
 import { Box, Heading, Text, Button, Table, Thead, Tbody, Tr, Th, Td } from '@chakra-ui/react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { getAPIKeys, createAPIKey, revokeAPIKey } from '../services/api';
+import { getAPIKeys, createAPIKey, revokeAPIKey } from '../../services/api';
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
+import { createFileRoute } from "@tanstack/react-router"
 
-const APIKeys: React.FC = () => {
+import { Suspense } from "react"
+import { type UserPublic, UsersService } from "../../client"
+import ActionsMenu from "../../components/Common/ActionsMenu"
+import Navbar from "../../components/Common/Navbar"
+
+export const Route = createFileRoute("/_layout/api-keys")({
+  component: APIKeys,
+})
+function APIKeys() {
   const { data: apiKeys, isLoading, error, refetch } = useQuery(['apiKeys'], getAPIKeys);
   const createMutation = useMutation(createAPIKey, {
     onSuccess: () => {

@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '../utils/test-utils';
-import Settings from '../../pages/Settings';
+import Settings from '../../routes/_layout/settings-bad';
 
 describe('Settings', () => {
   it('renders the settings page with user information and options', async () => {

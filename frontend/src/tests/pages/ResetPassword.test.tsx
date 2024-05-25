@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '../utils/test-utils';
-import ResetPassword from '../../pages/ResetPassword';
+import ResetPassword from '../../routes/_layout/reset-password-bad';
 
 describe('ResetPassword', () => {
   it('renders the reset password form', () => {

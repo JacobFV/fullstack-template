@@ -2,15 +2,25 @@ import React from 'react';
 import { Box, Button, Heading, Text, FormControl, FormLabel, Input, Textarea } from '@chakra-ui/react';
 import { useForm } from 'react-hook-form';
 import { useQuery } from '@tanstack/react-query';
-import { getPlaygroundData } from '../services/api';
+import { getPlaygroundData } from '../../services/api';
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
+import { createFileRoute } from "@tanstack/react-router"
 
+import { Suspense } from "react"
+import { type UserPublic, UsersService } from "../../client"
+import ActionsMenu from "../../components/Common/ActionsMenu"
+import Navbar from "../../components/Common/Navbar"
+
+export const Route = createFileRoute("/_layout/playground")({
+  component: Playground,
+})
 type FormData = {
   name: string;
   email: string;
   message: string;
 };
 
-const Playground: React.FC = () => {
+function Playground() {
   const { data: playgroundData, isLoading, error } = useQuery(['playgroundData'], getPlaygroundData);
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>();
 

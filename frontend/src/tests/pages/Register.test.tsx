@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '../utils/test-utils';
-import Register from '../../pages/Register';
+import Register from '../../routes/_layout/register';
 
 describe('Register', () => {
   it('renders the registration form', () => {

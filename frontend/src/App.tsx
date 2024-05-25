@@ -3,21 +3,20 @@ import { Box } from '@chakra-ui/react';
 import { Route, Routes } from 'react-router-dom';
 import Navigation from './components/Navigation';
 import Footer from './components/Footer';
-import Home from './pages/Home';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
-import Account from './pages/Account';
-import Playground from './pages/Playground';
-import Activity from './pages/Activity';
-import Billing from './pages/Billing';
-import APIKeys from './pages/APIKeys';
-import Settings from './pages/Settings';
-// import VerificationRequest from './pages/VerificationRequest';
-import Verification from './pages/Verification';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import TermsOfService from './pages/TermsOfService';
+import Home from './routes/_layout/home';
+import Login from './routes/_layout/login-bad';
+import Register from './routes/_layout/register';
+import ForgotPassword from './routes/_layout/forgot-password';
+import ResetPassword from './routes/_layout/reset-password-bad';
+import Account from './routes/_layout/account';
+import Playground from './routes/_layout/playground';
+import Activity from './routes/_layout/activity';
+import Billing from './routes/_layout/billing';
+import APIKeys from './routes/_layout/api-keys';
+import Settings from './routes/_layout/settings-bad';
+import Verification from './routes/_layout/verification';
+import PrivacyPolicy from './routes/_layout/privacy-policy';
+import TermsOfService from './routes/_layout/terms-of-service';
 
 const App: React.FC = () => {
   return (
@@ -35,7 +34,6 @@ const App: React.FC = () => {
         <Route path="/billing" element={<Billing />} />
         <Route path="/api-keys" element={<APIKeys />} />
         <Route path="/settings" element={<Settings />} />
-        {/* <Route path="/verification-request" element={<VerificationRequest />} /> */}
         <Route path="/verification" element={<Verification />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/terms-of-service" element={<TermsOfService />} />

@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from '../utils/test-utils';
-import Activity from '../../pages/Activity';
+import Activity from '../../routes/_layout/activity';
 
 describe('Activity', () => {
   it('renders the activity page with verification history', async () => {

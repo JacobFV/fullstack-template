@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Box, Button, FormControl, FormLabel, Heading, Input, Text } from '@chakra-ui/react';
 import { Link as RouterLink, useNavigate, useSearch } from '@tanstack/react-router';
 import { useMutation } from '@tanstack/react-query';
-import { resetPassword } from '../services/api';
+import { resetPassword } from '../../services/api';
 
 const ResetPassword: React.FC = () => {
   const [password, setPassword] = useState('');

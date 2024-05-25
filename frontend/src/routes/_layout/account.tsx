@@ -1,9 +1,20 @@
 import React from 'react';
 import { Box, Heading, Text } from '@chakra-ui/react';
 import { useQuery } from '@tanstack/react-query';
-import { getAccount } from '../services/api';
+import { getAccount } from '../../services/api';
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
+import { createFileRoute } from "@tanstack/react-router"
 
-const Account: React.FC = () => {
+import { Suspense } from "react"
+import { type UserPublic, UsersService } from "../../client"
+import ActionsMenu from "../../components/Common/ActionsMenu"
+import Navbar from "../../components/Common/Navbar"
+
+export const Route = createFileRoute("/_layout/account")({
+  component: Account,
+})
+
+function Account() {
   const { data: account, isLoading, error } = useQuery(['account'], getAccount);
 
   if (isLoading) {

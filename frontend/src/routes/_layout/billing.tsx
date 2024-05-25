@@ -1,9 +1,19 @@
 import React from 'react';
 import { Box, Heading, Text, Table, Thead, Tbody, Tr, Th, Td } from '@chakra-ui/react';
 import { useQuery } from '@tanstack/react-query';
-import { getBillingData } from '../services/api';
+import { getBillingData } from '../../services/api';
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
+import { createFileRoute } from "@tanstack/react-router"
 
-const Billing: React.FC = () => {
+import { Suspense } from "react"
+import { type UserPublic, UsersService } from "../../client"
+import ActionsMenu from "../../components/Common/ActionsMenu"
+import Navbar from "../../components/Common/Navbar"
+
+export const Route = createFileRoute("/_layout/billing")({
+  component: Billing,
+})
+function Billing() {
   const { data: billingData, isLoading, error } = useQuery(['billingData'], getBillingData);
 
   if (isLoading) {

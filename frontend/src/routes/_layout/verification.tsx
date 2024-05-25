@@ -2,9 +2,19 @@ import React, { useState, useRef } from 'react';
 import { Box, Heading, Text, FormControl, FormLabel, Input, Button, Flex, Progress } from '@chakra-ui/react';
 import { useForm } from 'react-hook-form';
 import { useMutation } from '@tanstack/react-query';
-import { initiateVerification, completeVerification } from '../services/api';
+import { initiateVerification, completeVerification } from '../../services/api';
 import Webcam from 'react-webcam';
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
+import { createFileRoute } from "@tanstack/react-router"
 
+import { Suspense } from "react"
+import { type UserPublic, UsersService } from "../../client"
+import ActionsMenu from "../../components/Common/ActionsMenu"
+import Navbar from "../../components/Common/Navbar"
+
+export const Route = createFileRoute("/_layout/verification")({
+  component: Verification,
+})
 type VerificationFormData = {
   fullName: string;
   documentType: string;
@@ -12,7 +22,7 @@ type VerificationFormData = {
   expirationDate: string;
 };
 
-const Verification: React.FC = () => {
+function Verification() {
   const [step, setStep] = useState(1);
   const [progress, setProgress] = useState(0);
   const { register, handleSubmit, formState: { errors } } = useForm<VerificationFormData>();

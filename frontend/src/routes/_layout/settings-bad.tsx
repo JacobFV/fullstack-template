@@ -2,8 +2,18 @@ import React from 'react';
 import { Box, Heading, Text, FormControl, FormLabel, Input, Button, AlertDialog, AlertDialogBody, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogOverlay } from '@chakra-ui/react';
 import { useForm } from 'react-hook-form';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { getUserSettings, updateUserSettings, changePassword, exportData, deleteAccount } from '../services/api';
+import { getUserSettings, updateUserSettings, changePassword, exportData, deleteAccount } from '../../services/api';
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
+import { createFileRoute } from "@tanstack/react-router"
 
+import { Suspense } from "react"
+import { type UserPublic, UsersService } from "../../client"
+import ActionsMenu from "../../components/Common/ActionsMenu"
+import Navbar from "../../components/Common/Navbar"
+
+export const Route = createFileRoute("/_layout/settings-bad")({
+  component: Settings,
+})
 type UserInfoFormData = {
   name: string;
   email: string;
@@ -15,7 +25,7 @@ type ChangePasswordFormData = {
   confirmPassword: string;
 };
 
-const Settings: React.FC = () => {
+function Settings() {
   const { data: userSettings, isLoading, error } = useQuery(['userSettings'], getUserSettings);
   const { register: registerUserInfo, handleSubmit: handleSubmitUserInfo, formState: { errors: userInfoErrors } } = useForm<UserInfoFormData>();
   const { register: registerChangePassword, handleSubmit: handleSubmitChangePassword, formState: { errors: changePasswordErrors } } = useForm<ChangePasswordFormData>();

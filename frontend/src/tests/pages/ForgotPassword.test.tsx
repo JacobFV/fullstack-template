@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '../utils/test-utils';
-import ForgotPassword from '../../pages/ForgotPassword';
+import ForgotPassword from '../../routes/_layout/forgot-password';
 
 describe('ForgotPassword', () => {
   it('renders the forgot password form', () => {

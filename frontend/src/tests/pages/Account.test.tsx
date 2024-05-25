@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from '../utils/test-utils';
-import Account from '../../pages/Account';
+import Account from '../../routes/_layout/account';
 
 describe('Account', () => {
   it('renders the account page with user information', async () => {

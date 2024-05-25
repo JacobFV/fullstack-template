@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from '../utils/test-utils';
-import Billing from '../../pages/Billing';
+import Billing from '../../routes/_layout/billing';
 
 describe('Billing', () => {
   it('renders the billing page with billing history and information', async () => {

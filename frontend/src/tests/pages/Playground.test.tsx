@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from '../utils/test-utils';
-import Playground from '../../pages/Playground';
+import Playground from '../../routes/_layout/playground';
 
 describe('Playground', () => {
   it('renders the playground page with embedded form and code editor', async () => {

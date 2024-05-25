@@ -2,40 +2,30 @@ import React, { useState } from 'react';
 import { Box, Button, FormControl, FormLabel, Heading, Input, Text } from '@chakra-ui/react';
 import { Link as RouterLink, useNavigate } from '@tanstack/react-router';
 import { useMutation } from '@tanstack/react-query';
-import { register } from '../services/api';
+import { login } from '../../services/api';
 
-const Register: React.FC = () => {
-  const [name, setName] = useState('');
+const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
-  const { mutate: registerMutation, isLoading, error } = useMutation(register, {
+  const { mutate: loginMutation, isLoading, error } = useMutation(login, {
     onSuccess: () => {
-      navigate('/login');
+      navigate('/account');
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    registerMutation({ name, email, password });
+    loginMutation({ email, password });
   };
 
   return (
     <Box maxW="container.sm" mx="auto" py={8}>
       <Heading as="h1" size="xl" mb={8}>
-        Register
+        Login
       </Heading>
       <form onSubmit={handleSubmit}>
-        <FormControl id="name" mb={4}>
-          <FormLabel>Name</FormLabel>
-          <Input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
-        </FormControl>
         <FormControl id="email" mb={4}>
           <FormLabel>Email address</FormLabel>
           <Input
@@ -60,14 +50,17 @@ const Register: React.FC = () => {
           </Text>
         )}
         <Button type="submit" colorScheme="blue" size="lg" width="full" isLoading={isLoading}>
-          Register
+          Login
         </Button>
       </form>
       <Box mt={8}>
-        Already have an account? <RouterLink to="/login">Login</RouterLink>
+        <RouterLink to="/forgot-password">Forgot password?</RouterLink>
+      </Box>
+      <Box mt={4}>
+        Don't have an account? <RouterLink to="/register">Register</RouterLink>
       </Box>
     </Box>
   );
 };
 
-export default Register;
+export default Login;

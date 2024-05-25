@@ -2,9 +2,19 @@ import React, { useState } from 'react';
 import { Box, Button, FormControl, FormLabel, Heading, Input, Text } from '@chakra-ui/react';
 import { Link as RouterLink } from '@tanstack/react-router';
 import { useMutation } from '@tanstack/react-query';
-import { forgotPassword } from '../services/api';
+import { forgotPassword } from '../../services/api';
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
+import { createFileRoute } from "@tanstack/react-router"
 
-const ForgotPassword: React.FC = () => {
+import { Suspense } from "react"
+import { type UserPublic, UsersService } from "../../client"
+import ActionsMenu from "../../components/Common/ActionsMenu"
+import Navbar from "../../components/Common/Navbar"
+
+export const Route = createFileRoute("/_layout/forgot-password")({
+  component: ForgotPassword,
+})
+function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 

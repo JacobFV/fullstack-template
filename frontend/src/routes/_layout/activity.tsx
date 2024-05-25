@@ -1,9 +1,20 @@
 import React from 'react';
 import { Box, Heading, Table, Tbody, Td, Th, Thead, Tr } from '@chakra-ui/react';
 import { useQuery } from '@tanstack/react-query';
-import { getVerificationHistory } from '../services/api';
+import { getVerificationHistory } from '../../services/api';
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
+import { createFileRoute } from "@tanstack/react-router"
 
-const Activity: React.FC = () => {
+import { Suspense } from "react"
+import { type UserPublic, UsersService } from "../../client"
+import ActionsMenu from "../../components/Common/ActionsMenu"
+import Navbar from "../../components/Common/Navbar"
+
+export const Route = createFileRoute("/_layout/activity")({
+  component: Activity,
+})
+
+function Activity() {
   const { data: verificationHistory, isLoading, error } = useQuery(['verificationHistory'], getVerificationHistory);
 
   if (isLoading) {

@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '../utils/test-utils';
-import Login from '../../pages/Login';
+import Login from '../../routes/_layout/login-bad';
 
 describe('Login', () => {
   it('renders the login form', () => {
