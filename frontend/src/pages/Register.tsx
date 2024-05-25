@@ -1,11 +1,24 @@
-import React from 'react';
-import { Box, Button, FormControl, FormLabel, Heading, Input } from '@chakra-ui/react';
-import { Link as RouterLink } from '@tanstack/react-router';
+import React, { useState } from 'react';
+import { Box, Button, FormControl, FormLabel, Heading, Input, Text } from '@chakra-ui/react';
+import { Link as RouterLink, useNavigate } from '@tanstack/react-router';
+import { useMutation } from '@tanstack/react-query';
+import { register } from '../services/api';
 
 const Register: React.FC = () => {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const navigate = useNavigate();
+
+  const { mutate: registerMutation, isLoading, error } = useMutation(register, {
+    onSuccess: () => {
+      navigate('/login');
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle registration form submission
+    registerMutation({ name, email, password });
   };
 
   return (
@@ -16,17 +29,37 @@ const Register: React.FC = () => {
       <form onSubmit={handleSubmit}>
         <FormControl id="name" mb={4}>
           <FormLabel>Name</FormLabel>
-          <Input type="text" />
+          <Input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
         </FormControl>
         <FormControl id="email" mb={4}>
           <FormLabel>Email address</FormLabel>
-          <Input type="email" />
+          <Input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
         </FormControl>
         <FormControl id="password" mb={8}>
           <FormLabel>Password</FormLabel>
-          <Input type="password" />
+          <Input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
         </FormControl>
-        <Button type="submit" colorScheme="blue" size="lg" width="full">
+        {error && (
+          <Text color="red.500" mb={4}>
+            {error.message}
+          </Text>
+        )}
+        <Button type="submit" colorScheme="blue" size="lg" width="full" isLoading={isLoading}>
           Register
         </Button>
       </form>

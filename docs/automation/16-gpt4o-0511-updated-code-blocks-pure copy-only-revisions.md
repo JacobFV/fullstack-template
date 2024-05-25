@@ -3583,7 +3583,7 @@ export const register = async (data: { name: string; email: string; password: st
   const response = await api.post('/auth/register', data);
   return response.data;
 };
-```ts
+
 export const forgotPassword = async (data: { email: string }) => {
   const response = await api.post('/auth/forgot-password', data);
   return response.data;
