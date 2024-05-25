@@ -14,7 +14,7 @@ import Activity from './pages/Activity';
 import Billing from './pages/Billing';
 import APIKeys from './pages/APIKeys';
 import Settings from './pages/Settings';
-import VerificationRequest from './pages/VerificationRequest';
+// import VerificationRequest from './pages/VerificationRequest';
 import Verification from './pages/Verification';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
@@ -35,7 +35,7 @@ const App: React.FC = () => {
         <Route path="/billing" element={<Billing />} />
         <Route path="/api-keys" element={<APIKeys />} />
         <Route path="/settings" element={<Settings />} />
-        <Route path="/verification-request" element={<VerificationRequest />} />
+        {/* <Route path="/verification-request" element={<VerificationRequest />} /> */}
         <Route path="/verification" element={<Verification />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/terms-of-service" element={<TermsOfService />} />
