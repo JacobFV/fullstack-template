@@ -95,11 +95,11 @@ class Settings(BaseSettings):
 
     app_name: str = Field("Gotcha", validation_alias=AliasChoices("APP_NAME"))
 
-    LOG_FILE = "./logs/debug.log"
-    LOG_FORMAT = "{time} {level} {message}"
-    LOG_LEVEL = "DEBUG"
-    LOG_ROTATION = "10 MB"
-    LOG_COMPRESSION = "zip"
+    LOG_FILE: str = "./logs/debug.log"
+    LOG_FORMAT: str = r"{time} {level} {message}"
+    LOG_LEVEL: str = "DEBUG"
+    LOG_ROTATION: str = "10 MB"
+    LOG_COMPRESSION: str = "zip"
 
     @computed_field  # type: ignore[misc]
     @property
