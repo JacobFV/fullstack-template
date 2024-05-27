@@ -52,6 +52,7 @@ class Developer(DeveloperBase, User, table=True):
         back_populates="verification_requested_by"
     )
     stripe_user_access_token: str | None = None
+    from app.schema.system.api_key import APIKey
     api_keys: list[APIKey]
 
 
