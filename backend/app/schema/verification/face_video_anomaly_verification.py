@@ -17,10 +17,11 @@ from app.schema.verification.verification import (
     Verification,
     VerificationBase,
     VerificationRead,
+    VerificationRequestBase,
     VerificationUpdate,
 )
 from app.utils.crud import build_crud_endpoints
-from backend.app.schema.base import ModelRead
+from app.schema.base import ModelRead
 
 
 class FaceVideoAnomalyVerificationBase(VerificationBase):

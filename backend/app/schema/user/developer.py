@@ -13,7 +13,7 @@ from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
 from typing_extensions import Unpack
 
 from app.core.redis import get_redis_connection
-# from app.schema.system.api_key import APIKey, APIKeyRead
+
 from app.schema.user.user import (
     User,
     UserBase,
@@ -25,22 +25,27 @@ from app.schema.user.user import (
 )
 from app.schema.verification.verification import Verification
 from app.utils.crud import build_crud_endpoints
+from app.schema.system.api_key import APIKey, APIKeyRead
 
-# Verifier
+
 class DeveloperBase(UserBase):
     pass
+
 
 class DeveloperCreate(DeveloperBase, UserCreate):
     stripe_user_access_token: str | None = None
 
+
 class DeveloperRead(DeveloperBase, UserRead):
     verification_requests: list[Verification] = Field(
-        schema_extra={"permission": "self"}  # TODO: implement auth in a base class
+        schema_extra={"view_privileges": "self"}  # TODO: implement auth in a base class
     )
     api_keys: list[APIKeyRead] = Field(schema_extra={"view_privileges": "self"})
 
+
 class DeveloperUpdate(DeveloperBase, UserUpdate):
     stripe_user_access_token: str | None = None
+
 
 class Developer(DeveloperBase, User, table=True):
     verification_requests: list[Verification] = Relationship(
@@ -49,10 +54,6 @@ class Developer(DeveloperBase, User, table=True):
     stripe_user_access_token: str | None = None
     api_keys: list[APIKey]
 
-# Move the import inside the function or method if it's only needed there
-def some_function():
-    from app.schema.system.api_key import APIKey  # Importing here avoids the circular import
-    # Function logic here
 
 crud_router = build_crud_endpoints(
     t_model_base=DeveloperBase,

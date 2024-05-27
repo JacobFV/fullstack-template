@@ -19,9 +19,7 @@ from app.schema.user.identity import (
     IdentityBase,
     IdentityCreate,
     IdentityRead,
-    VerifiableIdentityPublicMe,
     IdentityUpdate,
-    VerifiableIdentityUpdateMe,
 )
 from app.utils.crud import build_crud_endpoints
 

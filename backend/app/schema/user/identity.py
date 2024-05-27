@@ -12,7 +12,6 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
 from typing_extensions import Unpack
 
-from app.core.redis import get_redis_connection
 from app.schema.base import (
     ModelBase,
     ModelCreate,
@@ -20,6 +19,8 @@ from app.schema.base import (
     ModelRead,
     ModelUpdate,
 )
+
+# from app.schema.verification.verification import Verification, VerificationRead
 from app.utils.crud import build_crud_endpoints
 
 
@@ -34,6 +35,8 @@ class IdentityCreate(IdentityBase, ModelCreate):
 class IdentityRead(IdentityBase, ModelRead):
     id: int
     image: Optional[bytes]
+    verifications_performed_ids: list[int]
+    verifications_performed: list["VerificationRead"]
 
 
 class IdentityUpdate(IdentityBase, ModelUpdate):
@@ -43,6 +46,9 @@ class IdentityUpdate(IdentityBase, ModelUpdate):
 class Identity(IdentityBase, ModelInDB, table=True):
     id: int | None = Field(default=None, primary_key=True, autoincrement=True)
     image: Optional[bytes]
+
+    verifications_performed_ids: list[int]
+    verifications_performed: list["Verification"]
 
 
 crud_router = build_crud_endpoints(

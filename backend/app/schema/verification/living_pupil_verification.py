@@ -13,6 +13,7 @@ from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
 from typing_extensions import Unpack
 
 from app.core.redis import get_redis_connection
+from app.schema.base import ModelBase, ModelRead
 from app.schema.verification.verification import (
     Verification,
     VerificationBase,
@@ -49,7 +50,6 @@ class LivingPupilVerification(LivingPupilVerificationBase, Verification):
 
 
 crud_router = build_crud_endpoints(
-    router=router,
     t_model_base=LivingPupilVerificationBase,
     t_model_create=LivingPupilVerificationRequest,
     t_model_read=LivingPupilVerificationRead,

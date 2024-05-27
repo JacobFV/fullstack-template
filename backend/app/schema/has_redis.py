@@ -12,27 +12,15 @@ from sqlmodel import SQLModel, Field, Relationship
 from typing_extensions import Unpack
 import asyncio
 from app.core.redis import get_redis_connection
+from app.schema.base import ModelInDB
 
-Base: DeclarativeMeta = declarative_base()
 
-class ModelInDB(SQLModel, table=True):
-    id: int = Field(default=None, primary_key=True)
-
-class HasReddisChannel(ModelInDB):
-    _redis_channel_name = Column(String, name="redis_channel_name")
+class HasReddisChannel(ModelInDB, table=False):
 
     @property
     def redis_channel_name(self) -> str:
-        return self._redis_channel_name
+        return f"redis_{func.lower(self.__class__.__name__)}_{self.id}"
 
-    @redis_channel_name.setter
-    def redis_channel_name(self, value: str):
-        self._redis_channel_name = value
-
-    @classmethod
-    def redis_channel_name(cls) -> str:
-        return func.concat("redis_", func.lower(cls.__name__), "_", cls.id)
-    
     async def publish_message(self, message: str):
         connection = await get_redis_connection()
         await connection.publish(self.redis_channel_name, message)
@@ -48,10 +36,3 @@ class HasReddisChannel(ModelInDB):
         async for message in self.redis_channel_listener.listen():
             if message["type"] == "message":
                 await message_handler(message["data"])
-
-# Setup SQLAlchemy engine and session
-engine = create_engine("sqlite:///example.db")  # Use your actual DB URL
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# Create tables
-Base.metadata.create_all(bind=engine)

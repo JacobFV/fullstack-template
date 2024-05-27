@@ -37,7 +37,7 @@ class APIKeyRead(APIKeyBase, ModelRead):
     scopes: list[str]
     expires_at: datetime
     truncated_secret: str
-    uses: list[APIKeyUseRead]
+    uses: list["APIKeyUseRead"]
 
 
 class APIKeyUpdate(APIKeyBase, ModelUpdate):

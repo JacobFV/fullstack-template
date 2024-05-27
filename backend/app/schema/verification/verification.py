@@ -22,6 +22,9 @@ from app.schema.base import (
     ModelUpdate,
 )
 from app.schema.has_redis import HasReddisChannel
+from app.schema.user.developer import DeveloperRead, Developer
+from app.schema.user.identity import IdentityRead, Identity
+
 
 class VerificationStatus(Enum):
     REQUESTED = "requested"
@@ -35,16 +38,17 @@ class VerificationBase(ModelBase):
 
 
 class VerificationRequestBase(VerificationBase, ModelCreate):
-    who_to_verify_id: int
+    requester_id: int
+    target_id: int
     on_completion_webhook_url: str
     on_completion_redirect_url: str | None = None
 
 
 class VerificationRead(VerificationBase, ModelRead):
-    verification_requested_by_id: int
-    verification_requested_by: DeveloperRead
-    who_to_verify_id: int
-    who_to_verify: User
+    requester_id: int
+    requester: DeveloperRead
+    target_id: int
+    target: IdentityRead
     verf_status: VerificationStatus
     on_completion_webhook_url: str
     on_completion_redirect_url: str | None = None
@@ -54,36 +58,21 @@ class VerificationUpdate(VerificationBase, ModelUpdate):
     on_completion_webhook_url: str
     on_completion_redirect_url: str | None = None
 
-class Verification(HasReddisChannel, VerificationBase, ModelInDB):
-    verification_requested_by_id: int
-    verification_requested_by: Developer
-    who_to_verify_id: int
-    who_to_verify: User
+
+class Verification(HasReddisChannel, VerificationBase, ModelInDB, table=True):
+    requester_id: int
+    requester: Developer
+    target_id: int
+    target: Identity
     verf_status: VerificationStatus
     on_completion_webhook_url: str
     on_completion_redirect_url: str | None = None
 
-    class Config:
-        table = True
-
-    @property
-    def verification_requested_by(self):
-        from app.schema.user import Developer
-        return Developer
-
-    @property
-    def who_to_verify(self):
-        from app.schema.user import User
-        return User
-
-def build_crud_endpoints(t_model_base: type[SQLModel], t_model_create: type[SQLModel],
-                        t_model_read: type[SQLModel], t_model_in_db: type[SQLModel]) -> None:
-    # Implementation of build_crud_endpoints function
-    pass
 
 crud_router = build_crud_endpoints(
     t_model_base=VerificationBase,
     t_model_create=VerificationRequestBase,
     t_model_read=VerificationRead,
+    t_model_update=VerificationUpdate,
     t_model_in_db=Verification,
 )
