@@ -6,7 +6,7 @@ from enum import Enum
 from functools import cached_property
 from typing import ClassVar, Optional
 
-from pydantic.config import ConfigDict
+from pydantic.config import ConfigDict, BaseModel
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy import Column, String, func
 from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
@@ -14,6 +14,9 @@ from typing_extensions import Unpack
 
 from app.core.redis import get_redis_connection
 from app.schema.base import ModelInDB
+
+class ModelInDB(BaseModel):
+    id: int
 
 class HasReddisChannel(ModelInDB):  # Assuming ModelInDB is defined elsewhere
     _redis_channel_name = Column(String, name="redis_channel_name")
