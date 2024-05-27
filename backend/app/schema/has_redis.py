@@ -1,28 +1,27 @@
 from __future__ import annotations
-
 from abc import abstractmethod
 from datetime import datetime
 from enum import Enum
 from functools import cached_property
-from typing import ClassVar, Optional
-
-# from pydantic.config import ConfigDict, BaseModel
-from pydantic.main import BaseModel
-from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy import Column, String, func
-from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
+from typing import Optional
+from sqlalchemy.ext.declarative import declarative_base, DeclarativeMeta
+from sqlalchemy import Column, String, func, create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.future import select
+from sqlmodel import SQLModel, Field, Relationship
 from typing_extensions import Unpack
-
+import asyncio
 from app.core.redis import get_redis_connection
-from app.schema.base import ModelInDB
 
-class ModelInDB(BaseModel):
-    id: int
+Base: DeclarativeMeta = declarative_base()
 
-class HasReddisChannel(ModelInDB):  # Assuming ModelInDB is defined elsewhere
+class ModelInDB(SQLModel, table=True):
+    id: int = Field(default=None, primary_key=True)
+
+class HasReddisChannel(ModelInDB):
     _redis_channel_name = Column(String, name="redis_channel_name")
 
-    @hybrid_property
+    @property
     def redis_channel_name(self) -> str:
         return self._redis_channel_name
 
@@ -30,7 +29,7 @@ class HasReddisChannel(ModelInDB):  # Assuming ModelInDB is defined elsewhere
     def redis_channel_name(self, value: str):
         self._redis_channel_name = value
 
-    @redis_channel_name.expression
+    @classmethod
     def redis_channel_name(cls) -> str:
         return func.concat("redis_", func.lower(cls.__name__), "_", cls.id)
     
@@ -49,3 +48,10 @@ class HasReddisChannel(ModelInDB):  # Assuming ModelInDB is defined elsewhere
         async for message in self.redis_channel_listener.listen():
             if message["type"] == "message":
                 await message_handler(message["data"])
+
+# Setup SQLAlchemy engine and session
+engine = create_engine("sqlite:///example.db")  # Use your actual DB URL
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Create tables
+Base.metadata.create_all(bind=engine)
