@@ -15,12 +15,12 @@ from typing_extensions import Unpack
 from app.core.redis import get_redis_connection
 from app.schema.base import ModelInDB
 
-
 class HasReddisChannel(ModelInDB):
 
-    @hybrid_property
+    @property
     def redis_channel_name(self):
         return f"redis_{self.__class__.__name__.lower()}_{self.id}"
+
 
     @redis_channel_name.expression
     def redis_channel_name(cls):
