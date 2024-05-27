@@ -18,7 +18,7 @@ from app.schema.base import ModelInDB
 class HasReddisChannel(ModelInDB):
     _redis_channel_name: str = Column(String, name="redis_channel_name")
 
-    @hybrid_property
+    @property
     def redis_channel_name(self) -> str:
         return self._redis_channel_name
 
