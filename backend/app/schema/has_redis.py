@@ -18,7 +18,7 @@ from app.schema.base import ModelInDB
 class HasReddisChannel(ModelInDB):
 
     @hybrid_property
-    def redis_channel_name(self):
+    def redis_channel_name(self) -> str:
         return f"redis_{self.__class__.__name__.lower()}_{self.id}"
 
     async def publish_message(self, message: str):
@@ -26,7 +26,7 @@ class HasReddisChannel(ModelInDB):
         await connection.publish(self.redis_channel_name, message)
 
     @redis_channel_name.expression
-    def redis_channel_name(cls):
+    def redis_channel_name(cls): 
         from sqlalchemy import func
 
         return func.concat("redis_", func.lower(cls.__name__), "_", cls.id)
