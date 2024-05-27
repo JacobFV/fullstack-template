@@ -188,10 +188,9 @@ class Settings(BaseSettings):
         super().__init__(*args, **kwargs)
 
         @functools.wraps(super().__setattr__)
-        def new_setattr_fn(self, name: str, value: Any) -> None:
-            super().__setattr__(name, value)
-            store_settings(self)
-
+        def new_setattr_fn(name: str, value: Any) -> None:
+            super(Settings, self).__setattr__(name, value)
+            asyncio.create_task(store_settings(self))
         self.__setattr__ = new_setattr_fn
 
 from app.core.shared_resources import get_redis_connection, settings

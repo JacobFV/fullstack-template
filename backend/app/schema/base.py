@@ -5,7 +5,7 @@ from datetime import datetime
 from enum import Enum
 from functools import cached_property
 from typing import ClassVar, Literal, Optional
-# from .user import User
+from .user import User
 
 from pydantic.config import ConfigDict
 from sqlalchemy import Column, String, func
@@ -172,11 +172,11 @@ class ModelInDB(ModelBase, table=True):
         model_update = ModelUpdate.UpdatePrivileges.apply_privileges(
             model_update, self.id, user.id if user else None
         )
-        self.sqlmodel_update(model_update.model_dump(exclude_unset=True))
+        self.update(model_update.dict(exclude_unset=True))
         session.commit()
 
     def to_read(self, user: User | None = None) -> ModelRead:
-        model_read = self.ModelRead.model_validate(self)
+        model_read = self.ModelRead.validate(self)
         model_read = ModelRead.ViewPrivileges.apply_privileges(
             model_read, self.id, user.id if user else None
         )
