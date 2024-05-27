@@ -5,7 +5,7 @@ from datetime import datetime
 from enum import Enum
 from functools import cached_property
 from typing import ClassVar, Literal, Optional
-from .user import User
+# from .user import User
 
 from pydantic.config import ConfigDict
 from sqlalchemy import Column, String, func
@@ -129,7 +129,7 @@ class ModelInDB(ModelBase, table=True):
         "polymorphic_identity": "entity",  # base class identity
         "polymorphic_on": type,  # specifying which field is the discriminator
     }
-    type: str = Field(sa_column=Column(String), index=True, nullable=False)
+    type: str = Field(sa_column=Column(String, nullable=False), index=True)
 
     def __init_subclass__(cls, **kwargs):
         tablename = cls.__tablename__ or cls.__name__.lower()
