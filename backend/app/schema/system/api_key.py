@@ -10,7 +10,14 @@ from app.schema.base import (
     ModelUpdate,
     ModelInDB,
 )
-from app.common import APIKey, APIKeyRead
+# In app.schema.system.api_key
+from.linker import APIKey, APIKeyRead
+# Adjust other imports accordingly
+
+# In app.schema.user.developer
+from.linker import Developer, DeveloperRead
+# Adjust other imports accordingly
+
 from app.schema.system.billing import Money
 from app.schema.user.developer import Developer, DeveloperRead
 from app.utils.crud import build_crud_endpoints
