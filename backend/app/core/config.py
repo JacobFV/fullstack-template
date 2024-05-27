@@ -194,8 +194,7 @@ class Settings(BaseSettings):
 
         self.__setattr__ = new_setattr_fn
 
-
-from app.core.redis import get_redis_connection
+from app.core.shared_resources import get_redis_connection, settings
 
 settings: Settings | None = None  # Global settings variable
 

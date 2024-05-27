@@ -12,7 +12,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
 from typing_extensions import Unpack
 
-from app.core.redis import get_redis_connection
+from app.core.redis import get_redis_connection, settings
 from app.schema.verification.verification import (
     Verification,
     VerificationBase,
