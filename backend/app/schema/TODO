@@ -3,3 +3,4 @@ for each file
 - put the other schema deps in a type checking enclosure so everyone felt comfortable
 - set view_privileges and update_privileges on all relevant fields
 - make sure we are only returning the minimum connected nested field values on read, otherwise we could end up with cyclic deps during quiery JSONification
+- OpenAPI Spec
