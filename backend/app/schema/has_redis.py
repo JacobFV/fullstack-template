@@ -7,18 +7,18 @@ from functools import cached_property
 from typing import ClassVar, Optional
 
 from pydantic.config import ConfigDict
-from sqlalchemy import Column, String, func
 from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy import Column, String, func
 from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
 from typing_extensions import Unpack
 
 from app.core.redis import get_redis_connection
 from app.schema.base import ModelInDB
 
-class HasReddisChannel(ModelInDB):
-    _redis_channel_name: str = Column(String, name="redis_channel_name")
+class HasReddisChannel(ModelInDB):  # Assuming ModelInDB is defined elsewhere
+    _redis_channel_name = Column(String, name="redis_channel_name")
 
-    @property
+    @hybrid_property
     def redis_channel_name(self) -> str:
         return self._redis_channel_name
 
@@ -27,8 +27,7 @@ class HasReddisChannel(ModelInDB):
         self._redis_channel_name = value
 
     @redis_channel_name.expression
-    def redis_channel_name(cls) -> str: 
-        from sqlalchemy import func
+    def redis_channel_name(cls) -> str:
         return func.concat("redis_", func.lower(cls.__name__), "_", cls.id)
     
     async def publish_message(self, message: str):
