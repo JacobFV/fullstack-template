@@ -4,6 +4,8 @@ from app.schema.user.developer import Developer
 from app.schema.base import ModelInDB
 from app.schema.system.api_key import APIKeyBase
 
+from app.schema.system.api_key import APIKey, APIKeyRead
+
 class APIKey(APIKeyBase, ModelInDB):
     owner: Developer
 

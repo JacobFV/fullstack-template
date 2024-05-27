@@ -10,13 +10,6 @@ from app.schema.base import (
     ModelUpdate,
     ModelInDB,
 )
-# In app.schema.system.api_key
-from.linker import APIKey, APIKeyRead
-# Adjust other imports accordingly
-
-# In app.schema.user.developer
-from.linker import Developer, DeveloperRead
-# Adjust other imports accordingly
 
 from app.schema.system.billing import Money
 from app.schema.user.developer import Developer, DeveloperRead
