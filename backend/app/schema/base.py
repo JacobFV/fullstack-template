@@ -8,7 +8,7 @@ from typing import ClassVar, Literal, Optional
 # from .user import User
 
 from pydantic.config import ConfigDict
-from sqlalchemy import Column, String, func
+from sqlalchemy import Column, String, func, Index
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
 from typing_extensions import Unpack
@@ -126,10 +126,10 @@ class ModelRead(ModelBase):
 class ModelInDB(ModelBase, table=True):
     __tablename__ = "entity"
     __mapper_args__ = {
-        "polymorphic_identity": "entity",  # base class identity
-        "polymorphic_on": type,  # specifying which field is the discriminator
-    }
-    type: str = Field(sa_column=Column(String, nullable=False), index=True)
+    "polymorphic_identity": "entity",  # base class identity
+    "polymorphic_on": "type",  # specifying which field is the discriminator
+}
+    type: str = Field(sa_column=Column(String, nullable=False, index=True))
     # type: str = Field(sa_column=Column(String, nullable=False), index=True)
 
     def __init_subclass__(cls, **kwargs):
