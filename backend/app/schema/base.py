@@ -130,6 +130,7 @@ class ModelInDB(ModelBase, table=True):
         "polymorphic_on": type,  # specifying which field is the discriminator
     }
     type: str = Field(sa_column=Column(String, nullable=False), index=True)
+    # type: str = Field(sa_column=Column(String, nullable=False), index=True)
 
     def __init_subclass__(cls, **kwargs):
         tablename = cls.__tablename__ or cls.__name__.lower()
