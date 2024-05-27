@@ -13,7 +13,7 @@ from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
 from typing_extensions import Unpack
 
 from app.core.redis import get_redis_connection
-# from app.schema.system.api_key import APIKey, APIKeyRead
+from app.schema.system.api_key import APIKey, APIKeyRead
 from app.schema.user.user import (
     User,
     UserBase,
