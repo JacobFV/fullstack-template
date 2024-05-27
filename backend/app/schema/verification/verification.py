@@ -11,6 +11,7 @@ from sqlalchemy import Column, String, func
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
 from typing_extensions import Unpack
+from app.schema.user import Developer, User, DeveloperRead
 
 from app.core.redis import get_redis_connection
 from app.schema.base import (
@@ -68,6 +69,11 @@ class Verification(HasReddisChannel, VerificationBase, ModelInDB, table=True):
     on_completion_webhook_url: str
     on_completion_redirect_url: str | None = None
 
+
+def build_crud_endpoints(t_model_base: type[SQLModel], t_model_create: type[SQLModel],
+                        t_model_read: type[SQLModel], t_model_in_db: type[SQLModel]) -> None:
+    # Implementation of build_crud_endpoints function
+    pass
 
 crud_router = build_crud_endpoints(
     t_model_base=VerificationBase,
