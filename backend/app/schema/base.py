@@ -5,6 +5,7 @@ from datetime import datetime
 from enum import Enum
 from functools import cached_property
 from typing import ClassVar, Literal, Optional
+from .user import User
 
 from pydantic.config import ConfigDict
 from sqlalchemy import Column, String, func
