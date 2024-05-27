@@ -26,15 +26,12 @@ from app.schema.user.user import (
 from app.schema.verification.verification import Verification
 from app.utils.crud import build_crud_endpoints
 
-
 # Verifier
 class DeveloperBase(UserBase):
     pass
 
-
 class DeveloperCreate(DeveloperBase, UserCreate):
     stripe_user_access_token: str | None = None
-
 
 class DeveloperRead(DeveloperBase, UserRead):
     verification_requests: list[Verification] = Field(
@@ -42,19 +39,20 @@ class DeveloperRead(DeveloperBase, UserRead):
     )
     api_keys: list[APIKeyRead] = Field(schema_extra={"view_privileges": "self"})
 
-
 class DeveloperUpdate(DeveloperBase, UserUpdate):
     stripe_user_access_token: str | None = None
-
 
 class Developer(DeveloperBase, User, table=True):
     verification_requests: list[Verification] = Relationship(
         back_populates="verification_requested_by"
     )
     stripe_user_access_token: str | None = None
-    from app.schema.system.api_key import APIKey
     api_keys: list[APIKey]
 
+# Move the import inside the function or method if it's only needed there
+def some_function():
+    from app.schema.system.api_key import APIKey  # Importing here avoids the circular import
+    # Function logic here
 
 crud_router = build_crud_endpoints(
     t_model_base=DeveloperBase,
