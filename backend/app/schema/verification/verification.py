@@ -53,8 +53,7 @@ class VerificationUpdate(VerificationBase, ModelUpdate):
     on_completion_webhook_url: str
     on_completion_redirect_url: str | None = None
 
-
-class Verification(HasReddisChannel, VerificationBase, ModelInDB, table=True):
+class Verification(HasReddisChannel, VerificationBase, ModelInDB):
     verification_requested_by_id: int
     verification_requested_by: Developer
     who_to_verify_id: int
@@ -62,6 +61,9 @@ class Verification(HasReddisChannel, VerificationBase, ModelInDB, table=True):
     verf_status: VerificationStatus
     on_completion_webhook_url: str
     on_completion_redirect_url: str | None = None
+
+    class Config:
+        table = True
 
     @property
     def verification_requested_by(self):
@@ -72,7 +74,6 @@ class Verification(HasReddisChannel, VerificationBase, ModelInDB, table=True):
     def who_to_verify(self):
         from app.schema.user import User
         return User
-
 
 def build_crud_endpoints(t_model_base: type[SQLModel], t_model_create: type[SQLModel],
                         t_model_read: type[SQLModel], t_model_in_db: type[SQLModel]) -> None:
