@@ -11,8 +11,8 @@ from app.schema.base import (
     ModelInDB,
 )
 from app.schema.system.billing import Money
-from app.schema.user.developer import Developer, DeveloperRead
-from app.schema.system.api_key import APIKey, APIKeyRead
+# from app.schema.user.developer import Developer, DeveloperRead
+from app.schema.system.api_key import APIKey as APIKey, APIKeyRead as APIKeyRead
 from app.utils.crud import build_crud_endpoints
 
 
