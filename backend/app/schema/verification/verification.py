@@ -11,7 +11,6 @@ from sqlalchemy import Column, String, func
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
 from typing_extensions import Unpack
-from app.schema.user import Developer, User, DeveloperRead
 
 from app.core.redis import get_redis_connection
 from app.schema.base import (
@@ -22,11 +21,6 @@ from app.schema.base import (
     ModelUpdate,
 )
 from app.schema.has_redis import HasReddisChannel
-# This import keeps throwing a circular error
-# from app.schema.user.user import User
-from app.schema.user.developer import Developer, DeveloperRead
-from app.utils.crud import build_crud_endpoints
-
 
 class VerificationStatus(Enum):
     REQUESTED = "requested"
@@ -39,7 +33,6 @@ class VerificationBase(ModelBase):
     pass
 
 
-# TODO: change on_completion_webhook_url and on_completion_redirect_url to URLStr when sqlmodel supports it
 class VerificationRequestBase(VerificationBase, ModelCreate):
     who_to_verify_id: int
     on_completion_webhook_url: str
@@ -69,6 +62,16 @@ class Verification(HasReddisChannel, VerificationBase, ModelInDB, table=True):
     verf_status: VerificationStatus
     on_completion_webhook_url: str
     on_completion_redirect_url: str | None = None
+
+    @property
+    def verification_requested_by(self):
+        from app.schema.user import Developer
+        return Developer
+
+    @property
+    def who_to_verify(self):
+        from app.schema.user import User
+        return User
 
 
 def build_crud_endpoints(t_model_base: type[SQLModel], t_model_create: type[SQLModel],
