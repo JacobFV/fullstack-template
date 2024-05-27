@@ -16,21 +16,21 @@ from app.core.redis import get_redis_connection
 from app.schema.base import ModelInDB
 
 class HasReddisChannel(ModelInDB):
+    _redis_channel_name: str = Column(String, name="redis_channel_name")
 
     @hybrid_property
     def redis_channel_name(self) -> str:
-        return f"redis_{self.__class__.__name__.lower()}_{self.id}"
+        return self._redis_channel_name
 
-    async def publish_message(self, message: str):
-        connection = await get_redis_connection()
-        await connection.publish(self.redis_channel_name, message)
+    @redis_channel_name.setter
+    def redis_channel_name(self, value: str):
+        self._redis_channel_name = value
 
     @redis_channel_name.expression
-    def redis_channel_name(cls): 
+    def redis_channel_name(cls) -> str: 
         from sqlalchemy import func
-
         return func.concat("redis_", func.lower(cls.__name__), "_", cls.id)
-
+    
     async def publish_message(self, message: str):
         connection = await get_redis_connection()
         await connection.publish(self.redis_channel_name, message)
