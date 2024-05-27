@@ -6,7 +6,8 @@ from enum import Enum
 from functools import cached_property
 from typing import ClassVar, Optional
 
-from pydantic.config import ConfigDict, BaseModel
+# from pydantic.config import ConfigDict, BaseModel
+from pydantic.main import BaseModel
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy import Column, String, func
 from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
