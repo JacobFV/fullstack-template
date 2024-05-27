@@ -7,9 +7,8 @@ T = TypeVar("T")
 @define
 class Money(Generic[T]):
     T: ClassVar[type] = int
-    currency: str = "USD cents"
     amount: T
-
+    currency: str = "USD cents"
 
 # class Invoice(BaseModel):
 #     pass
