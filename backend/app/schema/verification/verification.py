@@ -11,6 +11,7 @@ from sqlalchemy import Column, String, func
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
 from typing_extensions import Unpack
+from app.schema.user.developer import Developer, DeveloperRead, User
 
 from app.core.redis import get_redis_connection
 from app.schema.base import (
