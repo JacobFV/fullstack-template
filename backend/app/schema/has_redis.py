@@ -21,6 +21,9 @@ class HasReddisChannel(ModelInDB):
     def redis_channel_name(self):
         return f"redis_{self.__class__.__name__.lower()}_{self.id}"
 
+    async def publish_message(self, message: str):
+        connection = await get_redis_connection()
+        await connection.publish(self.redis_channel_name, message)
 
     @redis_channel_name.expression
     def redis_channel_name(cls):
