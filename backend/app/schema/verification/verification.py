@@ -22,9 +22,10 @@ from app.schema.base import (
     ModelUpdate,
 )
 from app.schema.has_redis import HasReddisChannel
+# This import keeps throwing a circular error
 # from app.schema.user.user import User
-# from app.schema.user.developer import Developer, DeveloperRead
-# from app.utils.crud import build_crud_endpoints
+from app.schema.user.developer import Developer, DeveloperRead
+from app.utils.crud import build_crud_endpoints
 
 
 class VerificationStatus(Enum):
