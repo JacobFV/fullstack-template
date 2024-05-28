@@ -17,10 +17,12 @@ Field configs by class:
   - just make sure it's ok :)
 - **Read**
   - do not include `ModelRead` fields in the read schema. Those should be read separately unless you absolutely have to. Otherwise, just keep ID.
-  - set `schema_extras={ModelRead.READ_PRIVILEGES_KEY: ModelRead.ReadPrivileges.<option>}` to control the read privileges
+  - set `schema_extras={ModelRead.PRIVILEGES_KEY: ModelRead.Privileges.<option>}` to control the read privileges
 - **Update**
   - do not include `ModelUpdate` fields in the update schema. Those should be updated separately. Only keep ID.
-  - set `schema_extras={ModelUpdate.UPDATE_PRIVILEGES_KEY: ModelUpdate.UpdatePrivileges.<option>}` to control the update privileges
+  - set `schema_extras={ModelUpdate.PRIVILEGES_KEY: ModelUpdate.Privileges.<option>}` to control the update privileges
 - **InDB**
-  - set `exclude=True` on all fields that should never be returned under any circumstance
-  - set `frozen=True` on all db fields that are not meant to be updated after initialization
+  - set `exclude=True` on all exceptionally important fields that should never be returned under any circumstance. (the Read variant schema already does this for all the fields, just added protection)
+  - set `frozen=True` on all db exceptionally important fields that are not meant to be updated after initialization. (the Update variant schema already does this for all the fields, just added protection)
+
+set the DEFAULT_PRIVILEGES on all read and update models

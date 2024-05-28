@@ -39,7 +39,7 @@ class FaceVideoAnomalyVerificationRead(
 ):
     model_name: str = Field(
         "face_video_anomaly_verification-001",
-        schema_extra={"view_privileges": ModelRead.ReadPrivileges.owner},
+        schema_extra={"view_privileges": ModelRead.Privileges.owner},
     )
 
 

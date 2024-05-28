@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from datetime import datetime
 from enum import Enum
 from functools import cached_property
 from typing import ClassVar, Literal, Optional
+from pydantic import BaseModel
 
 # from .user import User
 
@@ -15,6 +16,7 @@ from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
 from typing_extensions import Unpack
 
 from app.core.redis import get_redis_connection
+from app.utils.context import Context
 from app.utils.errors import UnauthorizedUpdateError
 
 
@@ -27,122 +29,91 @@ class ModelBase(SQLModel):
 
 
 class ModelCreate(ModelBase):
-    pass
+    discriminator: str = Field(discriminator="type")
 
 
-class ModelRead(ModelBase):
+class HasPrivileges(BaseModel, ABC):
+
+    class Privileges(Enum):
+        nobody = "nobody"
+        owner = "owner"
+        authenticated = "authenticated"
+        public = "public"
+
+    def apply_privileges(self, model_owner_id: int, user_id: int):
+        """Nulls out fields that the user does not have access to"""
+        is_owner = model_owner_id == user_id
+        is_authenticated = user_id is not None
+        is_public = True
+
+        for k in self.model_fields:
+            match getattr(k, self.PRIVILEGES_KEY, self.DEFAULT_PRIVILEGES):
+                case self.Privileges.nobody:
+                    setattr(self, k, None)
+                case ModelRead.Privileges.owner:
+                    if not is_owner:
+                        setattr(self, k, None)
+                case self.Privileges.authenticated:
+                    if not is_authenticated:
+                        setattr(self, k, None)
+                case self.Privileges.public:
+                    if not is_public:
+                        setattr(self, k, None)
+                case _:
+                    pass
+
+    PRIVILEGES_KEY: ClassVar[str] = "privileges"
+    DEFAULT_PRIVILEGES: ClassVar[Privileges] = Privileges.owner
+
+    type: str = Field(discriminator="type", exclude=True)
+
+
+class ModelRead(HasPrivileges, ModelBase):
+    Privileges = HasPrivileges.Privileges
 
     id: int
+    PRIVILEGES_KEY: ClassVar[str] = "read_privileges"
+    DEFAULT_PRIVILEGES: ClassVar[Privileges] = Privileges.owner
+    OBJECT_QUERY_PRIVILEGES: ClassVar[Privileges] = Privileges.public
 
-    class ReadPrivileges(Enum):
-        nobody = "nobody"
-        owner = "owner"
-        authenticated = "authenticated"
-        public = "public"
-
-        def apply_privileges(self, model: ModelRead, model_owner_id: int, user_id: int):
-            """Nulls out fields that the user does not have access to"""
-            is_owner = model_owner_id == user_id
-            is_authenticated = user_id is not None
-            is_public = True
-
-            for k in model.model_fields:
-                match getattr(
-                    k,
-                    ModelRead.READ_PRIVILEGES_KEY,
-                    ModelRead.DEFAULT_READ_PRIVILEGES,
-                ):
-                    case ModelRead.ReadPrivileges.nobody:
-                        setattr(model, k, None)
-                    case ModelRead.ReadPrivileges.owner:
-                        if not is_owner:
-                            setattr(model, k, None)
-                    case ModelRead.ReadPrivileges.authenticated:
-                        if not is_authenticated:
-                            setattr(model, k, None)
-                    case ModelRead.ReadPrivileges.public:
-                        if not is_public:
-                            setattr(model, k, None)
-                    case _:
-                        pass
-
-    READ_PRIVILEGES_KEY: ClassVar[str] = "read_privileges"
-    DEFAULT_READ_PRIVILEGES: ClassVar[ReadPrivileges] = ReadPrivileges.owner
+    type: str = Field(
+        discriminator="type",
+        schema_extras={PRIVILEGES_KEY: Privileges.public},
+    )
 
 
-class ModelUpdate(ModelBase):
+class ReadPrivileges:
+    @staticmethod
+    def nobody(read_model: ModelRead, context: Context) -> bool:
+        return False
 
-    class UpdatePrivileges(Enum):
-        nobody = "nobody"
-        owner = "owner"
-        authenticated = "authenticated"
-        public = "public"
+    @staticmethod
+    def owner(read_model: ModelRead, context: Context) -> bool:
+        if not hasattr(read_model, "owner_id"):
+            raise ValueError(f"{read_model} does not have an owner_id")
+        return context.user.id == getattr(read_model, "owner_id")
 
-        def apply_privileges(
-            self,
-            model: ModelUpdate,
-            model_owner_id: int,
-            user_id: int,
-            unauthorized_update_response: Literal["raise", "none"] = "raise",
-        ):
-            is_owner = model_owner_id == user_id
-            is_authenticated = user_id is not None
-            is_public = True
+    @staticmethod
+    def authenticated(read_model: ModelRead, context: Context) -> bool:
+        return context.user is not None
 
-            for k in model.model_fields:
-                match getattr(
-                    k,
-                    ModelUpdate.UPDATE_PRIVILEGES_KEY,
-                    ModelUpdate.DEFAULT_UPDATE_PRIVILEGES,
-                ):
-                    case ModelUpdate.UpdatePrivileges.nobody:
-                        setattr(model, k, None)
-                    case ModelUpdate.UpdatePrivileges.owner:
-                        if not is_owner:
-                            match unauthorized_update_response:
-                                case "raise":
-                                    raise UnauthorizedUpdateError(
-                                        f"User {user_id} is not authorized to update {k} for {model_owner_id}"
-                                    )
-                                case "none":
-                                    setattr(model, k, None)
-                                case _:
-                                    raise ValueError(
-                                        f"Unauthorized update response {unauthorized_update_response} not supported"
-                                    )
-                    case ModelUpdate.UpdatePrivileges.authenticated:
-                        if not is_authenticated:
-                            match unauthorized_update_response:
-                                case "raise":
-                                    raise UnauthorizedUpdateError(
-                                        f"User {user_id} is not authenticated"
-                                    )
-                                case "none":
-                                    setattr(model, k, None)
-                                case _:
-                                    raise ValueError(
-                                        f"Unauthorized update response {unauthorized_update_response} not supported"
-                                    )
-                    case ModelUpdate.UpdatePrivileges.public:
-                        if not is_public:
-                            match unauthorized_update_response:
-                                case "raise":
-                                    raise UnauthorizedUpdateError(
-                                        f"User {user_id} is not authorized to update {k} for {model_owner_id}"
-                                    )
-                                case "none":
-                                    setattr(model, k, None)
-                                case _:
-                                    raise ValueError(
-                                        f"Unauthorized update response {unauthorized_update_response} not supported"
-                                    )
-                    case _:
-                        pass
+    @staticmethod
+    def public(read_model: ModelRead, context: Context) -> bool:
+        return True
 
-            return model
 
-    UPDATE_PRIVILEGES_KEY: ClassVar[str] = "update_privileges"
-    DEFAULT_UPDATE_PRIVILEGES: ClassVar[UpdatePrivileges] = UpdatePrivileges.owner
+class ModelUpdate(HasPrivileges, ModelBase):
+    Privileges = HasPrivileges.Privileges
+
+    PRIVILEGES_KEY: ClassVar[str] = "update_privileges"
+    DEFAULT_PRIVILEGES: ClassVar[Privileges] = Privileges.owner
+    OBJECT_UPDATE_PRIVILEGES: ClassVar[Privileges] = Privileges.owner
+
+    type: str = Field(
+        discriminator="type",
+        exclude=True,
+        schema_extra={PRIVILEGES_KEY: DEFAULT_PRIVILEGES},
+    )
 
 
 class ModelInDB(ModelBase, table=True):
@@ -191,7 +162,7 @@ class ModelInDB(ModelBase, table=True):
         session: Session,
         user: "User" | None = None,
     ) -> None:
-        model_update = ModelUpdate.UpdatePrivileges.apply_privileges(
+        model_update = ModelUpdate.Privileges.apply_privileges(
             model_update, self.id, user.id if user else None
         )
         self.update(model_update.dict(exclude_unset=True))
@@ -199,7 +170,7 @@ class ModelInDB(ModelBase, table=True):
 
     def to_read(self, user: "User" | None = None) -> ModelRead:
         model_read = self.ModelRead.validate(self)
-        model_read = ModelRead.ReadPrivileges.apply_privileges(
+        model_read = ModelRead.Privileges.apply_privileges(
             model_read, self.id, user.id if user else None
         )
         return model_read

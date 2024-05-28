@@ -29,14 +29,12 @@ class IdentityBase(ModelBase):
 
 
 class IdentityCreate(IdentityBase, ModelCreate):
-    image: Optional[bytes]
+    image_bytes: Optional[bytes] = Field()
 
 
 class IdentityRead(IdentityBase, ModelRead):
-    id: int
-    image: Optional[bytes]
-    verifications_performed_ids: list[int]
-    verifications_performed: list["VerificationRead"]
+    image_bytes: Optional[bytes] = Field()
+    verifications_performed_ids: list[int] = Field()
 
 
 class IdentityUpdate(IdentityBase, ModelUpdate):
@@ -44,11 +42,11 @@ class IdentityUpdate(IdentityBase, ModelUpdate):
 
 
 class Identity(IdentityBase, ModelInDB, table=True):
-    id: int | None = Field(default=None, primary_key=True, autoincrement=True)
-    image: Optional[bytes]
-
-    verifications_performed_ids: list[int]
-    verifications_performed: list["Verification"]
+    image_bytes: Optional[bytes] = Field()
+    verifications_performed_ids: list[int] = Field(foreign_key="verification.id")
+    verifications_performed: list["Verification"] = Relationship(
+        back_populates="target"
+    )
 
 
 crud_router = build_crud_endpoints(

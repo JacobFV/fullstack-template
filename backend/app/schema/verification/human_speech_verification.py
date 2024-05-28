@@ -37,7 +37,7 @@ class HumanSpeechVerificationRequest(
 class HumanSpeechVerificationRead(HumanSpeechVerificationBase, VerificationRead):
     model_name = Field(
         "human_speech_verification-001",
-        schema_extra={"view_privileges": ModelRead.ReadPrivileges.owner},
+        schema_extra={"view_privileges": ModelRead.Privileges.owner},
     )
 
 

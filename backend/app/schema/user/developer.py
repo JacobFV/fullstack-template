@@ -33,26 +33,28 @@ class DeveloperBase(UserBase):
 
 
 class DeveloperCreate(DeveloperBase, UserCreate):
-    stripe_user_access_token: str | None = None
+    pass
 
 
 class DeveloperRead(DeveloperBase, UserRead):
     verification_requests: list[Verification] = Field(
-        schema_extra={"view_privileges": "self"}  # TODO: implement auth in a base class
+        schema_extra={"view_privileges": "self"}
     )
-    api_keys: list[APIKeyRead] = Field(schema_extra={"view_privileges": "self"})
+    api_keys: list[APIKeyRead] = Field(
+        schema_extra={"view_privileges": "self"}
+    )  # yes, nested models here
 
 
 class DeveloperUpdate(DeveloperBase, UserUpdate):
-    stripe_user_access_token: str | None = None
+    pass
 
 
 class Developer(DeveloperBase, User, table=True):
     verification_requests: list[Verification] = Relationship(
         back_populates="verification_requested_by"
     )
-    stripe_user_access_token: str | None = None
-    api_keys: list[APIKey]
+    stripe_user_access_token: str | None = Field(None, exclude=True)
+    api_keys: list[APIKey] = Relationship(back_populates="owner")
 
 
 crud_router = build_crud_endpoints(

@@ -35,12 +35,11 @@ class APIKeyRead(APIKeyBase, ModelRead):
     name: str = Field()
     description: str = Field()
     owner_id: int = Field()
-    owner: DeveloperRead = Field(exclude=True)
     spend_limit: Money.T = Field()
     scopes: list[AuthScope] = Field()
     expires_at: datetime = Field()
     truncated_secret: str = Field()
-    uses: list["APIKeyUseRead"] = Field(exclude=True)
+    uses: list["APIKeyUseRead"] = Field()  # yes, nested models here
 
 
 class APIKeyUpdate(APIKeyBase, ModelUpdate):

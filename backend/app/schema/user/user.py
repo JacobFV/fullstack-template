@@ -28,14 +28,14 @@ from app.utils.crud import build_crud_endpoints
 # TODO replace email str with EmailStr when sqlmodel supports it
 class UserBase(IdentityBase):
     email: str = Field(unique=True, index=True)
-    is_active: bool = True
-    is_superuser: bool = False
-    full_name: str | None = None
+    is_active: bool = Field(True)
+    is_superuser: bool = Field(False)
+    full_name: str | None = Field(None)
 
 
 # Properties to receive via API on creation
 class UserCreate(IdentityCreate, UserBase):
-    password: str
+    password: str = Field()
 
 
 # TODO replace email str with EmailStr when sqlmodel supports it
@@ -48,20 +48,22 @@ class UserRegister(ModelBase):
 # Properties to receive via API on update, all are optional
 # TODO replace email str with EmailStr when sqlmodel supports it
 class UserUpdate(IdentityUpdate, UserBase):
-    email: str | None = None  # type: ignore
-    password: str | None = None
-    full_name: str | None = None
+    email: str | None = Field(None)  # type: ignore
+    password: str | None = Field(None)
+    full_name: str | None = Field(None)
 
 
 # Properties to return via API, id is always required
 class UserRead(IdentityRead, UserBase):
-    id: int
+    email: str = Field(unique=True, index=True)
+    is_active: bool = Field(True)
+    is_superuser: bool = Field(False)
+    full_name: str | None = Field(None)
 
 
 # Database model, database table inferred from class name
 class User(Identity, UserBase):
-    id: int | None = Field(default=None, primary_key=True)
-    hashed_password: str
+    hashed_password: str = Field()
 
 
 # other API models
