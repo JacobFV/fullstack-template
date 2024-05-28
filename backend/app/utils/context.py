@@ -13,7 +13,7 @@ class Context(BaseModel):
 
     app: FastAPI
     api_route: str
-    user: User | None
+    user: "User" | None
     roles: list[str]
     db_session: Optional[Session]
 

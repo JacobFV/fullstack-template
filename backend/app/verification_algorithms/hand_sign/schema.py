@@ -13,11 +13,11 @@ from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
 from typing_extensions import Unpack
 
 from app.core.redis import get_redis_connection
-from app.schema.verification.verification import (
+from app.verification_algorithms.base.verification import (
     Verification,
     VerificationBase,
     VerificationRead,
-    VerificationRequestBase,
+    VerificationCreate,
     VerificationUpdate,
 )
 from app.utils.crud import build_crud_endpoints
@@ -28,7 +28,7 @@ class HandSignVerificationBase(VerificationBase):
     model_name: str = "hand_sign_verification-001"
 
 
-class HandSignVerificationRequest(HandSignVerificationBase, VerificationRequestBase):
+class HandSignVerificationRequest(HandSignVerificationBase, VerificationCreate):
     pass
 
 

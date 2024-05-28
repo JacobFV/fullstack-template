@@ -29,6 +29,8 @@ Field configs by class:
 
 - refactor HasOwner into the schema inheritance tree
 - set the DEFAULT_PRIVILEGES on all read and update models
+- make all users a sub of User. use field unions instead of separate classes for complex operations (excluding develop accounts):
+  - eg, for_browser_instance_with_token or for_email can be set as validation
 - move all crud routers to their api files
 - global context object instead of user/session/etc contexts
 - OpenAPI Spec

@@ -23,7 +23,7 @@ from app.schema.user.user import (
     UserUpdate,
     UserUpdateMe,
 )
-from app.schema.verification.verification import Verification
+from app.verification_algorithms.base.verification import Verification
 from app.utils.crud import build_crud_endpoints
 from app.schema.system.api_key import APIKey, APIKeyRead
 

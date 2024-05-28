@@ -5,6 +5,7 @@ from datetime import datetime
 from enum import Enum
 from functools import cached_property
 from typing import ClassVar, Optional
+from pydantic import field_validator
 
 from pydantic.config import ConfigDict
 from sqlalchemy import Column, String, func
@@ -24,29 +25,59 @@ from app.schema.base import (
 from app.utils.crud import build_crud_endpoints
 
 
-class IdentityBase(ModelBase):
-    pass
-
-
-class IdentityCreate(IdentityBase, ModelCreate):
+class IdentityBase(HasOwnerBase, OwnerBase, ModelBase):
     image_bytes: Optional[bytes] = Field()
 
 
-class IdentityRead(IdentityBase, ModelRead):
+from app.schema.user.ownership import (
+    HasOwner,
+    HasOwnerBase,
+    HasOwnerCreate,
+    HasOwnerRead,
+    HasOwnerUpdate,
+    Owner,
+    OwnerBase,
+    OwnerCreate,
+    OwnerRead,
+    OwnerUpdate,
+)
+
+
+class IdentityCreate(IdentityBase, HasOwnerCreate, OwnerCreate, ModelCreate):
+    image_bytes: Optional[bytes] = Field()
+
+    owner_id: int | None
+
+
+class IdentityRead(IdentityBase, HasOwnerRead, OwnerRead, ModelRead):
     image_bytes: Optional[bytes] = Field()
     verifications_performed_ids: list[int] = Field()
 
 
-class IdentityUpdate(IdentityBase, ModelUpdate):
-    pass
+class IdentityUpdate(IdentityBase, HasOwnerUpdate, OwnerUpdate, ModelUpdate):
+    image_bytes: Optional[bytes] = Field()
 
 
-class Identity(IdentityBase, ModelInDB, table=True):
+class Identity(IdentityBase, HasOwner, Owner, ModelInDB, table=True):
     image_bytes: Optional[bytes] = Field()
     verifications_performed_ids: list[int] = Field(foreign_key="verification.id")
     verifications_performed: list["Verification"] = Relationship(
         back_populates="target"
     )
+
+    OBJECT_DELETE_PRIVILEGES: ClassVar[DeletePrivileges] = owner_can_delete
+
+    @classmethod
+    def from_create(
+        cls,
+        model_create: IdentityCreate,
+        session: Session,
+        user: "User" | None = None,
+        extra_keys: Optional[dict] = None,
+    ) -> ModelInDB:
+        model_in_db = super().from_create(model_create, session, user, extra_keys)
+        model_in_db.owner_id = model_create.id
+        return model_in_db
 
 
 crud_router = build_crud_endpoints(

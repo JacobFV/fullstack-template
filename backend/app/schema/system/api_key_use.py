@@ -40,6 +40,8 @@ class APIKeyUse(APIKeyUseBase, ModelInDB):
     http_path: str = Field()
     http_method: str = Field()
 
+    OBJECT_DELETE_PRIVILEGES: ClassVar[DeletePrivileges] = nobody_can_delete
+
 
 crud_router = build_crud_endpoints(
     t_model_base=APIKeyUseBase,

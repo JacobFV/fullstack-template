@@ -23,39 +23,14 @@ from app.utils.errors import UnauthorizedUpdateError
 from typing import Protocol, runtime_checkable
 
 
-def nobody_can_read(read_model: ModelRead, /, *, context: Context) -> bool:
-    return False
-
-
-def authenticated_can_read(read_model: ModelRead, /, *, context: Context) -> bool:
-    return context.user is not None
-
-
-def public_can_read(read_model: ModelRead, /, *, context: Context) -> bool:
-    return True
-
-
-def nobody_can_update(
-    update_model: ModelUpdate, db_model: ModelInDB, /, *, context: Context
-) -> bool:
-    return False
-
-
-def authenticated_can_update(
-    update_model: ModelUpdate, db_model: ModelInDB, /, *, context: Context
-) -> bool:
-    return context.user is not None
-
-
-def public_can_update(
-    update_model: ModelUpdate, db_model: ModelInDB, /, *, context: Context
-) -> bool:
-    return True
-
-
 @runtime_checkable
 class Privileges(Protocol):
     def __call__(self, *args, **kwargs) -> bool: ...
+
+
+@runtime_checkable
+class CreatePrivileges(Protocol):
+    def __call__(self, model_create: ModelCreate, context: Context) -> bool: ...
 
 
 @runtime_checkable
@@ -68,6 +43,39 @@ class UpdatePrivileges(Protocol):
     def __call__(
         self, model_update: ModelUpdate, model_in_db: ModelInDB, context: Context
     ) -> bool: ...
+
+
+@runtime_checkable
+class DeletePrivileges(Protocol):
+    def __call__(self, model_in_db: ModelInDB, context: Context) -> bool: ...
+
+
+def nobody_can_do(model: "ModelBase", /, *args, context: Context, **kwargs) -> bool:
+    return False
+
+
+def authenticated_can_do(
+    model: "ModelBase", /, *args, context: Context, **kwargs
+) -> bool:
+    return context.user is not None
+
+
+def public_can_do(model: "ModelBase", /, *args, context: Context, **kwargs) -> bool:
+    return True
+
+
+nobody_can_create: CreatePrivileges = nobody_can_do
+authenticated_can_create: CreatePrivileges = authenticated_can_do
+public_can_create: CreatePrivileges = public_can_do
+nobody_can_read: ReadPrivileges = nobody_can_do
+authenticated_can_read: ReadPrivileges = authenticated_can_do
+public_can_read: ReadPrivileges = public_can_do
+nobody_can_update: UpdatePrivileges = nobody_can_do
+authenticated_can_update: UpdatePrivileges = authenticated_can_do
+public_can_update: UpdatePrivileges = public_can_do
+nobody_can_delete: DeletePrivileges = nobody_can_do
+authenticated_can_delete: DeletePrivileges = authenticated_can_do
+public_can_delete: DeletePrivileges = public_can_do
 
 
 class ModelBase(SQLModel):
@@ -97,8 +105,8 @@ class HasPrivileges(BaseModel, ABC):
         tasks = [check_and_set_privilege(k) for k in self.model_fields]
         await asyncio.gather(*tasks)
 
-    PRIVILEGES_FIELD_KEY: ClassVar[str] = Field()
-    DEFAULT_PRIVILEGES: ClassVar[Privileges] = Privileges.public
+    PRIVILEGES_FIELD_KEY: ClassVar[str]
+    DEFAULT_PRIVILEGES: ClassVar[Privileges] = nobody_can_do
 
     def __init_subclass__(cls, *args, **kwargs):
         super().__init_subclass__(*args, **kwargs)
@@ -132,6 +140,9 @@ class ModelInDB(ModelBase, table=True):
     }
     id: int = Field(autoincrement=True, primary_key=True, frozen=True)
     type: str = Field(nullable=False, index=True, frozen=True)
+
+    OBJECT_CREATE_PRIVILEGES: ClassVar[CreatePrivileges] = nobody_can_create
+    OBJECT_DELETE_PRIVILEGES: ClassVar[DeletePrivileges] = nobody_can_delete
 
     def __init_subclass__(cls, **kwargs):
         tablename = cls.__tablename__ or cls.__name__.lower()
@@ -167,20 +178,15 @@ class ModelInDB(ModelBase, table=True):
     def update_from(
         self,
         model_update: ModelUpdate,
-        session: Session,
-        user: "User" | None = None,
+        context: Context,
     ) -> None:
-        model_update = ModelUpdate.Privileges.apply_privileges(
-            model_update, self.id, user.id if user else None
-        )
-        self.update(model_update.dict(exclude_unset=True))
-        session.commit()
+        model_update = model_update.apply_privileges(model_update, context)
+        self.update(model_update.model_dump(exclude_unset=True))
+        context.db_session.commit()
 
-    def to_read(self, user: "User" | None = None) -> ModelRead:
-        model_read = self.ModelRead.validate(self)
-        model_read = ModelRead.Privileges.apply_privileges(
-            model_read, self.id, user.id if user else None
-        )
+    def to_read(self, context: Context) -> ModelRead:
+        model_read = self.ModelRead.model_validate(self)
+        model_read = model_read.apply_privileges(model_read, context)
         return model_read
 
     # active record methods

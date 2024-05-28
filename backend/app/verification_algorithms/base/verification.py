@@ -11,7 +11,6 @@ from sqlalchemy import Column, String, func
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
 from typing_extensions import Unpack
-from app.schema.user.developer import Developer, DeveloperRead, User
 
 from app.core.redis import get_redis_connection
 from app.schema.base import (
@@ -20,11 +19,20 @@ from app.schema.base import (
     ModelInDB,
     ModelRead,
     ModelUpdate,
+    nobody_can_update,
 )
 from app.schema.has_redis import HasReddisChannel
+from app.schema.id import ID
 from app.schema.user.developer import DeveloperRead, Developer
 from app.schema.user.identity import IdentityRead, Identity
 from app.utils.context import Context
+from app.schema.user.ownership import (
+    HasOwnerBase,
+    HasOwnerCreate,
+    HasOwnerRead,
+    HasOwnerUpdate,
+    owner_can_update,
+)
 
 
 class VerificationStatus(Enum):
@@ -34,67 +42,82 @@ class VerificationStatus(Enum):
     FAILED = "failed"
 
 
-class VerificationBase(ModelBase):
-    pass
+def owner_or_target_can_read_fn(
+    read_model: "VerificationRead", context: Context
+) -> bool:
+    return (
+        context.user.id == read_model.owner_id
+        or context.user.id == read_model.target_id
+    )
 
 
-class VerificationRequestBase(VerificationBase, ModelCreate):
-    requester_id: int
+def owner_or_target_can_update_fn(
+    update_model: "VerificationUpdate",
+    db_model: "Verification",
+    context: Context,
+) -> bool:
+    return context.user.id == db_model.owner_id or context.user.id == db_model.target_id
+
+
+class VerificationBase(HasOwnerBase, ModelBase):
+    owner_id: ID = Field(
+        schema_extra={
+            ModelRead.PRIVILEGES_KEY: owner_or_target_can_read_fn,
+            ModelUpdate.PRIVILEGES_KEY: nobody_can_update,
+        }
+    )
+
+
+class VerificationCreate(VerificationBase, HasOwnerCreate, ModelCreate):
     target_id: int
     on_completion_webhook_url: str
     on_completion_redirect_url: str | None = None
 
 
-def requester_or_target_can_read_fn(
-    read_model: "VerificationRead", context: Context
-) -> bool:
-    return (
-        context.user.id == read_model.requester_id
-        or context.user.id == read_model.target_id
-    )
-
-
-class VerificationRead(VerificationBase, ModelRead):
-    requester_id: int = Field(
-        schema_extras={"can_read": requester_or_target_can_read_fn}
-    )
+class VerificationRead(VerificationBase, HasOwnerRead, ModelRead):
     # yes, use nested models here
-    requester: DeveloperRead = Field(
-        schema_extras={"can_read": requester_or_target_can_read_fn}
-    )
-    target_id: int = Field(schema_extras={"can_read": requester_or_target_can_read_fn})
+    target_id: int = Field(schema_extras={"can_read": owner_or_target_can_read_fn})
     # yes, use nested models here
     target: IdentityRead = Field(
-        schema_extras={"can_read": requester_or_target_can_read_fn}
+        schema_extras={
+            ModelRead: owner_or_target_can_read_fn,
+        }
     )
     verf_status: VerificationStatus = Field(
-        schema_extras={"can_read": requester_or_target_can_read_fn}
+        schema_extras={
+            ModelRead: owner_or_target_can_read_fn,
+        }
     )
     on_completion_webhook_url: str = Field(
-        schema_extras={"can_read": requester_or_target_can_read_fn}
+        schema_extras={
+            ModelRead: owner_or_target_can_read_fn,
+        }
     )
     on_completion_redirect_url: str | None = Field(
-        None, schema_extras={"can_read": requester_or_target_can_read_fn}
+        None,
+        schema_extras={
+            ModelRead: owner_or_target_can_read_fn,
+        },
     )
 
 
-def requester_or_target_can_update_fn(
-    update_model: "VerificationUpdate",
-    db_model: "Verification",
-    context: Context,
-) -> bool:
-    return (
-        context.user.id == db_model.requester_id
-        or context.user.id == db_model.target_id
+class VerificationUpdate(VerificationBase, HasOwnerUpdate, ModelUpdate):
+    on_completion_webhook_url: str = Field(
+        schema_extra={
+            ModelUpdate.PRIVILEGES_KEY: owner_can_update,
+        }
+    )
+    on_completion_redirect_url: str | None = Field(
+        None,
+        schema_extra={
+            ModelUpdate.PRIVILEGES_KEY: owner_can_update,
+        },
     )
 
 
-class VerificationUpdate(VerificationBase, ModelUpdate):
-    on_completion_webhook_url: str = Field()
-    on_completion_redirect_url: str | None = Field(None)
-
-
-class Verification(HasReddisChannel, VerificationBase, ModelInDB, table=True):
+class Verification(
+    HasReddisChannel, VerificationBase, HasOwnerInDB, ModelInDB, table=True
+):
     requester_id: int = Field(foreign_key=Developer.id)
     requester: Developer = Relationship(back_populates="verifications_requested")
     target_id: int = Field(foreign_key=Identity.id)
@@ -106,7 +129,7 @@ class Verification(HasReddisChannel, VerificationBase, ModelInDB, table=True):
 
 crud_router = build_crud_endpoints(
     t_model_base=VerificationBase,
-    t_model_create=VerificationRequestBase,
+    t_model_create=VerificationCreate,
     t_model_read=VerificationRead,
     t_model_update=VerificationUpdate,
     t_model_in_db=Verification,
