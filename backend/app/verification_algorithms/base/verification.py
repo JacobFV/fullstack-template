@@ -36,6 +36,7 @@ from app.schema.user.ownership import (
     HasOwnerRead,
     HasOwnerUpdate,
     owner_can_create,
+    owner_can_delete,
     owner_can_read,
     owner_can_update,
 )
@@ -134,11 +135,35 @@ class Verification(HasReddisChannel, VerificationBase, HasOwner, ModelInDB, tabl
     requester: Developer = Relationship(back_populates="verifications_requested")
     target_id: int = Field(foreign_key=Identity.id)
     target: Identity = Relationship(back_populates="verifications_targeted")
-    verf_status: VerificationStatus = Field()
+    verf_status: VerificationStatus = Field(default=VerificationStatus.REQUESTED)
     on_completion_webhook_url: str = Field()
     on_completion_redirect_url: Optional[str] = Field()
 
     OBJECT_DELETE_PRIVILEGES: ClassVar[UpdatePrivileges] = owner_can_delete
+
+    @classmethod
+    def from_create(
+        cls,
+        model_create: HasOwnerCreate,
+        context: Context,
+        extra_keys: dict | None = None,
+        commit=True,
+        refresh=True,
+    ) -> HasOwner:
+        return super().from_create(model_create, context, extra_keys, commit, refresh)
+
+    def update_from(
+        self,
+        model_update: ModelUpdate,
+        context: Context,
+        extra_keys: dict | None = None,
+        commit=True,
+        refresh=False,
+    ) -> None:
+        return super().update_from(model_update, context, extra_keys, commit, refresh)
+
+    def to_read(self, context: Context, refresh=False) -> VerificationRead:
+        return super().to_read(context, refresh=refresh)
 
 
 crud_router = build_crud_endpoints(

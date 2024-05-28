@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 from sqlmodel import Session
@@ -16,6 +16,7 @@ class Context(BaseModel):
     user: "User" | None
     roles: list[str]
     db_session: Optional[Session]
+    mode: Literal["http", "system"] = "http"
 
     created_at: datetime = Field(default_factory=datetime.utcnow)
     entered_at: datetime

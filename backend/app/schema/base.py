@@ -166,10 +166,10 @@ class ModelInDB(ModelBase, table=True):
     def from_create(
         cls,
         model_create: ModelCreate,
+        context: "Context",
         extra_keys: Optional[dict] = None,
         commit=True,
         refresh=True,
-        context: "Context",
     ) -> ModelInDB:
         if commit is False and refresh is True:
             warnings.warn(
@@ -191,10 +191,10 @@ class ModelInDB(ModelBase, table=True):
     def update_from(
         self,
         model_update: ModelUpdate,
+        context: "Context",
         extra_keys: Optional[dict] = None,
         commit=True,
         refresh=False,
-        context: "Context",
     ) -> None:
         if commit is False and refresh is True:
             warnings.warn(
@@ -202,13 +202,17 @@ class ModelInDB(ModelBase, table=True):
                 "This may not be what you want if you are expecting the in-memory object to be up to date."
             )
         model_update = model_update.apply_privileges(model_update, context)
-        self.update(model_update.model_dump(exclude_unset=True))
+        self.update(
+            {**model_update.model_dump(exclude_unset=True), **(extra_keys or {})}
+        )
         if commit:
             context.db_session.commit()
             if refresh:
                 context.db_session.refresh(self)
 
-    def to_read(self, context: Context) -> ModelRead:
+    def to_read(self, context: Context, refresh=False) -> ModelRead:
+        if refresh:
+            context.db_session.refresh(self)
         model_read = self.ModelRead.model_validate(self)
         model_read = model_read.apply_privileges(model_read, context)
         return model_read

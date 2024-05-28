@@ -24,6 +24,7 @@ from app.schema.user.user import (
     UserUpdate,
     UserUpdateMe,
 )
+from app.utils.context import Context
 from app.verification_algorithms.base.verification import Verification
 from app.utils.crud import build_crud_endpoints
 from app.schema.system.api_key import APIKey, APIKeyRead
@@ -56,6 +57,43 @@ class Developer(DeveloperBase, User, table=True):
     )
     stripe_user_access_token: str | None = Field(None, exclude=True)
     api_keys: list[APIKey] = Relationship(back_populates="owner")
+
+    @classmethod
+    def from_create(
+        cls,
+        model_create: DeveloperCreate,
+        context: "Context",
+        extra_keys: Optional[dict] = None,
+        commit=True,
+        refresh=True,
+    ) -> Developer:
+        developer_in_db = super().from_create(
+            model_create=model_create,
+            context=context,
+            extra_keys=extra_keys,
+            commit=commit,
+            refresh=refresh,
+        )
+        return developer_in_db
+
+    def update_from(
+        self,
+        model_update: UserUpdate,
+        context: Context,
+        extra_keys: dict | None = None,
+        commit=True,
+        refresh=False,
+    ) -> None:
+        return super().update_from(
+            model_update=model_update,
+            context=context,
+            extra_keys=extra_keys,
+            commit=commit,
+            refresh=refresh,
+        )
+
+    def to_read(self, context: Context, refresh=False) -> DeveloperRead:
+        return super().to_read(context, refresh=refresh)
 
 
 crud_router = build_crud_endpoints(

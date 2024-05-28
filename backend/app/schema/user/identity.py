@@ -23,6 +23,11 @@ from app.schema.base import (
     ModelUpdate,
     ReadPrivileges,
     UpdatePrivileges,
+    public_can_create,
+    public_can_delete,
+    authenticated_can_create,
+    authenticated_can_delete,
+    public_can_read,
 )
 
 from app.schema.user.ownership import (
@@ -36,6 +41,7 @@ from app.schema.user.ownership import (
     HasOwnerRead,
     HasOwnerUpdate,
 )
+from app.utils.context import Context
 
 # from app.schema.verification.verification import Verification, VerificationRead
 from app.utils.crud import build_crud_endpoints
@@ -53,7 +59,9 @@ class IdentityCreate(IdentityBase, HasOwnerCreate, ModelCreate):
 
 
 class IdentityRead(IdentityBase, HasOwnerRead, ModelRead):
-    image_bytes: Optional[bytes] = Field()
+    image_bytes: Optional[bytes] = Field(
+        schema_extra={ModelRead.PRIVILEGES_KEY: public_can_read}
+    )
     verifications_performed_ids: list[int] = Field()
     owned_items: list["HasOwnerRead"] = Field(
         schema_extra={ModelRead.PRIVILEGES_KEY: owner_can_read}
@@ -83,16 +91,32 @@ class Identity(IdentityBase, HasOwner, ModelInDB, table=True):
     def from_create(
         cls,
         model_create: IdentityCreate,
-        session: Session,
-        user: "User" | None = None,
+        context: "Context",
         extra_keys: Optional[dict] = None,
-    ) -> ModelInDB:
+        commit=True,
+        refresh=True,
+    ) -> Identity:
         model_in_db: Identity = super().from_create(
-            model_create, session, user, extra_keys
+            model_create=model_create,
+            context=context,
+            extra_keys=extra_keys,
+            commit=commit,
+            refresh=refresh,
         )
-        model_in_db.save(session=session, refresh=True)
-        model_in_db.owner_id = model_create.id
         return model_in_db
+
+    def update_from(
+        self,
+        model_update: ModelUpdate,
+        context: Context,
+        extra_keys: dict | None = None,
+        commit=True,
+        refresh=False,
+    ) -> None:
+        return super().update_from(model_update, context, extra_keys, commit, refresh)
+
+    def to_read(self, context: Context, refresh=False) -> IdentityRead:
+        return super().to_read(context, refresh=refresh)
 
 
 crud_router = build_crud_endpoints(

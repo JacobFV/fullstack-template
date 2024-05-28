@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from functools import cached_property
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, Optional
 from pydantic import computed_field
 
 from sqlmodel import Field, Relationship
@@ -31,6 +31,7 @@ from app.schema.user.ownership import (
     owner_can_read,
     owner_can_update,
 )
+from app.utils.context import Context
 from app.utils.crud import build_crud_endpoints
 
 
@@ -91,6 +92,38 @@ class APIKey(APIKeyBase, HasOwner, ModelInDB):
     uses: list["APIKeyUse"] = Relationship(back_populates="api_key")
     spend_limit: Money.T = Field()
     secret_key: str = Field(frozen=True, exclude=True)
+
+    @classmethod
+    def from_create(
+        cls,
+        model_create: APIKeyCreate,
+        context: Context,
+        extra_keys: Optional[dict] = None,
+        commit=True,
+        refresh=True,
+    ) -> APIKey:
+        # generate the public/private key combination outside this method
+        api_key_in_db = super().from_create(
+            model_create=model_create,
+            context=context,
+            extra_keys=extra_keys,
+            commit=commit,
+            refresh=refresh,
+        )
+        return api_key_in_db
+
+    def update_from(
+        self,
+        model_update: ModelUpdate,
+        context: Context,
+        extra_keys: dict | None = None,
+        commit=True,
+        refresh=False,
+    ) -> None:
+        return super().update_from(model_update, context, extra_keys, commit, refresh)
+
+    def to_read(self, context: Context, refresh=False) -> APIKeyRead:
+        return super().to_read(context, refresh=refresh)
 
     OBJECT_DELETE_PRIVILEGES: ClassVar[DeletePrivileges] = owner_can_delete
 
