@@ -30,8 +30,48 @@ class ModelCreate(ModelBase):
     pass
 
 
+class ModelRead(ModelBase):
+
+    class ReadPrivileges(Enum):
+        nobody = "nobody"
+        owner = "owner"
+        authenticated = "authenticated"
+        public = "public"
+
+        def apply_privileges(self, model: ModelRead, model_owner_id: int, user_id: int):
+            """Nulls out fields that the user does not have access to"""
+            is_owner = model_owner_id == user_id
+            is_authenticated = user_id is not None
+            is_public = True
+
+            for k in model.model_fields:
+                match getattr(
+                    k,
+                    ModelRead.READ_PRIVILEGES_KEY,
+                    ModelRead.DEFAULT_READ_PRIVILEGES,
+                ):
+                    case ModelRead.ReadPrivileges.nobody:
+                        setattr(model, k, None)
+                    case ModelRead.ReadPrivileges.owner:
+                        if not is_owner:
+                            setattr(model, k, None)
+                    case ModelRead.ReadPrivileges.authenticated:
+                        if not is_authenticated:
+                            setattr(model, k, None)
+                    case ModelRead.ReadPrivileges.public:
+                        if not is_public:
+                            setattr(model, k, None)
+                    case _:
+                        pass
+
+    READ_PRIVILEGES_KEY: ClassVar[str] = "read_privileges"
+    DEFAULT_READ_PRIVILEGES: ClassVar[ReadPrivileges] = ReadPrivileges.owner
+
+
 class ModelUpdate(ModelBase):
+
     class UpdatePrivileges(Enum):
+        nobody = "nobody"
         owner = "owner"
         authenticated = "authenticated"
         public = "public"
@@ -48,7 +88,13 @@ class ModelUpdate(ModelBase):
             is_public = True
 
             for k in model.model_fields:
-                match getattr(k, "update_privileges", None):
+                match getattr(
+                    k,
+                    ModelUpdate.UPDATE_PRIVILEGES_KEY,
+                    ModelUpdate.DEFAULT_UPDATE_PRIVILEGES,
+                ):
+                    case ModelUpdate.UpdatePrivileges.nobody:
+                        setattr(model, k, None)
                     case ModelUpdate.UpdatePrivileges.owner:
                         if not is_owner:
                             match unauthorized_update_response:
@@ -93,35 +139,8 @@ class ModelUpdate(ModelBase):
 
             return model
 
-    pass
-
-
-class ModelRead(ModelBase):
-    class ViewPrivileges(Enum):
-        owner = "owner"
-        authenticated = "authenticated"
-        public = "public"
-
-        def apply_privileges(self, model: ModelRead, model_owner_id: int, user_id: int):
-            is_owner = model_owner_id == user_id
-            is_authenticated = user_id is not None
-            is_public = True
-
-            for k in model.model_fields:
-                match getattr(k, "view_privileges", None):
-                    case ModelRead.ViewPrivileges.owner:
-                        if not is_owner:
-                            setattr(model, k, None)
-                    case ModelRead.ViewPrivileges.authenticated:
-                        if not is_authenticated:
-                            setattr(model, k, None)
-                    case ModelRead.ViewPrivileges.public:
-                        if not is_public:
-                            setattr(model, k, None)
-                    case _:
-                        pass
-
-    pass
+    UPDATE_PRIVILEGES_KEY: ClassVar[str] = "update_privileges"
+    DEFAULT_UPDATE_PRIVILEGES: ClassVar[UpdatePrivileges] = UpdatePrivileges.owner
 
 
 class ModelInDB(ModelBase, table=True):
@@ -179,7 +198,7 @@ class ModelInDB(ModelBase, table=True):
 
     def to_read(self, user: "User" | None = None) -> ModelRead:
         model_read = self.ModelRead.validate(self)
-        model_read = ModelRead.ViewPrivileges.apply_privileges(
+        model_read = ModelRead.ReadPrivileges.apply_privileges(
             model_read, self.id, user.id if user else None
         )
         return model_read

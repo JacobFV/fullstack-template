@@ -1,8 +1,0 @@
-- for each model:
-  - make sure we are only returning the minimum connected nested field values on read, otherwise we could end up with cyclic deps during quiery JSONification
-  - put the other schema deps in an if TYPE_CHECKING enclosure so we can keep the imports clean
-  - move all crud routers to their api files
-  - set view_privileges and update_privileges on all relevant fields
-- global context object instead of user/session/etc contexts
-- OpenAPI Spec
-- unit tests (find an AI to write, run, and debug)

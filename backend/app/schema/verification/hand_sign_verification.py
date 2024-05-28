@@ -35,7 +35,7 @@ class HandSignVerificationRequest(HandSignVerificationBase, VerificationRequestB
 class HandSignVerificationRead(HandSignVerificationBase, VerificationRead):
     model_name = Field(
         "hand_sign_verification-001",
-        schema_extra={"view_privileges": ModelRead.ViewPrivileges.owner},
+        schema_extra={"view_privileges": ModelRead.ReadPrivileges.owner},
     )
 
 

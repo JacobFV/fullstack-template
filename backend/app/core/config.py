@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import Enum
 import functools
 from pathlib import Path
 import secrets
@@ -35,7 +36,9 @@ def parse_cors(v: Any) -> list[str] | str:
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env", env_ignore_empty=True, extra="ignore"
+        env_file=".env",
+        env_ignore_empty=True,
+        extra="ignore",
     )
 
     version_major: int
@@ -70,12 +73,17 @@ class Settings(BaseSettings):
     def uptime(self):
         return datetime.utcnow() - self.start_time
 
+    class Environment(Enum):
+        dev = "dev"
+        staging = "staging"
+        production = "production"
+
     API_V1_STR: str = "/api/v1"
     SECRET_KEY: str = secrets.token_urlsafe(32)
     # 60 minutes * 24 hours * 8 days = 8 days
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
     DOMAIN: str = "localhost"
-    ENVIRONMENT: Literal["local", "staging", "production"] = "local"
+    ENVIRONMENT: Environment = Environment.dev
 
     REDIS_DSN: RedisDsn = Field(
         "redis://user:pass@localhost:6379/1",
@@ -191,7 +199,9 @@ class Settings(BaseSettings):
         def new_setattr_fn(name: str, value: Any) -> None:
             super(Settings, self).__setattr__(name, value)
             asyncio.create_task(store_settings(self))
+
         self.__setattr__ = new_setattr_fn
+
 
 from app.core.shared_resources import get_redis_connection, settings
 

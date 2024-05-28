@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlmodel import Field
+from sqlmodel import Field, Relationship
 from app.schema.base import (
     ModelBase,
     ModelCreate,
@@ -20,25 +20,25 @@ class APIKeyUseBase(ModelBase):
 
 
 class APIKeyUseRead(APIKeyUseBase, ModelRead):
-    api_key_id: int
-    api_key: APIKeyRead
-    timestamp: datetime
-    ip_address: str
-    user_agent: str
-    headers: dict[str, str]
-    path: str
-    method: str
+    api_key_id: int = Field()
+    api_key: APIKeyRead = Relationship(exclude=True)
+    timestamp: datetime = Field()
+    ip_address: str = Field()
+    user_agent: str = Field()
+    headers: dict[str, str] = Field()
+    path: str = Field()
+    method: str = Field()
 
 
 class APIKeyUse(APIKeyUseBase, ModelInDB):
-    api_key_id: int
-    api_key: APIKey
-    timestamp: datetime
-    ip_address: str
-    user_agent: str
-    headers: dict[str, str]
-    path: str
-    method: str
+    api_key_id: int = Field()
+    api_key: APIKey = Field()
+    timestamp: datetime = Field()
+    ip_address: str = Field()
+    user_agent: str = Field()
+    headers: dict[str, str] = Field()
+    path: str = Field()
+    method: str = Field()
 
 
 crud_router = build_crud_endpoints(

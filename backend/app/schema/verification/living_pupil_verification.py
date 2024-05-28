@@ -37,7 +37,7 @@ class LivingPupilVerificationRequest(
 class LivingPupilVerificationRead(LivingPupilVerificationBase, VerificationRead):
     model_name = Field(
         "living_pupil_verification-001",
-        schema_extra={"view_privileges": ModelRead.ViewPrivileges.owner},
+        schema_extra={"view_privileges": ModelRead.ReadPrivileges.owner},
     )
 
 
