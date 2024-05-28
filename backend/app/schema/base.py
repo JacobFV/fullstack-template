@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from enum import Enum
 from functools import cached_property
-from typing import ClassVar, Literal, Optional
+from typing import Callable, ClassVar, Literal, Optional
 from pydantic import BaseModel
 
 # from .user import User
@@ -18,6 +18,56 @@ from typing_extensions import Unpack
 from app.core.redis import get_redis_connection
 from app.utils.context import Context
 from app.utils.errors import UnauthorizedUpdateError
+
+
+from typing import Protocol, runtime_checkable
+
+
+def nobody_can_read(read_model: ModelRead, /, *, context: Context) -> bool:
+    return False
+
+
+def authenticated_can_read(read_model: ModelRead, /, *, context: Context) -> bool:
+    return context.user is not None
+
+
+def public_can_read(read_model: ModelRead, /, *, context: Context) -> bool:
+    return True
+
+
+def nobody_can_update(
+    update_model: ModelUpdate, db_model: ModelInDB, /, *, context: Context
+) -> bool:
+    return False
+
+
+def authenticated_can_update(
+    update_model: ModelUpdate, db_model: ModelInDB, /, *, context: Context
+) -> bool:
+    return context.user is not None
+
+
+def public_can_update(
+    update_model: ModelUpdate, db_model: ModelInDB, /, *, context: Context
+) -> bool:
+    return True
+
+
+@runtime_checkable
+class Privileges(Protocol):
+    def __call__(self, *args, **kwargs) -> bool: ...
+
+
+@runtime_checkable
+class ReadPrivileges(Protocol):
+    def __call__(self, model_read: ModelRead, context: Context) -> bool: ...
+
+
+@runtime_checkable
+class UpdatePrivileges(Protocol):
+    def __call__(
+        self, model_update: ModelUpdate, model_in_db: ModelInDB, context: Context
+    ) -> bool: ...
 
 
 class ModelBase(SQLModel):
@@ -34,86 +84,44 @@ class ModelCreate(ModelBase):
 
 class HasPrivileges(BaseModel, ABC):
 
-    class Privileges(Enum):
-        nobody = "nobody"
-        owner = "owner"
-        authenticated = "authenticated"
-        public = "public"
+    async def apply_privileges(self, context: Context):
+        import asyncio
 
-    def apply_privileges(self, model_owner_id: int, user_id: int):
-        """Nulls out fields that the user does not have access to"""
-        is_owner = model_owner_id == user_id
-        is_authenticated = user_id is not None
-        is_public = True
+        async def check_and_set_privilege(k):
+            privilege_fn = getattr(
+                k, self.PRIVILEGES_FIELD_KEY, self.DEFAULT_PRIVILEGES
+            )
+            if not await privilege_fn(self, context):
+                setattr(self, k, None)
 
-        for k in self.model_fields:
-            match getattr(k, self.PRIVILEGES_KEY, self.DEFAULT_PRIVILEGES):
-                case self.Privileges.nobody:
-                    setattr(self, k, None)
-                case ModelRead.Privileges.owner:
-                    if not is_owner:
-                        setattr(self, k, None)
-                case self.Privileges.authenticated:
-                    if not is_authenticated:
-                        setattr(self, k, None)
-                case self.Privileges.public:
-                    if not is_public:
-                        setattr(self, k, None)
-                case _:
-                    pass
+        tasks = [check_and_set_privilege(k) for k in self.model_fields]
+        await asyncio.gather(*tasks)
 
-    PRIVILEGES_KEY: ClassVar[str] = "privileges"
-    DEFAULT_PRIVILEGES: ClassVar[Privileges] = Privileges.owner
+    PRIVILEGES_FIELD_KEY: ClassVar[str] = Field()
+    DEFAULT_PRIVILEGES: ClassVar[Privileges] = Privileges.public
 
-    type: str = Field(discriminator="type", exclude=True)
+    def __init_subclass__(cls, *args, **kwargs):
+        super().__init_subclass__(*args, **kwargs)
+        cls.PRIVILEGES_FIELD_KEY = f"{cls.__name__}_privileges"
 
 
 class ModelRead(HasPrivileges, ModelBase):
-    Privileges = HasPrivileges.Privileges
 
     id: int
-    PRIVILEGES_KEY: ClassVar[str] = "read_privileges"
-    DEFAULT_PRIVILEGES: ClassVar[Privileges] = Privileges.owner
-    OBJECT_QUERY_PRIVILEGES: ClassVar[Privileges] = Privileges.public
+    type: str = Field(discriminator="type")
 
-    type: str = Field(
-        discriminator="type",
-        schema_extras={PRIVILEGES_KEY: Privileges.public},
-    )
-
-
-class ReadPrivileges:
-    @staticmethod
-    def nobody(read_model: ModelRead, context: Context) -> bool:
-        return False
-
-    @staticmethod
-    def owner(read_model: ModelRead, context: Context) -> bool:
-        if not hasattr(read_model, "owner_id"):
-            raise ValueError(f"{read_model} does not have an owner_id")
-        return context.user.id == getattr(read_model, "owner_id")
-
-    @staticmethod
-    def authenticated(read_model: ModelRead, context: Context) -> bool:
-        return context.user is not None
-
-    @staticmethod
-    def public(read_model: ModelRead, context: Context) -> bool:
-        return True
+    PRIVILEGES_FIELD_KEY: ClassVar[str] = "read_privileges"
+    DEFAULT_PRIVILEGES: ClassVar[ReadPrivileges] = public_can_read
+    OBJECT_QUERY_PRIVILEGES: ClassVar[ReadPrivileges] = public_can_read
 
 
 class ModelUpdate(HasPrivileges, ModelBase):
-    Privileges = HasPrivileges.Privileges
+
+    type: str = Field(discriminator="type", exclude=True)
 
     PRIVILEGES_KEY: ClassVar[str] = "update_privileges"
-    DEFAULT_PRIVILEGES: ClassVar[Privileges] = Privileges.owner
-    OBJECT_UPDATE_PRIVILEGES: ClassVar[Privileges] = Privileges.owner
-
-    type: str = Field(
-        discriminator="type",
-        exclude=True,
-        schema_extra={PRIVILEGES_KEY: DEFAULT_PRIVILEGES},
-    )
+    DEFAULT_PRIVILEGES: ClassVar[UpdatePrivileges] = nobody_can_update
+    OBJECT_UPDATE_PRIVILEGES: ClassVar[UpdatePrivileges] = nobody_can_update
 
 
 class ModelInDB(ModelBase, table=True):

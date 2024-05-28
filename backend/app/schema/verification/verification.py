@@ -45,27 +45,42 @@ class VerificationRequestBase(VerificationBase, ModelCreate):
     on_completion_redirect_url: str | None = None
 
 
-def can_read_fn(self, context: Context) -> bool:
-    return context.user.id == self.requester_id or context.user.id == self.target_id
-
-
-class VerificationRead(VerificationBase, ModelRead):
-    requester_id: int = Field(schema_extras={"can_read": can_read_fn})
-    # yes, use nested models here
-    requester: DeveloperRead = Field(schema_extras={"can_read": can_read_fn})
-    target_id: int = Field(schema_extras={"can_read": can_read_fn})
-    # yes, use nested models here
-    target: IdentityRead = Field(schema_extras={"can_read": can_read_fn})
-    verf_status: VerificationStatus = Field(schema_extras={"can_read": can_read_fn})
-    on_completion_webhook_url: str = Field(schema_extras={"can_read": can_read_fn})
-    on_completion_redirect_url: str | None = Field(
-        None, schema_extras={"can_read": can_read_fn}
+def requester_or_target_can_read_fn(
+    read_model: "VerificationRead", context: Context
+) -> bool:
+    return (
+        context.user.id == read_model.requester_id
+        or context.user.id == read_model.target_id
     )
 
 
-def can_update_fn(
-    update_model: VerificationUpdate,
-    db_model: Verification,
+class VerificationRead(VerificationBase, ModelRead):
+    requester_id: int = Field(
+        schema_extras={"can_read": requester_or_target_can_read_fn}
+    )
+    # yes, use nested models here
+    requester: DeveloperRead = Field(
+        schema_extras={"can_read": requester_or_target_can_read_fn}
+    )
+    target_id: int = Field(schema_extras={"can_read": requester_or_target_can_read_fn})
+    # yes, use nested models here
+    target: IdentityRead = Field(
+        schema_extras={"can_read": requester_or_target_can_read_fn}
+    )
+    verf_status: VerificationStatus = Field(
+        schema_extras={"can_read": requester_or_target_can_read_fn}
+    )
+    on_completion_webhook_url: str = Field(
+        schema_extras={"can_read": requester_or_target_can_read_fn}
+    )
+    on_completion_redirect_url: str | None = Field(
+        None, schema_extras={"can_read": requester_or_target_can_read_fn}
+    )
+
+
+def requester_or_target_can_update_fn(
+    update_model: "VerificationUpdate",
+    db_model: "Verification",
     context: Context,
 ) -> bool:
     return (

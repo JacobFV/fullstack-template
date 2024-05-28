@@ -25,4 +25,11 @@ Field configs by class:
   - set `exclude=True` on all exceptionally important fields that should never be returned under any circumstance. (the Read variant schema already does this for all the fields, just added protection)
   - set `frozen=True` on all db exceptionally important fields that are not meant to be updated after initialization. (the Update variant schema already does this for all the fields, just added protection)
 
-set the DEFAULT_PRIVILEGES on all read and update models
+### TODOs
+
+- refactor HasOwner into the schema inheritance tree
+- set the DEFAULT_PRIVILEGES on all read and update models
+- move all crud routers to their api files
+- global context object instead of user/session/etc contexts
+- OpenAPI Spec
+- unit tests (find an AI to write, run, and debug)
