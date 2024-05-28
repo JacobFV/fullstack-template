@@ -14,11 +14,14 @@ from typing_extensions import Unpack
 
 from app.core.redis import get_redis_connection
 from app.schema.base import (
+    CreatePrivileges,
     ModelBase,
     ModelCreate,
     ModelInDB,
     ModelRead,
     ModelUpdate,
+    ReadPrivileges,
+    UpdatePrivileges,
     nobody_can_update,
 )
 from app.schema.has_redis import HasReddisChannel
@@ -27,10 +30,13 @@ from app.schema.user.developer import DeveloperRead, Developer
 from app.schema.user.identity import IdentityRead, Identity
 from app.utils.context import Context
 from app.schema.user.ownership import (
+    HasOwner,
     HasOwnerBase,
     HasOwnerCreate,
     HasOwnerRead,
     HasOwnerUpdate,
+    owner_can_create,
+    owner_can_read,
     owner_can_update,
 )
 
@@ -73,6 +79,8 @@ class VerificationCreate(VerificationBase, HasOwnerCreate, ModelCreate):
     on_completion_webhook_url: str
     on_completion_redirect_url: str | None = None
 
+    OBJECT_CREATE_PRIVILEGES: ClassVar[CreatePrivileges] = owner_can_create
+
 
 class VerificationRead(VerificationBase, HasOwnerRead, ModelRead):
     # yes, use nested models here
@@ -100,6 +108,9 @@ class VerificationRead(VerificationBase, HasOwnerRead, ModelRead):
         },
     )
 
+    DEFAULT_FIELD_PRIVILEGES: ClassVar[ReadPrivileges] = owner_can_read
+    OBJECT_READ_PRIVILEGES: ClassVar[ReadPrivileges] = owner_can_read
+
 
 class VerificationUpdate(VerificationBase, HasOwnerUpdate, ModelUpdate):
     on_completion_webhook_url: str = Field(
@@ -114,10 +125,11 @@ class VerificationUpdate(VerificationBase, HasOwnerUpdate, ModelUpdate):
         },
     )
 
+    DEFAULT_FIELD_PRIVILEGES: ClassVar[UpdatePrivileges] = owner_can_update
+    OBJECT_UPDATE_PRIVILEGES: ClassVar[UpdatePrivileges] = owner_can_update
 
-class Verification(
-    HasReddisChannel, VerificationBase, HasOwnerInDB, ModelInDB, table=True
-):
+
+class Verification(HasReddisChannel, VerificationBase, HasOwner, ModelInDB, table=True):
     requester_id: int = Field(foreign_key=Developer.id)
     requester: Developer = Relationship(back_populates="verifications_requested")
     target_id: int = Field(foreign_key=Identity.id)
@@ -125,6 +137,8 @@ class Verification(
     verf_status: VerificationStatus = Field()
     on_completion_webhook_url: str = Field()
     on_completion_redirect_url: Optional[str] = Field()
+
+    OBJECT_DELETE_PRIVILEGES: ClassVar[UpdatePrivileges] = owner_can_delete
 
 
 crud_router = build_crud_endpoints(

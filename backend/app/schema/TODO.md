@@ -29,9 +29,11 @@ Field configs by class:
 
 - refactor HasOwner into the schema inheritance tree
 - set the DEFAULT_PRIVILEGES on all read and update models
+- ensure all models override from_create, update_from, and to_read to match the new interface in ModelInDB
 - make all users a sub of User. use field unions instead of separate classes for complex operations (excluding develop accounts):
   - eg, for_browser_instance_with_token or for_email can be set as validation
 - move all crud routers to their api files
+- make a post-init file what i update forward refs for all models since i chase one
 - global context object instead of user/session/etc contexts
 - OpenAPI Spec
 - unit tests (find an AI to write, run, and debug)

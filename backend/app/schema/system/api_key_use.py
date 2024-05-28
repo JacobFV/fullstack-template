@@ -1,17 +1,22 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import ClassVar
 
 from sqlmodel import Field, Relationship
 from app.schema.base import (
+    DeletePrivileges,
     ModelBase,
     ModelCreate,
     ModelRead,
     ModelUpdate,
     ModelInDB,
+    ReadPrivileges,
+    nobody_can_delete,
 )
 from app.schema.system.billing import Money
 from app.schema.system.api_key import APIKey as APIKey, APIKeyRead as APIKeyRead
+from app.schema.user.ownership import owner_can_read
 from app.utils.crud import build_crud_endpoints
 
 
@@ -28,6 +33,8 @@ class APIKeyUseRead(APIKeyUseBase, ModelRead):
     http_headers: dict[str, str] = Field()
     http_path: str = Field()
     http_method: str = Field()
+
+    OBJECT_READ_PRIVILEGES: ClassVar[ReadPrivileges] = owner_can_read
 
 
 class APIKeyUse(APIKeyUseBase, ModelInDB):

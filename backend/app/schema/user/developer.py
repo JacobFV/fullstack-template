@@ -13,6 +13,7 @@ from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
 from typing_extensions import Unpack
 
 from app.core.redis import get_redis_connection
+from app.schema.user.ownership import owner_can_read
 
 from app.schema.user.user import (
     User,
@@ -38,7 +39,7 @@ class DeveloperCreate(DeveloperBase, UserCreate):
 
 class DeveloperRead(DeveloperBase, UserRead):
     verification_requests: list[Verification] = Field(
-        schema_extra={"view_privileges": "self"}
+        schema_extra={UserRead.PRIVILEGES_FIELD_KEY: owner_can_read}
     )
     api_keys: list[APIKeyRead] = Field(
         schema_extra={"view_privileges": "self"}

@@ -5,6 +5,7 @@ from datetime import datetime
 from enum import Enum
 from functools import cached_property
 from typing import Callable, ClassVar, Literal, Optional
+import warnings
 from pydantic import BaseModel
 
 # from .user import User
@@ -88,6 +89,7 @@ class ModelBase(SQLModel):
 
 class ModelCreate(ModelBase):
     discriminator: str = Field(discriminator="type")
+    OBJECT_CREATE_PRIVILEGES: ClassVar[CreatePrivileges] = nobody_can_create
 
 
 class HasPrivileges(BaseModel, ABC):
@@ -97,7 +99,7 @@ class HasPrivileges(BaseModel, ABC):
 
         async def check_and_set_privilege(k):
             privilege_fn = getattr(
-                k, self.PRIVILEGES_FIELD_KEY, self.DEFAULT_PRIVILEGES
+                k, self.PRIVILEGES_FIELD_KEY, self.DEFAULT_FIELD_PRIVILEGES
             )
             if not await privilege_fn(self, context):
                 setattr(self, k, None)
@@ -106,7 +108,7 @@ class HasPrivileges(BaseModel, ABC):
         await asyncio.gather(*tasks)
 
     PRIVILEGES_FIELD_KEY: ClassVar[str]
-    DEFAULT_PRIVILEGES: ClassVar[Privileges] = nobody_can_do
+    DEFAULT_FIELD_PRIVILEGES: ClassVar[Privileges] = nobody_can_do
 
     def __init_subclass__(cls, *args, **kwargs):
         super().__init_subclass__(*args, **kwargs)
@@ -119,8 +121,8 @@ class ModelRead(HasPrivileges, ModelBase):
     type: str = Field(discriminator="type")
 
     PRIVILEGES_FIELD_KEY: ClassVar[str] = "read_privileges"
-    DEFAULT_PRIVILEGES: ClassVar[ReadPrivileges] = public_can_read
-    OBJECT_QUERY_PRIVILEGES: ClassVar[ReadPrivileges] = public_can_read
+    DEFAULT_FIELD_PRIVILEGES: ClassVar[ReadPrivileges] = public_can_read
+    OBJECT_READ_PRIVILEGES: ClassVar[ReadPrivileges] = public_can_read
 
 
 class ModelUpdate(HasPrivileges, ModelBase):
@@ -128,7 +130,7 @@ class ModelUpdate(HasPrivileges, ModelBase):
     type: str = Field(discriminator="type", exclude=True)
 
     PRIVILEGES_KEY: ClassVar[str] = "update_privileges"
-    DEFAULT_PRIVILEGES: ClassVar[UpdatePrivileges] = nobody_can_update
+    DEFAULT_FIELD_PRIVILEGES: ClassVar[UpdatePrivileges] = nobody_can_update
     OBJECT_UPDATE_PRIVILEGES: ClassVar[UpdatePrivileges] = nobody_can_update
 
 
@@ -141,7 +143,6 @@ class ModelInDB(ModelBase, table=True):
     id: int = Field(autoincrement=True, primary_key=True, frozen=True)
     type: str = Field(nullable=False, index=True, frozen=True)
 
-    OBJECT_CREATE_PRIVILEGES: ClassVar[CreatePrivileges] = nobody_can_create
     OBJECT_DELETE_PRIVILEGES: ClassVar[DeletePrivileges] = nobody_can_delete
 
     def __init_subclass__(cls, **kwargs):
@@ -165,24 +166,47 @@ class ModelInDB(ModelBase, table=True):
     def from_create(
         cls,
         model_create: ModelCreate,
-        session: Session,
-        user: "User" | None = None,
         extra_keys: Optional[dict] = None,
+        commit=True,
+        refresh=True,
+        context: "Context",
     ) -> ModelInDB:
+        if commit is False and refresh is True:
+            warnings.warn(
+                "You have requested a refresh without making any commits. "
+                "This may not be what you want if you are expecting the in-memory object to be up to date."
+            )
         db_entity = cls(**model_create.model_dump(), **(extra_keys or {}))
         # subclasses wrap this and pass in extra keys needed for the indb model that are absent in the create model
+        session = context.db_session
         session.add(db_entity)
+        if commit:
+            session.commit()
+            if refresh:
+                session.refresh(db_entity)
         session.commit()
+        session.refresh(db_entity)
         return db_entity
 
     def update_from(
         self,
         model_update: ModelUpdate,
-        context: Context,
+        extra_keys: Optional[dict] = None,
+        commit=True,
+        refresh=False,
+        context: "Context",
     ) -> None:
+        if commit is False and refresh is True:
+            warnings.warn(
+                "You have requested a refresh without making any commits. "
+                "This may not be what you want if you are expecting the in-memory object to be up to date."
+            )
         model_update = model_update.apply_privileges(model_update, context)
         self.update(model_update.model_dump(exclude_unset=True))
-        context.db_session.commit()
+        if commit:
+            context.db_session.commit()
+            if refresh:
+                context.db_session.refresh(self)
 
     def to_read(self, context: Context) -> ModelRead:
         model_read = self.ModelRead.model_validate(self)
@@ -190,13 +214,17 @@ class ModelInDB(ModelBase, table=True):
         return model_read
 
     # active record methods
-    def save(self, session: Session):
+    def save(self, session: Session, refresh=False):
         session.add(self)
         session.commit()
+        if refresh:
+            session.refresh(self)
 
-    def delete(self, session: Session):
+    def delete(self, session: Session, refresh=False):
         session.delete(self)
         session.commit()
+        if refresh:
+            session.refresh(self)
 
     @classmethod
     def find_by_id(cls, id: int, session: Session):
@@ -227,11 +255,14 @@ class ModelInDB(ModelBase, table=True):
         update_model: ModelUpdate,
         session: Session,
         commit=True,
+        refresh=False,
     ):
         entity = cls.find_by_id_or_raise(id, session)
         entity.sqlmodel_update(update_model.model_dump(exclude_unset=True))
         if commit:
             session.commit()
+            if refresh:
+                session.refresh(entity)
         return entity
 
     @classmethod
@@ -241,15 +272,19 @@ class ModelInDB(ModelBase, table=True):
         update_model: ModelUpdate,
         session: Session,
         commit=True,
+        refresh=False,
     ):
         entities = cls.find_by_ids(ids, session)
         for entity in entities:
             updated_entity = entity.update(
-                update_model.model_dump(exclude_unset=True), commit=False
+                update_model.model_dump(exclude_unset=True), commit=False, refresh=False
             )
             session.add(updated_entity)
         if commit:
             session.commit()
+            if refresh:
+                for entity in entities:
+                    session.refresh(entity)
 
     @classmethod
     def delete_by_id(cls, id: int, session: Session, commit=True):

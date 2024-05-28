@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from functools import cached_property
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
 from pydantic import computed_field
 
 from sqlmodel import Field, Relationship
@@ -14,6 +14,8 @@ from app.schema.base import (
     ModelRead,
     ModelUpdate,
     ModelInDB,
+    ReadPrivileges,
+    UpdatePrivileges,
 )
 
 from app.schema.system.billing import Money
@@ -26,8 +28,15 @@ from app.schema.user.ownership import (
     HasOwnerUpdate,
     owner_can_create,
     owner_can_delete,
+    owner_can_read,
+    owner_can_update,
 )
 from app.utils.crud import build_crud_endpoints
+
+
+if TYPE_CHECKING:
+    from app.schema.user.developer import Developer, DeveloperRead
+    from app.schema.system.api_key_use import APIKeyUse, APIKeyUseRead
 
 
 class APIKeyBase(ModelBase):
@@ -54,10 +63,15 @@ class APIKeyRead(APIKeyBase, HasOwnerRead, ModelRead):
     truncated_secret: str = Field()
     uses: list["APIKeyUseRead"] = Field()  # yes, nested models here
 
+    OBJECT_READ_PRIVILEGES: ClassVar[ReadPrivileges] = owner_can_read
+
 
 class APIKeyUpdate(APIKeyBase, HasOwnerUpdate, ModelUpdate):
     description: str = Field()
     spend_limit: Money.T = Field()
+
+    DEFAULT_FIELD_PRIVILEGES: ClassVar[UpdatePrivileges] = owner_can_update
+    OBJECT_UPDATE_PRIVILEGES: ClassVar[UpdatePrivileges] = owner_can_update
 
 
 class APIKey(APIKeyBase, HasOwner, ModelInDB):
@@ -77,7 +91,6 @@ class APIKey(APIKeyBase, HasOwner, ModelInDB):
     uses: list["APIKeyUse"] = Relationship(back_populates="api_key")
     spend_limit: Money.T = Field()
     secret_key: str = Field(frozen=True, exclude=True)
-    public_key: str = Field(frozen=True, private=True, exclude=True)
 
     OBJECT_DELETE_PRIVILEGES: ClassVar[DeletePrivileges] = owner_can_delete
 

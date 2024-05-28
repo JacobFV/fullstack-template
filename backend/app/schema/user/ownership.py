@@ -14,7 +14,29 @@ from app.schema.base import (
     nobody_can_do,
 )
 from app.schema.id import ID
+from app.schema.user.identity import (
+    IdentityBase,
+    IdentityCreate,
+    IdentityRead,
+    IdentityUpdate,
+)
 from app.utils.context import Context
+
+if TYPE_CHECKING:
+    from app.schema.user.developer import (
+        DeveloperBase,
+        DeveloperCreate,
+        DeveloperRead,
+        DeveloperUpdate,
+        Developer,
+    )
+    from app.schema.user.identity import (
+        IdentityBase,
+        IdentityCreate,
+        IdentityRead,
+        IdentityUpdate,
+        Identity,
+    )
 
 
 def owner_can_do(base_model: "HasOwnerBase", /, *, context: Context) -> bool:
@@ -39,28 +61,6 @@ def owner_can_delete(db_model: "HasOwner", /, *, context: Context) -> bool:
     return context.user.id == db_model.owner_id
 
 
-class OwnerBase(ModelBase):
-    pass
-
-
-class OwnerCreate(OwnerBase, ModelCreate):
-    pass
-
-
-class OwnerRead(OwnerBase, ModelRead):
-    owned_items: list["HasOwnerRead"] = Field(
-        schema_extra={ModelRead.PRIVILEGES_KEY: owner_can_read}
-    )
-
-
-class OwnerUpdate(OwnerBase, ModelUpdate):
-    pass
-
-
-class Owner(OwnerBase, ModelInDB, table=True):
-    owned_items: list["HasOwner"] = Relationship(backref="owner")
-
-
 class HasOwnerBase(ABC):
     owner_id: int
 
@@ -70,7 +70,9 @@ class HasOwnerCreate(ModelCreate, HasOwnerBase):
 
 
 class HasOwnerRead(ModelRead, HasOwnerBase):
-    owner_id: int = Field()
+    owner_id: int = Field(
+        schema_extras={ModelRead.PRIVILEGES_KEY: None}
+    )  # TODO: implement default field autorization
 
 
 class HasOwnerUpdate(ModelUpdate, HasOwnerBase):
@@ -79,4 +81,4 @@ class HasOwnerUpdate(ModelUpdate, HasOwnerBase):
 
 class HasOwner(ModelInDB, HasOwnerBase):
     owner_id: ID = Field(foreign_key="owner.id")
-    owner: Owner = Relationship(back_populates="owner")
+    owner: Identity = Relationship(back_populates="owned_items")
