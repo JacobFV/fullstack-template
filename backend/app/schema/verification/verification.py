@@ -60,13 +60,13 @@ class VerificationUpdate(VerificationBase, ModelUpdate):
 
 
 class Verification(HasReddisChannel, VerificationBase, ModelInDB, table=True):
-    requester_id: int
-    requester: Developer
-    target_id: int
-    target: Identity
-    verf_status: VerificationStatus
-    on_completion_webhook_url: str
-    on_completion_redirect_url: str | None = None
+    requester_id: int = Field(foreign_key=Developer.id)
+    requester: Developer = Relationship(back_populates="verifications_requested")
+    target_id: int = Field(foreign_key=Identity.id)
+    target: Identity = Relationship(back_populates="verifications_targeted")
+    verf_status: VerificationStatus = Field()
+    on_completion_webhook_url: str = Field()
+    on_completion_redirect_url: Optional[str] = Field()
 
 
 crud_router = build_crud_endpoints(

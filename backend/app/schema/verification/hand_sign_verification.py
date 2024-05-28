@@ -37,6 +37,7 @@ class HandSignVerificationRead(HandSignVerificationBase, VerificationRead):
         "hand_sign_verification-001",
         schema_extra={"view_privileges": ModelRead.ReadPrivileges.owner},
     )
+    hand_symbols: list[str]
 
 
 class HandSignVerificationUpdate(HandSignVerificationBase, VerificationUpdate):
@@ -44,7 +45,7 @@ class HandSignVerificationUpdate(HandSignVerificationBase, VerificationUpdate):
 
 
 class HandSignVerification(HandSignVerificationBase, Verification):
-    hand_letters: list[str]
+    hand_symbols: list[str]
 
 
 crud_router = build_crud_endpoints(

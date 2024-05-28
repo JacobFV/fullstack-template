@@ -21,13 +21,13 @@ class APIKeyUseBase(ModelBase):
 
 class APIKeyUseRead(APIKeyUseBase, ModelRead):
     api_key_id: int = Field()
-    api_key: APIKeyRead = Relationship(exclude=True)
+    api_key: APIKeyRead = Field()
     timestamp: datetime = Field()
     ip_address: str = Field()
     user_agent: str = Field()
-    headers: dict[str, str] = Field()
-    path: str = Field()
-    method: str = Field()
+    http_headers: dict[str, str] = Field()
+    http_path: str = Field()
+    http_method: str = Field()
 
 
 class APIKeyUse(APIKeyUseBase, ModelInDB):
@@ -36,9 +36,9 @@ class APIKeyUse(APIKeyUseBase, ModelInDB):
     timestamp: datetime = Field()
     ip_address: str = Field()
     user_agent: str = Field()
-    headers: dict[str, str] = Field()
-    path: str = Field()
-    method: str = Field()
+    http_headers: dict[str, str] = Field()
+    http_path: str = Field()
+    http_method: str = Field()
 
 
 crud_router = build_crud_endpoints(

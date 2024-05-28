@@ -32,6 +32,8 @@ class ModelCreate(ModelBase):
 
 class ModelRead(ModelBase):
 
+    id: int
+
     class ReadPrivileges(Enum):
         nobody = "nobody"
         owner = "owner"
@@ -149,8 +151,8 @@ class ModelInDB(ModelBase, table=True):
         "polymorphic_identity": "entity",  # base class identity
         "polymorphic_on": "type",  # specifying which field is the discriminator
     }
-    id: int = Field(sa_column=Column(Integer, autoincrement=True, primary_key=True))
-    type: str = Field(sa_column=Column(String, nullable=False, index=True))
+    id: int = Field(autoincrement=True, primary_key=True, frozen=True)
+    type: str = Field(nullable=False, index=True, frozen=True)
 
     def __init_subclass__(cls, **kwargs):
         tablename = cls.__tablename__ or cls.__name__.lower()
@@ -160,10 +162,9 @@ class ModelInDB(ModelBase, table=True):
         return super().__init_subclass__(**kwargs)
 
     @classmethod
-    @abstractmethod
     def get_ddl(cls) -> str:
         # TODO: add constraints and security if applicable to all classes
-        pass
+        return ""
 
     @staticmethod
     def manually_run_all_ddl(session: Session):

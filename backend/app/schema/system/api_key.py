@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
+from functools import cached_property
+from pydantic import computed_field
 
 from sqlmodel import Field, Relationship
 from app.schema.base import (
@@ -49,14 +51,21 @@ class APIKeyUpdate(APIKeyBase, ModelUpdate):
 class APIKey(APIKeyBase, ModelInDB):
     name: str = Field()
     description: str = Field()
-    created_at: datetime = Field()
-    expires_at: datetime = Field()
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    expiration: timedelta = Field(frozen=True)
+
+    @computed_field
+    @cached_property
+    def expires_at(self) -> datetime:
+        return self.created_at + self.expiration
+
     owner_id: int = Field(foreign_key="developer.id")
     owner: Developer = Relationship(back_populates="api_keys")
     scopes: list[str] = Field()
     uses: list["APIKeyUse"] = Relationship(back_populates="api_key")
     spend_limit: Money.T = Field()
-    secret: str = Field(private=True, exclude=True)
+    secret_key: str = Field(frozen=True, exclude=True)
+    public_key: str = Field(frozen=True, private=True, exclude=True)
 
 
 crud_router = build_crud_endpoints(
