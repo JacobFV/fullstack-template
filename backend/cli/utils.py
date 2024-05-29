@@ -1,0 +1,3 @@
+CLI_DIR = typer.APP_DIR
+REPO_DIR = CLI_DIR / '..'
+CODE_DIR = REPO_DIR / 'app'
