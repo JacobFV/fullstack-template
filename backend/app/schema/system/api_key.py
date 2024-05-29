@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from functools import cached_property
 from typing import TYPE_CHECKING, ClassVar, Optional
+from backend.app.schema.user.identity import IdentityRead
 from pydantic import computed_field
 
 from sqlmodel import Field, Relationship
@@ -57,7 +58,7 @@ class APIKeyCreate(APIKeyBase, HasOwnerCreate, ModelCreate):
 class APIKeyRead(APIKeyBase, HasOwnerRead, ModelRead):
     name: str = Field()
     description: str = Field()
-    owner_id: int = Field()
+    owner_id: DeveloperRead.ID = Field()
     spend_limit: Money.T = Field()
     scopes: list[AuthScope] = Field()
     expires_at: datetime = Field()
@@ -86,7 +87,7 @@ class APIKey(APIKeyBase, HasOwner, ModelInDB):
     def expires_at(self) -> datetime:
         return self.created_at + self.expiration
 
-    owner_id: int = Field(foreign_key="developer.id")
+    owner_id: Developer.ID = Field(foreign_key="developer.id")
     owner: Developer = Relationship(back_populates="api_keys")
     scopes: list[str] = Field()
     uses: list["APIKeyUse"] = Relationship(back_populates="api_key")

@@ -67,7 +67,7 @@ def owner_or_target_can_update_fn(
 
 
 class VerificationBase(HasOwnerBase, ModelBase):
-    owner_id: ID = Field(
+    owner_id: Identity.ID = Field(
         schema_extra={
             ModelRead.PRIVILEGES_KEY: owner_or_target_can_read_fn,
             ModelUpdate.PRIVILEGES_KEY: nobody_can_update,
@@ -76,7 +76,7 @@ class VerificationBase(HasOwnerBase, ModelBase):
 
 
 class VerificationCreate(VerificationBase, HasOwnerCreate, ModelCreate):
-    target_id: int
+    target_id: Identity.ID
     on_completion_webhook_url: str
     on_completion_redirect_url: str | None = None
 
@@ -85,7 +85,7 @@ class VerificationCreate(VerificationBase, HasOwnerCreate, ModelCreate):
 
 class VerificationRead(VerificationBase, HasOwnerRead, ModelRead):
     # yes, use nested models here
-    target_id: int = Field(schema_extras={"can_read": owner_or_target_can_read_fn})
+    target_id: Identity.ID = Field(schema_extras={"can_read": owner_or_target_can_read_fn})
     # yes, use nested models here
     target: IdentityRead = Field(
         schema_extras={
@@ -131,9 +131,9 @@ class VerificationUpdate(VerificationBase, HasOwnerUpdate, ModelUpdate):
 
 
 class Verification(HasReddisChannel, VerificationBase, HasOwner, ModelInDB, table=True):
-    requester_id: int = Field(foreign_key=Developer.id)
+    requester_id: Developer.ID = Field(foreign_key=Developer.id)
     requester: Developer = Relationship(back_populates="verifications_requested")
-    target_id: int = Field(foreign_key=Identity.id)
+    target_id: Identity.ID = Field(foreign_key=Identity.id)
     target: Identity = Relationship(back_populates="verifications_targeted")
     verf_status: VerificationStatus = Field(default=VerificationStatus.REQUESTED)
     on_completion_webhook_url: str = Field()

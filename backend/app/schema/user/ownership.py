@@ -66,17 +66,17 @@ def owner_can_delete(db_model: "HasOwner", /, *, context: Context) -> bool:
 
 
 class HasOwnerBase(ABC):
-    owner_id: int
+    owner_id: Identity.ID
 
 
 class HasOwnerCreate(ModelCreate, HasOwnerBase):
-    owner_id: int
+    owner_id: Identity.ID
 
     OBJECT_CREATE_PRIVILEGES: ClassVar[CreatePrivileges] = owner_can_create
 
 
 class HasOwnerRead(ModelRead, HasOwnerBase):
-    owner_id: int = Field(
+    owner_id: Identity.ID = Field(
         schema_extras={ModelRead.PRIVILEGES_KEY: None}
     )  # TODO: implement default field authorization
 
@@ -84,7 +84,7 @@ class HasOwnerRead(ModelRead, HasOwnerBase):
 
 
 class HasOwnerUpdate(ModelUpdate, HasOwnerBase):
-    owner_id: int = Field(schema_extras={ModelUpdate.PRIVILEGES_KEY: nobody_can_do})
+    owner_id: Identity.ID = Field(schema_extras={ModelUpdate.PRIVILEGES_KEY: nobody_can_do})
 
     DEFAULT_FIELD_PRIVILEGES: ClassVar[UpdatePrivileges] = owner_can_update
 

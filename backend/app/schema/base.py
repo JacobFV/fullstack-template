@@ -6,6 +6,8 @@ from enum import Enum
 from functools import cached_property
 from typing import Callable, ClassVar, Literal, Optional
 import warnings
+from backend.app.api.deps import get_db
+from backend.app.schema.id import ID
 from pydantic import BaseModel
 
 # from .user import User
@@ -117,7 +119,7 @@ class HasPrivileges(BaseModel, ABC):
 
 class ModelRead(HasPrivileges, ModelBase):
 
-    id: int
+    id: ID
     type: str = Field(discriminator="type")
 
     PRIVILEGES_FIELD_KEY: ClassVar[str] = "read_privileges"
@@ -140,7 +142,7 @@ class ModelInDB(ModelBase, table=True):
         "polymorphic_identity": "entity",  # base class identity
         "polymorphic_on": "type",  # specifying which field is the discriminator
     }
-    id: int = Field(autoincrement=True, primary_key=True, frozen=True)
+    id: ID = Field(defact_factory=get_db, primary_key=True, frozen=True)
     type: str = Field(nullable=False, index=True, frozen=True)
 
     OBJECT_DELETE_PRIVILEGES: ClassVar[DeletePrivileges] = nobody_can_delete
@@ -231,7 +233,7 @@ class ModelInDB(ModelBase, table=True):
             session.refresh(self)
 
     @classmethod
-    def find_by_id(cls, id: int, session: Session):
+    def find_by_id(cls, id: ID, session: Session):
         sql = select(cls).where(cls.id == id)
         return session.exec(sql).first()
 
@@ -246,7 +248,7 @@ class ModelInDB(ModelBase, table=True):
         return session.exec(sql).all()
 
     @classmethod
-    def find_by_id_or_raise(cls, id: int, session: Session):
+    def find_by_id_or_raise(cls, id: ID, session: Session):
         entity = cls.find_by_id(id, session)
         if not entity:
             raise ValueError(f"Entity {id} not found")
@@ -255,7 +257,7 @@ class ModelInDB(ModelBase, table=True):
     @classmethod
     def update_by_id(
         cls,
-        id: int,
+        id: ID,
         update_model: ModelUpdate,
         session: Session,
         commit=True,
@@ -272,7 +274,7 @@ class ModelInDB(ModelBase, table=True):
     @classmethod
     def update_by_ids(
         cls,
-        ids: list[int],
+        ids: list[ID],
         update_model: ModelUpdate,
         session: Session,
         commit=True,
@@ -291,14 +293,14 @@ class ModelInDB(ModelBase, table=True):
                     session.refresh(entity)
 
     @classmethod
-    def delete_by_id(cls, id: int, session: Session, commit=True):
+    def delete_by_id(cls, id: ID, session: Session, commit=True):
         entity = cls.find_by_id_or_raise(id, session)
         entity.delete(session)
         if commit:
             session.commit()
 
     @classmethod
-    def delete_by_ids(cls, ids: list[int], session: Session, commit=True):
+    def delete_by_ids(cls, ids: list[ID], session: Session, commit=True):
         for id in ids:
             cls.delete_by_id(id, session, commit=False)
         if commit:
@@ -317,21 +319,21 @@ class ModelInDB(ModelBase, table=True):
         return session.exec(sql).scalar()
 
     @classmethod
-    def exists(cls, id: int, session: Session):
+    def exists(cls, id: ID, session: Session):
         return cls.find_by_id(id, session) is not None
 
     @classmethod
-    def exists_by_ids(cls, ids: list[int], session: Session):
+    def exists_by_ids(cls, ids: list[ID], session: Session):
         return len(cls.find_by_ids(ids, session)) == len(ids)
 
     @classmethod
-    def exists_all(cls, ids: list[int], session: Session):
+    def exists_all(cls, ids: list[ID], session: Session):
         return cls.exists_by_ids(ids, session)
 
     @classmethod
-    def exists_any(cls, ids: list[int], session: Session):
+    def exists_any(cls, ids: list[ID], session: Session):
         return cls.exists_by_ids(ids, session)
 
     @classmethod
-    def exists_none(cls, ids: list[int], session: Session):
+    def exists_none(cls, ids: list[ID], session: Session):
         return not cls.exists_by_ids(ids, session)

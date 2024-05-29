@@ -53,7 +53,7 @@ class IdentityBase(HasOwnerBase, IdentityBase, ModelBase):
 
 class IdentityCreate(IdentityBase, HasOwnerCreate, ModelCreate):
     image_bytes: Optional[bytes] = Field()
-    owner_id: int | None
+    owner_id: ID | None
 
     CREATE_PRIVILEGES: ClassVar[CreatePrivileges] = owner_can_create
 

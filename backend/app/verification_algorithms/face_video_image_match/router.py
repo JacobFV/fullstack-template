@@ -39,7 +39,7 @@ def get_my_verification_requests(
 
 
 def get_verification_request_assigned_to_meby_id(
-    verification_request_id: int,
+    verification_request_id: Verification.ID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Verification | None:
@@ -98,7 +98,7 @@ def update_verification_request(
 
 @router.get("/{verification_request_id}", response_model=VerificationStatus)
 def check_verification_request_status(
-    verification_request_id: int,
+    verification_request_id: Verification.ID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -115,7 +115,7 @@ def check_verification_request_status(
 @router.websocket("/ws/{verification_request_id}")
 async def verify_me_websocket_endpoint(
     websocket: WebSocket,
-    verification_request_id: int,
+    verification_request_id: Verification.ID,
     db: Session = Depends(get_db),
     current_identity: VerifiableIdentity = Depends(get_current_verifiable_identity),
 ):

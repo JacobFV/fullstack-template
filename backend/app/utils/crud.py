@@ -7,6 +7,7 @@ from app.schema.proof_of_id_verification import (
     ModelRead,
     ModelUpdate,
 )
+from backend.app.schema.id import ID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session
 
@@ -120,7 +121,7 @@ def build_crud_endpoints(
                 },
             },
         )
-        async def read_one(id: int, session: SessionDep, user: MaybeCurrentUserDep):
+        async def read_one(id: ID, session: SessionDep, user: MaybeCurrentUserDep):
             item_in_db = t_model_in_db.find_by_id(id, session=session)
             if not item_in_db:
                 raise HTTPException(status_code=404, detail="Item not found")
@@ -152,7 +153,7 @@ def build_crud_endpoints(
             },
         )
         async def read_one_field(
-            id: int, field: str, session: SessionDep, user: MaybeCurrentUserDep
+            id: ID, field: str, session: SessionDep, user: MaybeCurrentUserDep
         ):
             read_model = implement_read(id, session=session, user=user)
             if not hasattr(read_model, field):
@@ -251,7 +252,7 @@ def build_crud_endpoints(
             },
         )
         async def update_one(
-            id: int,
+            id: ID,
             update_data: t_model_update,
             session: SessionDep,
             user: MaybeCurrentUserDep,
@@ -290,7 +291,7 @@ def build_crud_endpoints(
             },
         )
         async def update_one_field(
-            id: int,
+            id: ID,
             field_name: str,
             field_value: Any,
             session: SessionDep,
@@ -374,7 +375,7 @@ def build_crud_endpoints(
                 },
             },
         )
-        async def delete_one(id: int, session: SessionDep, user: MaybeCurrentUserDep):
+        async def delete_one(id: ID, session: SessionDep, user: MaybeCurrentUserDep):
             item_in_db = t_model_in_db.find_by_id_or_raise(id, session)
             item_in_db.delete(session)
             return item_in_db.to_read(user=user)

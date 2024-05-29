@@ -26,7 +26,7 @@ class APIKeyUseBase(ModelBase):
 
 
 class APIKeyUseRead(APIKeyUseBase, ModelRead):
-    api_key_id: int = Field()
+    api_key_id: APIKeyRead.ID = Field()
     api_key: APIKeyRead = Field()
     timestamp: datetime = Field()
     ip_address: str = Field()
@@ -39,7 +39,7 @@ class APIKeyUseRead(APIKeyUseBase, ModelRead):
 
 
 class APIKeyUse(APIKeyUseBase, ModelInDB):
-    api_key_id: int = Field()
+    api_key_id: APIKey.ID = Field()
     api_key: APIKey = Field()
     timestamp: datetime = Field()
     ip_address: str = Field()
@@ -48,35 +48,7 @@ class APIKeyUse(APIKeyUseBase, ModelInDB):
     http_path: str = Field()
     http_method: str = Field()
 
-    @classmethod
-    def from_create(
-        cls,
-        model_create: APIKeyUseCreate,
-        context: "Context",
-        extra_keys: Optional[dict] = None,
-        commit=True,
-        refresh=True,
-    ) -> APIKeyUse:
-        api_key_use_in_db = super().from_create(
-            model_create=model_create,
-            context=context,
-            extra_keys=extra_keys,
-            commit=commit,
-            refresh=refresh,
-        )
-        return api_key_use_in_db
-
     OBJECT_DELETE_PRIVILEGES: ClassVar[DeletePrivileges] = nobody_can_delete
-
-    def update_from(
-        self,
-        model_update: APIKeyUseUpdate,
-        context: Context,
-        extra_keys: dict | None = None,
-        commit=True,
-        refresh=False,
-    ) -> None:
-        return super().update_from(model_update, context, extra_keys, commit, refresh)
 
     def to_read(self, context: Context, refresh=False) -> APIKeyUseRead:
         return super().to_read(context, refresh=refresh)
