@@ -6,8 +6,10 @@ from tenacity import after_log, before_log, retry, stop_after_attempt, wait_fixe
 
 from app.core.config import get_settings, settings
 from app import crud
-from app.schema.proof_of_id_verification import User, UserCreate
 
+
+for subclass in SQLModel.__subclasses__():
+    subclass.update_forward_refs()
 
 connect_args = {"check_same_thread": False}
 engine = create_engine(
@@ -35,18 +37,6 @@ async def init_db(session: Session, seed_if_new=False) -> None:
         settings = await get_settings()
         if not settings.seeded_on:
             await seed_db(session)
-
-
-async def seed_db(session: Session) -> None:
-
-    crud.create_user(
-        session=session,
-        user_create=UserCreate(
-            email=settings.FIRST_SUPERUSER,
-            password=settings.FIRST_SUPERUSER_PASSWORD,
-            is_superuser=True,
-        ),
-    )
 
 
 logging.basicConfig(level=logging.INFO)

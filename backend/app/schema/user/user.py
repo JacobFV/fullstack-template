@@ -5,6 +5,7 @@ from datetime import datetime
 from enum import Enum
 from functools import cached_property
 from typing import ClassVar, Optional
+from backend.app.core.security import verify_password
 
 from pydantic.config import ConfigDict
 from sqlalchemy import Column, String, func
@@ -131,6 +132,15 @@ class User(Identity, UserBase):
 
     def to_read(self, context: Context, refresh=False) -> UserRead:
         return super().to_read(context, refresh=refresh)
+
+    @classmethod
+    def find_by_email(cls, *, session: Session, email: str) -> User | None:
+        statement = select(User).where(User.email == email)
+        session_user = session.exec(statement).first()
+        return session_user
+
+    def authenticate(self, password: str) -> bool:
+        return verify_password(password, self.hashed_password)
 
 
 # other API models

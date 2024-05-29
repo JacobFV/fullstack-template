@@ -36,7 +36,7 @@ def authentication_token_from_email(
     If the user doesn't exist it is created first.
     """
     password = random_lower_string()
-    user = crud.get_user_by_email(session=db, email=email)
+    user = crud.find_by_email(session=db, email=email)
     if not user:
         user_in_create = UserCreate(email=email, password=password)
         user = crud.create_user(session=db, user_create=user_in_create)
