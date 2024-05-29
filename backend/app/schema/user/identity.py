@@ -117,12 +117,3 @@ class Identity(IdentityBase, HasOwner, ModelInDB, table=True):
 
     def to_read(self, context: Context, refresh=False) -> IdentityRead:
         return super().to_read(context, refresh=refresh)
-
-
-crud_router = build_crud_endpoints(
-    t_model_base=IdentityBase,
-    t_model_create=IdentityCreate,
-    t_model_read=IdentityRead,
-    t_model_update=IdentityUpdate,
-    t_model_in_db=Identity,
-)

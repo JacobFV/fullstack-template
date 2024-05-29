@@ -5,7 +5,7 @@ from datetime import datetime
 from enum import Enum
 from functools import cached_property
 from typing import ClassVar, Optional
-from backend.app.core.security import verify_password
+from app.core.security import verify_password
 
 from pydantic.config import ConfigDict
 from sqlalchemy import Column, String, func
@@ -147,12 +147,3 @@ class User(Identity, UserBase):
 class UpdatePassword(ModelBase):
     current_password: str
     new_password: str
-
-
-crud_router = build_crud_endpoints(
-    t_model_base=UserBase,
-    t_model_create=UserCreate,
-    t_model_read=UserRead,
-    t_model_update=UserUpdate,
-    t_model_in_db=User,
-)

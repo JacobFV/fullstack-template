@@ -1,3 +1,10 @@
+# $ db backup --host <host> --port [5432] --username [postgres] --password [<password>, defaults to ""] --database [<database>, defaults to "postgres"]
+# $ db restore --host <host> --port [5432] --username [postgres] --password [<password>, defaults to ""] --database [<database>, defaults to "postgres"] --backup-file <backup-file>
+# $ db alembic [<alembic command>]
+# $ db test-connect --host <host> --port [5432] --username [postgres] --password [<password>, defaults to ""] --database [<database>, defaults to "postgres"]
+# $ db seed [<specific seed name or "all", optional, defaults "all"]
+# $ db migrate [<specific alembic version or "latest">, optional, defaults "latest"]
+
 from sqlmodel import Session
 import typer
 
@@ -53,7 +60,7 @@ def alembic(*args):
     typer.echo("Alembic command completed.")
 
 
-@db_cli.command()
+@db_cli.command('test-connect')
 def test_connect():
     typer.echo("Testing database connection...")
     with Session(engine) as session:

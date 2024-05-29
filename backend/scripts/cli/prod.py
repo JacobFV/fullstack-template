@@ -1,24 +1,3 @@
-import os
-import subprocess
-from typing import Annotated
-import typer
-import uvicorn
-
-from app.core.config import Settings, get_settings
-from app.__main__ import fastapi_app
-
-dev_cli = typer.Typer()
-
-SettingsTyperDep = Annotated[Settings, typer.Depends(get_settings)]
-
-
-# Main command: serve
-@dev_cli.command()
-async def serve(host: str = Settings.HOST, port: int = Settings.PORT):
-    uvicorn.run(fastapi_app, host=host, port=port)
-
-
-from app.core.config import get_settings
 
 
 @dev_cli.command()
@@ -44,25 +23,7 @@ async def logs(days: int = 1):
         typer.echo("Stopped streaming logs.")
 
 
-@dev_cli.command()
-async def build_docs():
-    code_dir = await get_settings().code_dir
-    subprocess.run(
-        ["poetry", "run", "make", "html"],
-        cwd=code_dir,
-        capture_output=False,
-    )
 
-
-@dev_cli.command()
-async def test():
-    settings = await get_settings()
-    code_dir = settings.code_dir
-    subprocess.run(
-        ["tests_start.sh"],
-        cwd=code_dir,
-        capture_output=False,
-    )
 
 
 @dev_cli.command()

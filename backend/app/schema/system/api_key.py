@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from functools import cached_property
 from typing import TYPE_CHECKING, ClassVar, Optional
-from backend.app.schema.user.identity import IdentityRead
+from app.schema.user.identity import IdentityRead
 from pydantic import computed_field
 
 from sqlmodel import Field, Relationship
@@ -127,12 +127,3 @@ class APIKey(APIKeyBase, HasOwner, ModelInDB):
         return super().to_read(context, refresh=refresh)
 
     OBJECT_DELETE_PRIVILEGES: ClassVar[DeletePrivileges] = owner_can_delete
-
-
-crud_router = build_crud_endpoints(
-    t_model_base=APIKeyBase,
-    t_model_create=APIKeyCreate,
-    t_model_read=APIKeyRead,
-    t_model_update=APIKeyUpdate,
-    t_model_in_db=APIKey,
-)

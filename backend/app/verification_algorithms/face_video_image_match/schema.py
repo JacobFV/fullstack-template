@@ -13,7 +13,7 @@ from sqlmodel import Field, Relationship, Session, SQLModel, delete, select
 from typing_extensions import Unpack
 
 from app.core.redis import get_redis_connection, settings
-from app.verification_algorithms.base.verification import (
+from app.verification_algorithms.base.schema import (
     Verification,
     VerificationBase,
     VerificationRead,

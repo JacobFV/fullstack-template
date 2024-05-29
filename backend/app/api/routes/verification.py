@@ -1,24 +1,24 @@
 from fastapi import APIRouter
 
-from app.api.routes.verification.credit_bureau_verification import (
+from app.verification.credit_bureau.router import (
     router as credit_bureau_verification_router,
 )
-from app.api.routes.verification.face_video_anomaly_verification import (
+from app.verification.face_video_anomaly_verification.router import (
     router as face_video_anomaly_verification_router,
 )
-from app.api.routes.verification.hand_sign_verification import (
+from app.verification.hand_sign_verification.router import (
     router as hand_sign_verification_router,
 )
-from app.api.routes.verification.human_speech_verification import (
+from app.verification.human_speech_verification.router import (
     router as human_speech_verification_router,
 )
-from app.api.routes.verification.living_pupil_verification import (
+from app.verification.living_pupil_verification.router import (
     router as living_pupil_verification_router,
 )
-from app.api.routes.verification.proof_of_id_verification import (
+from app.verification.proof_of_id_verification.router import (
     router as proof_of_id_verification_router,
 )
-from app.api.routes.verification.verification import router as verification_router
+from app.verification.verification.router import router as verification_router
 
 router = APIRouter()
 router.include_router(credit_bureau_verification_router, prefix="/credit-bureau")

@@ -21,8 +21,14 @@ if settings.SENTRY_DSN and settings.ENVIRONMENT != "local":
 @contextmanager
 def lifespan(app: FastAPI):
     try:
+        # start code
         yield
+        # normal end code
+    except Exception as e:
+        # error handling code
+        pass
     finally:
+        # shutdown code
         pass
 
 

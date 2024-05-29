@@ -25,7 +25,7 @@ from app.schema.user.user import (
     UserUpdateMe,
 )
 from app.utils.context import Context
-from app.verification_algorithms.base.verification import Verification
+from app.verification_algorithms.base.schema import Verification
 from app.utils.crud import build_crud_endpoints
 from app.schema.system.api_key import APIKey, APIKeyRead
 
@@ -94,12 +94,3 @@ class Developer(DeveloperBase, User, table=True):
 
     def to_read(self, context: Context, refresh=False) -> DeveloperRead:
         return super().to_read(context, refresh=refresh)
-
-
-crud_router = build_crud_endpoints(
-    t_model_base=DeveloperBase,
-    t_model_create=DeveloperCreate,
-    t_model_read=DeveloperRead,
-    t_model_update=DeveloperUpdate,
-    t_model_in_db=Developer,
-)

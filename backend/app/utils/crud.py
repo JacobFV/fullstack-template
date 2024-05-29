@@ -7,7 +7,7 @@ from app.schema.proof_of_id_verification import (
     ModelRead,
     ModelUpdate,
 )
-from backend.app.schema.id import ID
+from app.schema.id import ID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session
 

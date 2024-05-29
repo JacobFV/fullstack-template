@@ -6,8 +6,8 @@ from enum import Enum
 from functools import cached_property
 from typing import Callable, ClassVar, Literal, Optional
 import warnings
-from backend.app.api.deps import get_db
-from backend.app.schema.id import ID
+from app.api.deps import get_db
+from app.schema.id import ID
 from pydantic import BaseModel
 
 # from .user import User

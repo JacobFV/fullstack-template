@@ -52,10 +52,3 @@ class APIKeyUse(APIKeyUseBase, ModelInDB):
 
     def to_read(self, context: Context, refresh=False) -> APIKeyUseRead:
         return super().to_read(context, refresh=refresh)
-
-
-crud_router = build_crud_endpoints(
-    t_model_base=APIKeyUseBase,
-    t_model_read=APIKeyUseRead,
-    t_model_in_db=APIKeyUse,
-)

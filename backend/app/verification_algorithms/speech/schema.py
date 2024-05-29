@@ -14,7 +14,7 @@ from typing_extensions import Unpack
 
 from app.core.redis import get_redis_connection
 from app.schema.base import ModelBase, ModelRead
-from app.verification_algorithms.base.verification import (
+from app.verification_algorithms.base.schema import (
     Verification,
     VerificationBase,
     VerificationRead,
